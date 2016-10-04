@@ -28,12 +28,17 @@
 
 #include "QCCTV.h"
 
-class QCCTV_RemoteCamera : public QObject {
+class QCCTV_RemoteCamera : public QObject
+{
     Q_OBJECT
 
 signals:
-    void connected (const QCCTV_RemoteCamera& camera);
-    void disconnected (const QCCTV_RemoteCamera& camera);
+    void connected();
+    void disconnected();
+    void imageReceived();
+    void lightStatusChanged();
+    void focusStatusChanged();
+    void cameraStatusChanged();
 
 public:
     QCCTV_RemoteCamera();

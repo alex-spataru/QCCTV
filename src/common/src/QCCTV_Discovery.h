@@ -26,7 +26,8 @@
 #include <QObject>
 #include <QHostAddress>
 
-class QCCTV_Discovery : public QObject {
+class QCCTV_Discovery : public QObject
+{
     Q_OBJECT
 
 signals:
