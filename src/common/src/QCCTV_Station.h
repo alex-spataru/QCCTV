@@ -29,22 +29,15 @@
 class QCCTV_Station : public QObject
 {
     Q_OBJECT
+
     Q_ENUM (QCCTV_LightStatus)
     Q_ENUM (QCCTV_CameraStatus)
 
 signals:
-    void cameraAdded (int camera);
-    void cameraRemoved (int camera);
-    void lightStatusChanged (int camera, QCCTV_LightStatus status);
-    void cameraStatusChanged (int camera, QCCTV_CameraStatus status);
-
-public:
-    QCCTV_Station();
-    ~QCCTV_Station();
-
-    Q_INVOKABLE QString group() const;
-    Q_INVOKABLE int cameraCount() const;
-    Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
+    void cameraAdded (const int camera);
+    void cameraRemoved (const int camera);
+    void lightStatusChanged (const int camera, const QCCTV_LightStatus status);
+    void cameraStatusChanged (const int camera, const QCCTV_CameraStatus status);
 
 public slots:
     void setCameraGroup (const QString& group);
@@ -53,6 +46,11 @@ public slots:
 
 private slots:
     void connectToCamera (const QHostAddress& ip);
+
+public:
+    Q_INVOKABLE QString group() const;
+    Q_INVOKABLE int cameraCount() const;
+    Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 private:
     QString m_group;

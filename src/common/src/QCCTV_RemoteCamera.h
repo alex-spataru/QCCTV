@@ -33,12 +33,10 @@ class QCCTV_RemoteCamera : public QObject
     Q_OBJECT
 
 signals:
-    void connected();
-    void disconnected();
-    void imageReceived();
-    void lightStatusChanged();
-    void focusStatusChanged();
-    void cameraStatusChanged();
+    void newImage();
+    void newCameraStatus();
+    void connected (const QCCTV_RemoteCamera& camera);
+    void disconnected (const QCCTV_RemoteCamera& camera);
 
 public:
     QCCTV_RemoteCamera();
@@ -54,12 +52,11 @@ public:
     Q_INVOKABLE QCCTV_CameraStatus cameraStatus() const;
 
 public slots:
-    void attemptConnection();
     void setFPS (const int fps);
-    void setGroup (const QString& group);
-    void setImageSize (const QSize size);
-    void setAddress (const QHostAddress& address);
+    void attemptConnection (const QHostAddress& address);
     void setLightStatus (const QCCTV_LightStatus status);
+
+private slots:
     void setCameraStatus (const QCCTV_CameraStatus status);
 
 private:

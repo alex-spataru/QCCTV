@@ -19,3 +19,206 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE
  */
+
+#include "QCCTV.h"
+#include "QCCTV_LocalCamera.h"
+
+/**
+ * Initializes the class by binding the sockets and connecting the
+ * signals/slots of the different sockets used by the local camera.
+ *
+ * Additionaly, the class will try to gain access to the frontal camera
+ * during initalization...
+ */
+QCCTV_LocalCamera::QCCTV_LocalCamera() {
+    m_commandSocket.bind (QHostAddress::Any,
+                          QCCTV_COMMAND_PORT,
+                          QUdpSocket::ShareAddress |
+                          QUdpSocket::ReuseAddressHint);
+
+    connect (&m_commandSocket, SIGNAL (readyRead()),
+             this,               SLOT (readCommandPacket()));
+}
+
+QCCTV_LocalCamera::~QCCTV_LocalCamera() {
+}
+
+/**
+ * Returns the current FPS of the camera
+ */
+int QCCTV_LocalCamera::fps() const {
+    return m_fps;
+}
+
+/**
+ * Returns the user-assigned name of the camera
+ */
+QString QCCTV_LocalCamera::cameraName() const {
+    return m_cameraName;
+}
+
+/**
+ * Returns the camera group associated with this camera
+ */
+QString QCCTV_LocalCamera::cameraGroup() const {
+    return m_cameraGroup;
+}
+
+/**
+ * Returns the current image recorded by the camera
+ */
+QImage QCCTV_LocalCamera::currentImage() const {
+    return m_currentImage;
+}
+
+/**
+ * Returns a list with all the connected QCCTV stations to this camera
+ */
+QStringList QCCTV_LocalCamera::connectedHosts() const {
+    QStringList list;
+
+    foreach (QHostAddress address, m_allowedHosts)
+        list.append (address.toString());
+
+    return list;
+}
+
+/**
+ * Returns the current assigned status for the camera light
+ */
+QCCTV_LightStatus QCCTV_LocalCamera::lightStatus() const {
+    return m_lightStatus;
+}
+
+/**
+ * Returns the current status of the camera itself
+ */
+QCCTV_CameraStatus QCCTV_LocalCamera::cameraStatus() const {
+    return m_cameraStatus;
+}
+
+/**
+ * Forces the camera to re-focus the image
+ */
+void QCCTV_LocalCamera::focusCamera() {
+}
+
+/**
+ * Changes the FPS of the camera
+ */
+void QCCTV_LocalCamera::setFPS (const int fps) {
+    m_fps = fps;
+    emit fpsChanged();
+}
+
+/**
+ * Changes the name assigned to this camera
+ */
+void QCCTV_LocalCamera::setName (const QString& name) {
+    m_cameraName = name;
+    emit cameraNameChanged();
+}
+
+/**
+ * Change the group assigned to this camera
+ */
+void QCCTV_LocalCamera::setGroup (const QString& group) {
+    m_cameraGroup = group;
+    emit cameraGroupChanged();
+}
+
+/**
+ * Changes the light status of the camera
+ */
+void QCCTV_LocalCamera::setLightStatus (const QCCTV_LightStatus status) {
+    m_lightStatus = status;
+    emit lightStatusChanged();
+}
+
+/**
+ * Changes the camera status
+ */
+void QCCTV_LocalCamera::setCameraStatus (const QCCTV_CameraStatus status) {
+    m_cameraStatus = status;
+    emit cameraStatusChanged();
+}
+
+/**
+ * Generates a network packet with the following information
+ *
+ * - The camera name
+ * - The camera group
+ * - The FPS of the camera
+ * - The light status of the camera
+ * - The camera status
+ * - The latest camera image
+ */
+void QCCTV_LocalCamera::sendCameraData() {
+    QByteArray data;
+
+    data.append (cameraName().length());
+    data.append (cameraName());
+    data.append (cameraGroup().length());
+    data.append (cameraGroup());
+    data.append (fps());
+    data.append (lightStatus());
+    data.append (cameraStatus());
+
+    foreach (QHostAddress address, m_allowedHosts)
+        m_senderSocket.writeDatagram (data, address, QCCTV_STREAM_PORT);
+}
+
+/**
+ * Interprets a command packet issued by the QCCTV station in the LAN.
+ *
+ * This packet contains the following data/instructions:
+ *
+ * - A new FPS to use
+ * - The new light status
+ * - A force focus request
+ */
+void QCCTV_LocalCamera::readCommandPacket() {
+    while (m_commandSocket.hasPendingDatagrams()) {
+        int error;
+        QByteArray data;
+        QHostAddress ip;
+
+        /* Resize byte array to incomind data */
+        data.resize (m_commandSocket.pendingDatagramSize());
+
+        /* Read the datagram */
+        error = m_commandSocket.readDatagram (data.data(),
+                                              data.size(),
+                                              &ip, NULL);
+
+        /* Remote IP is not on allowed hosts list, ignore packet */
+        if (!m_allowedHosts.contains (ip))
+            return;
+
+        /* Packet length is invalid */
+        if (data.size() != 3)
+            return;
+
+        /* Change the FPS */
+        setFPS (data.at (0));
+
+        /* Change the light status */
+        setLightStatus (data.at (1));
+
+        /* Focus the camera */
+        if (data.at (2) == QCCTV_FORCE_FOCUS)
+            focusCamera();
+    }
+}
+
+/**
+ * Creates and sends a new packet that announces the existence of this
+ * camera to the rest of the local network
+ */
+void QCCTV_LocalCamera::broadcastInformation() {
+    QString str = "QCCTV_DISCOVERY_SERVICE";
+    m_broadcastSocket.writeDatagram (str.toUtf8(),
+                                     QHostAddress::Any,
+                                     QCCTV_DISCOVERY_PORT);
+}
+

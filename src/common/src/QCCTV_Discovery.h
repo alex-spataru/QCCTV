@@ -24,6 +24,7 @@
 #define _QCCTV_DISCOVERY_H
 
 #include <QObject>
+#include <QUdpSocket>
 #include <QHostAddress>
 
 class QCCTV_Discovery : public QObject
@@ -31,13 +32,19 @@ class QCCTV_Discovery : public QObject
     Q_OBJECT
 
 signals:
-    void cameraFound (const QHostAddress& camera);
+    void newCamera (const QHostAddress& camera);
 
 public:
     static QCCTV_Discovery* getInstance();
 
+private slots:
+    void readPacket();
+
 protected:
     QCCTV_Discovery();
+
+private:
+    QUdpSocket m_socket;
 };
 
 #endif

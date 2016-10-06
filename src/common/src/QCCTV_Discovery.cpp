@@ -19,3 +19,46 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE
  */
+
+#include "QCCTV.h"
+#include "QCCTV_Discovery.h"
+#include "QCCTV_RemoteCamera.h"
+
+/**
+ * Initializes the class by connecting the signals/slots between the UDP
+ * receiver socket and the datagram handler function of this class
+ */
+QCCTV_Discovery::QCCTV_Discovery() {
+    m_socket.bind (QHostAddress::Any,
+                   QCCTV_DISCOVERY_PORT,
+                   QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+
+    connect (&m_socket, SIGNAL (readyRead()), this, SLOT (readPacket()));
+}
+
+/**
+ * Returns the only instance of the class
+ */
+QCCTV_Discovery* QCCTV_Discovery::getInstance() {
+    static QCCTV_Discovery instance;
+    return &instance;
+}
+
+/**
+ * Obtains the remote host IP from which we received a packet, if the datagram
+ * is valid, then the function will notify the rest of the QCCTV library
+ */
+void QCCTV_Discovery::readPacket() {
+    while (m_socket.hasPendingDatagrams()) {
+        int error;
+        QHostAddress ip;
+        QByteArray array;
+
+        array.resize (m_socket.pendingDatagramSize());
+        error = m_socket.readDatagram (array.data(), array.size(), &ip, NULL);
+
+        if (error > 0)
+            emit newCamera (ip);
+    }
+}
+
