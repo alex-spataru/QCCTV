@@ -40,7 +40,14 @@ QCCTV_LocalCamera::QCCTV_LocalCamera() {
              this,               SLOT (readCommandPacket()));
 }
 
+/**
+ * Closes all the sockets and the frontal camera device
+ */
 QCCTV_LocalCamera::~QCCTV_LocalCamera() {
+    m_senderSocket.close();
+    m_commandSocket.close();
+    m_requestSocket.close();
+    m_broadcastSocket.close();
 }
 
 /**
@@ -169,6 +176,14 @@ void QCCTV_LocalCamera::sendCameraData() {
 }
 
 /**
+ * Interprets a connection request packet and decides whenever to accept it
+ * or not
+ */
+void QCCTV_LocalCamera::readRequestPacket() {
+
+}
+
+/**
  * Interprets a command packet issued by the QCCTV station in the LAN.
  *
  * This packet contains the following data/instructions:
@@ -200,10 +215,10 @@ void QCCTV_LocalCamera::readCommandPacket() {
             return;
 
         /* Change the FPS */
-        setFPS (data.at (0));
+        setFPS ((int) data.at (0));
 
         /* Change the light status */
-        setLightStatus (data.at (1));
+        setLightStatus ((QCCTV_LightStatus) data.at (1));
 
         /* Focus the camera */
         if (data.at (2) == QCCTV_FORCE_FOCUS)

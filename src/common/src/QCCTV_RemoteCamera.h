@@ -23,6 +23,7 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
+#include <QImage>
 #include <QObject>
 #include <QHostAddress>
 
@@ -44,7 +45,6 @@ public:
 
     Q_INVOKABLE int fps() const;
     Q_INVOKABLE QString group() const;
-    Q_INVOKABLE QSize imageSize() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QHostAddress address() const;

@@ -20,15 +20,24 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV.h"
-#include "QCCTV_Station.h"
+import QtQuick 2.0
+import QtMultimedia 5.4
+import QtQuick.Controls 2.0
 
-QCCTV_Station::QCCTV_Station() {}
-QCCTV_Station::~QCCTV_Station() {}
-QString QCCTV_Station::group() const {}
-int QCCTV_Station::cameraCount() const {}
-QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera) {}
-void QCCTV_Station::setCameraGroup (const QString& group) {}
-void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status) {}
-void QCCTV_Station::setLightStatus (const int camera, const QCCTV_LightStatus status) {}
-void QCCTV_Station::connectToCamera (const QHostAddress& ip) {}
+ApplicationWindow {
+    id: app
+    width: 720
+    height: 480
+    visible: true
+    color: "black"
+    title: AppDspName + " " + AppVersion
+
+    VideoOutput {
+        source: Camera {
+            captureMode: Camera.CaptureStillImage
+        }
+
+        anchors.fill: parent
+        autoOrientation: true
+    }
+}

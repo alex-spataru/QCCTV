@@ -20,7 +20,22 @@
 # SOFTWARE.
 #
 
+QT += svg
+QT += core
+QT += quick
+QT += quickcontrols2
+
 TEMPLATE = app
 TARGET = CCTV-Camera
 
 include ($$PWD/../common/QCCTV.pri)
+
+SOURCES += \
+    $$PWD/src/main.cpp
+
+RESOURCES += \
+    $$PWD/qml/qml.qrc
+
+OTHER_FILES += \
+    $$PWD/qml/*.js \
+    $$PWD/qml/*.qml

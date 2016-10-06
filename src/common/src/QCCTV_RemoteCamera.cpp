@@ -19,3 +19,20 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE
  */
+
+#include "QCCTV.h"
+#include "QCCTV_RemoteCamera.h"
+
+QCCTV_RemoteCamera::QCCTV_RemoteCamera() {}
+QCCTV_RemoteCamera::~QCCTV_RemoteCamera() {}
+int QCCTV_RemoteCamera::fps() const {}
+QString QCCTV_RemoteCamera::group() const {}
+QString QCCTV_RemoteCamera::cameraName() const {}
+QImage QCCTV_RemoteCamera::currentImage() const {}
+QHostAddress QCCTV_RemoteCamera::address() const {}
+QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const {}
+QCCTV_CameraStatus QCCTV_RemoteCamera::cameraStatus() const {}
+void QCCTV_RemoteCamera::setFPS (const int fps) {}
+void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address) {}
+void QCCTV_RemoteCamera::setLightStatus (const QCCTV_LightStatus status) {}
+void QCCTV_RemoteCamera::setCameraStatus (const QCCTV_CameraStatus status) {}

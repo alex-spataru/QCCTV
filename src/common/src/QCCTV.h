@@ -39,13 +39,14 @@ enum QCCTV_CameraStatus {
     QCCTV_CAMSTATUS_LIGHT_FAILURE = 0x06,
 };
 
+/* Additional command flags */
+#define QCCTV_FORCE_FOCUS 0x05
 
-#define QCCTV_DATA_SEPARATOR 0x05
-
-#define QCCTV_STREAM_PORT 15400
-#define QCCTV_COMMAND_PORT 25400
-#define QCCTV_REQUEST_PORT 25300
-#define QCCTV_DISCOVERY_PORT 54000
+/* Network ports */
+#define QCCTV_STREAM_PORT    0x1100
+#define QCCTV_COMMAND_PORT   0x1150
+#define QCCTV_REQUEST_PORT   0x1200
+#define QCCTV_DISCOVERY_PORT 0x1250
 
 #endif
 
