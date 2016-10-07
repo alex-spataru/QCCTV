@@ -42,6 +42,9 @@ public slots:
     void setCameraStatus (const QCCTV_CameraStatus status);
 
 private slots:
+    void update();
+    void updateImage();
+    void updateStatus();
     void sendCameraData();
     void readRequestPacket();
     void readCommandPacket();

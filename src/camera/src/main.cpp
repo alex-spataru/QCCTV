@@ -25,10 +25,12 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include "QCCTV_LocalCamera.h"
+
 const QString APP_VERSION = "1.0";
 const QString APP_COMPANY = "Alex Spataru";
 const QString APP_DSPNAME = "QCCTV Camera";
-const QString APP_WEBSITE = "http://frc-utilities.github.io/";
+const QString APP_WEBSITE = "http://github.com/alex-spataru";
 
 int main (int argc, char* argv[])
 {
@@ -43,8 +45,12 @@ int main (int argc, char* argv[])
     QGuiApplication app (argc, argv);
     QQuickStyle::setStyle ("Universal");
 
+    /* Initialize QCCTV camera */
+    QCCTV_LocalCamera camera;
+
     /* Load QML interface */
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty ("QCCTVCamera", &camera);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));

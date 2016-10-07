@@ -26,10 +26,19 @@ Image {
     id: button
 
     signal clicked
+    property bool toggled: false
 
     sourceSize: Qt.size (36, 36)
-    opacity: mouse.containsMouse ? 1.0 : 0.6
-    anchors.horizontalCenter: parent.horizontalCenter
+
+    opacity: {
+        if (toggled)
+            return 1.0
+
+        else if (mouse.containsMouse)
+            return 0.8
+
+        return 0.4
+    }
 
     Behavior on opacity { NumberAnimation{} }
 
@@ -37,6 +46,6 @@ Image {
         id: mouse
         hoverEnabled: true
         anchors.fill: parent
-        onClicked: button.clicked
+        onClicked: button.clicked()
     }
 }

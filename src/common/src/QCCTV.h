@@ -40,7 +40,7 @@ enum QCCTV_CameraStatus {
 };
 
 /* Additional command flags */
-#define QCCTV_FORCE_FOCUS 0x05
+#define QCCTV_FORCE_FOCUS    0x0005
 
 /* Network ports */
 #define QCCTV_STREAM_PORT    0x1100

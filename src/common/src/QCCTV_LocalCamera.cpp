@@ -31,11 +31,22 @@
  * during initalization...
  */
 QCCTV_LocalCamera::QCCTV_LocalCamera() {
+    /* Set default values */
+    m_fps = 24;
+    m_cameraName = "Cam0";
+    m_cameraGroup = "Default";
+
+    /* Start the event loops */
+    QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
+    QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (broadcastInformation()));
+
+    /* Bind sockets */
     m_commandSocket.bind (QHostAddress::Any,
                           QCCTV_COMMAND_PORT,
                           QUdpSocket::ShareAddress |
                           QUdpSocket::ReuseAddressHint);
 
+    /* Connect sockets signals/slots */
     connect (&m_commandSocket, SIGNAL (readyRead()),
              this,               SLOT (readCommandPacket()));
 }
@@ -108,6 +119,7 @@ QCCTV_CameraStatus QCCTV_LocalCamera::cameraStatus() const {
  * Forces the camera to re-focus the image
  */
 void QCCTV_LocalCamera::focusCamera() {
+    emit focusStatusChanged();
 }
 
 /**
@@ -148,6 +160,32 @@ void QCCTV_LocalCamera::setLightStatus (const QCCTV_LightStatus status) {
 void QCCTV_LocalCamera::setCameraStatus (const QCCTV_CameraStatus status) {
     m_cameraStatus = status;
     emit cameraStatusChanged();
+}
+
+/**
+ * Obtains a new image from the camera, updates the camera status and sends
+ * the newly obtained data to the stations
+ */
+void QCCTV_LocalCamera::update() {
+    updateImage();
+    updateStatus();
+    sendCameraData();
+
+    QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
+}
+
+/**
+ * Obtains a new image from the camera
+ */
+void QCCTV_LocalCamera::updateImage() {
+
+}
+
+/**
+ * Updates the status code of the camera
+ */
+void QCCTV_LocalCamera::updateStatus() {
+
 }
 
 /**
@@ -211,7 +249,7 @@ void QCCTV_LocalCamera::readCommandPacket() {
             return;
 
         /* Packet length is invalid */
-        if (data.size() != 3)
+        if (data.size() != 3 || error <= 0)
             return;
 
         /* Change the FPS */
@@ -235,5 +273,8 @@ void QCCTV_LocalCamera::broadcastInformation() {
     m_broadcastSocket.writeDatagram (str.toUtf8(),
                                      QHostAddress::Any,
                                      QCCTV_DISCOVERY_PORT);
+
+    QTimer::singleShot (1000, Qt::PreciseTimer,
+                        this, SLOT (broadcastInformation()));
 }
 

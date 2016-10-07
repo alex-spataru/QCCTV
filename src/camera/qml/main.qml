@@ -37,6 +37,16 @@ ApplicationWindow {
     property var borderSize: 8
 
     //
+    // QCCTV signals/slots
+    //
+    Connections {
+        target: QCCTVCamera
+        onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
+        onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
+        onFocusStatusChanged: status.display (qsTr ("Focusing Camera") + "...")
+    }
+
+    //
     // Top status bar
     //
     Rectangle {
@@ -51,12 +61,13 @@ ApplicationWindow {
         }
 
         //
-        // QCCTV Label
+        // Camera name
         //
         Label {
+            id: camName
             color: "white"
             font.family: "OpenSans"
-            text: qsTr ("QCCTV Camera")
+            text: QCCTVCamera.cameraName()
 
             anchors {
                 left: parent.left
@@ -69,9 +80,10 @@ ApplicationWindow {
         // FPS indicator
         //
         Label {
+            id: fps
             color: "white"
-            text: qsTr ("24 FPS")
             font.family: "OpenSans"
+            text: QCCTVCamera.fps() + " FPS"
 
             anchors {
                 right: parent.right
@@ -85,6 +97,8 @@ ApplicationWindow {
     // Video output
     //
     VideoOutput {
+        id: video
+
         source: Camera {
             captureMode: Camera.CaptureStillImage
         }
@@ -102,6 +116,47 @@ ApplicationWindow {
         MouseArea {
             anchors.fill: parent
             onClicked: panel.toggled = !panel.toggled
+        }
+    }
+
+    //
+    // Status label
+    //
+    Rectangle {
+        id: status
+
+        radius: 2
+        height: 24
+        opacity: 0
+        width: Math.min (app.width * 0.6, sText.width * 2)
+
+        color: "#222"
+
+        function display (text) {
+            sTimer.start()
+            sText.text = text
+            status.opacity = 0.8
+        }
+
+        Behavior on opacity { NumberAnimation{} }
+
+        Timer {
+            id: sTimer
+            interval: 2000
+            onTriggered: status.opacity = 0
+        }
+
+        Label {
+            id: sText
+            color: "white"
+            font.family: "OpenSans"
+            anchors.centerIn: parent
+        }
+
+        anchors {
+            top: parent.top
+            topMargin: menu.height + borderSize
+            horizontalCenter: video.horizontalCenter
         }
     }
 
@@ -134,15 +189,15 @@ ApplicationWindow {
             anchors.bottomMargin: settings.height
 
             Button {
-                source: "qrc:/images/recorder.png"
-            }
-
-            Button {
                 source: "qrc:/images/focus.png"
+                onClicked: QCCTVCamera.focusCamera()
+                anchors.horizontalCenter: parent.horizontalCenter
             }
 
             Button {
+                onClicked: toggled = !toggled
                 source: "qrc:/images/light.png"
+                anchors.horizontalCenter: parent.horizontalCenter
             }
         }
 
@@ -152,6 +207,7 @@ ApplicationWindow {
         Button {
             id: settings
             source: "qrc:/images/settings.png"
+            anchors.horizontalCenter: parent.horizontalCenter
 
             anchors {
                 bottom: parent.bottom
