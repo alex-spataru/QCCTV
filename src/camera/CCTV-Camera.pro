@@ -39,3 +39,6 @@ RESOURCES += \
 OTHER_FILES += \
     $$PWD/qml/*.js \
     $$PWD/qml/*.qml
+
+DISTFILES += \
+    qml/images/settings.png
