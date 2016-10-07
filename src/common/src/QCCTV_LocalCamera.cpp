@@ -33,8 +33,8 @@
 QCCTV_LocalCamera::QCCTV_LocalCamera() {
     /* Set default values */
     m_fps = 24;
-    m_cameraName = "Cam0";
-    m_cameraGroup = "Default";
+    m_cameraGroup = "default";
+    m_cameraName = "Unknown Camera";
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -218,7 +218,18 @@ void QCCTV_LocalCamera::sendCameraData() {
  * or not
  */
 void QCCTV_LocalCamera::readRequestPacket() {
+    while (m_requestSocket.hasPendingDatagrams()) {
+        QByteArray data;
+        QHostAddress address;
+        data.resize (m_requestSocket.pendingDatagramSize());
+        int bytes = m_requestSocket.readDatagram (data.data(), data.size(),
+                                                  &address, NULL);
 
+        if (bytes > 0) {
+            m_allowedHosts.append (address);
+            m_allowedHosts = m_allowedHosts.toSet().toList();
+        }
+    }
 }
 
 /**
@@ -232,7 +243,6 @@ void QCCTV_LocalCamera::readRequestPacket() {
  */
 void QCCTV_LocalCamera::readCommandPacket() {
     while (m_commandSocket.hasPendingDatagrams()) {
-        int error;
         QByteArray data;
         QHostAddress ip;
 
@@ -240,7 +250,7 @@ void QCCTV_LocalCamera::readCommandPacket() {
         data.resize (m_commandSocket.pendingDatagramSize());
 
         /* Read the datagram */
-        error = m_commandSocket.readDatagram (data.data(),
+        int bytes = m_commandSocket.readDatagram (data.data(),
                                               data.size(),
                                               &ip, NULL);
 
@@ -249,7 +259,7 @@ void QCCTV_LocalCamera::readCommandPacket() {
             return;
 
         /* Packet length is invalid */
-        if (data.size() != 3 || error <= 0)
+        if (data.size() != 3 || bytes <= 0)
             return;
 
         /* Change the FPS */

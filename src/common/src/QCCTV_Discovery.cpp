@@ -50,15 +50,14 @@ QCCTV_Discovery* QCCTV_Discovery::getInstance() {
  */
 void QCCTV_Discovery::readPacket() {
     while (m_socket.hasPendingDatagrams()) {
-        int error;
-        QHostAddress ip;
-        QByteArray array;
+        QByteArray data;
+        QHostAddress address;
+        data.resize (m_socket.pendingDatagramSize());
+        int bytes = m_socket.readDatagram (data.data(), data.size(),
+                                           &address, NULL);
 
-        array.resize (m_socket.pendingDatagramSize());
-        error = m_socket.readDatagram (array.data(), array.size(), &ip, NULL);
-
-        if (error > 0)
-            emit newCamera (ip);
+        if (bytes > 0)
+            emit newCamera (address);
     }
 }
 

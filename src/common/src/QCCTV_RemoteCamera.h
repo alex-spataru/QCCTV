@@ -23,8 +23,10 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
+#include <QTimer>
 #include <QImage>
 #include <QObject>
+#include <QUdpSocket>
 #include <QHostAddress>
 
 #include "QCCTV.h"
@@ -35,9 +37,12 @@ class QCCTV_RemoteCamera : public QObject
 
 signals:
     void newImage();
+    void connected();
+    void disconnected();
+    void newCameraName();
+    void newCameraGroup();
+    void newLightStatus();
     void newCameraStatus();
-    void connected (const QCCTV_RemoteCamera& camera);
-    void disconnected (const QCCTV_RemoteCamera& camera);
 
 public:
     QCCTV_RemoteCamera();
@@ -52,22 +57,35 @@ public:
     Q_INVOKABLE QCCTV_CameraStatus cameraStatus() const;
 
 public slots:
+    void requestFocus();
     void setFPS (const int fps);
     void attemptConnection (const QHostAddress& address);
     void setLightStatus (const QCCTV_LightStatus status);
+    void setCameraStatus (const QCCTV_CameraStatus status);
 
 private slots:
-    void setCameraStatus (const QCCTV_CameraStatus status);
+    void sendData();
+    void readData();
+    void sendRequest();
+    void onCameraTimeout();
+    void resetFocusRequest();
+    void setName (const QString& name);
+    void setGroup (const QString& group);
 
 private:
     int m_fps;
+    bool m_focus;
     QSize m_size;
     QString m_name;
     QImage m_image;
     QString m_group;
+    int m_requestPackets;
     QHostAddress m_address;
     QCCTV_LightStatus m_light_status;
     QCCTV_CameraStatus m_camera_status;
+
+    QUdpSocket m_sender;
+    QUdpSocket m_receiver;
 };
 
 #endif
