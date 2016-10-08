@@ -43,6 +43,16 @@ public slots:
     void setLightStatus (const QCCTV_LightStatus status);
     void setCameraStatus (const QCCTV_CameraStatus status);
 
+    inline void turnOnLight()
+    {
+        setLightStatus (QCCTV_LIGHT_CONTINOUS);
+    }
+
+    inline void turnOffLight()
+    {
+        setLightStatus (QCCTV_LIGHT_OFF);
+    }
+
 private slots:
     void update();
     void updateImage();

@@ -34,20 +34,11 @@ Rectangle {
     border.width: 1
     radius: width / 2
 
-    color: "#444"
+    opacity: 0.85
     border.color: "#999"
+    color: mouse.containsMouse ? "#666" : "#444"
 
-    opacity: {
-        if (toggled)
-            return 0.90
-
-        else if (mouse.containsMouse)
-            return 0.80
-
-        return 0.65
-    }
-
-    Behavior on opacity { NumberAnimation{} }
+    Behavior on color { ColorAnimation{} }
 
     Image {
         id: image

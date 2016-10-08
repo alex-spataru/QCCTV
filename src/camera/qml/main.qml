@@ -30,11 +30,16 @@ ApplicationWindow {
     id: app
     width: 720
     height: 480
-    color: "#111"
+    color: "#000"
     visible: true
     title: AppDspName + " " + AppVersion
 
+    //
+    // Global variables
+    //
     property var borderSize: 8
+    property string family: "OpenSans"
+    property bool controlsEnabled: true
 
     //
     // QCCTV signals/slots
@@ -47,17 +52,45 @@ ApplicationWindow {
     }
 
     //
+    // Video output
+    //
+    VideoOutput {
+        id: video
+        //color: "transparent"
+        anchors.fill: parent
+
+        source: Camera {}
+
+        //
+        // Control toggler mouse area
+        //
+        MouseArea {
+            anchors.fill: parent
+            onClicked: app.controlsEnabled = !app.controlsEnabled
+        }
+    }
+
+    //
     // Top status bar
     //
     Rectangle {
         id: menu
-        color: app.color
+
+        radius: 2
+        border.width: 1
         height: 24 + borderSize
+
+        opacity: app.controlsEnabled ? 0.85 : 0
+        Behavior on opacity { NumberAnimation{} }
+
+        color: "#444"
+        border.color: "#999"
 
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
+            margins: borderSize * 2
         }
 
         //
@@ -65,8 +98,8 @@ ApplicationWindow {
         //
         Label {
             id: camName
-            color: "white"
-            font.family: "OpenSans"
+            color: "#fff"
+            font.family: app.family
             text: QCCTVCamera.cameraName()
 
             anchors {
@@ -82,7 +115,7 @@ ApplicationWindow {
         Label {
             id: fps
             color: "white"
-            font.family: "OpenSans"
+            font.family: app.family
             text: QCCTVCamera.fps() + " FPS"
 
             anchors {
@@ -94,64 +127,73 @@ ApplicationWindow {
     }
 
     //
-    // Video output
+    // Action buttons
     //
-    Rectangle {
-        id: video
-        color: "transparent"
-        anchors.fill: parent
-        anchors.topMargin: menu.height
-    }
+    Row {
+        spacing: borderSize * 2
 
-    //
-    // Settings button
-    //
-    Button {
-        id: settings
-
-        width: 64
-        height: 64
-        source: "qrc:/images/settings.png"
+        opacity: app.controlsEnabled ? 1 : 0
+        Behavior on opacity { NumberAnimation{} }
 
         anchors {
             bottom: parent.bottom
             margins: borderSize * 2
             horizontalCenter: parent.horizontalCenter
         }
-    }
 
-    //
-    // Focus button
-    //
-    Button {
-        id: focus
+        //
+        // Light button
+        //
+        Button {
+            width: 54
+            height: 54
+            source: "qrc:/images/light.png"
+            anchors.verticalCenter: parent.verticalCenter
 
-        width: 54
-        height: 54
-        source: "qrc:/images/focus.png"
+            onClicked: {
+                toggled = !toggled
 
-        anchors {
-            left: settings.right
-            margins: borderSize * 2
-            verticalCenter: settings.verticalCenter
+                if (toggled) {
+                    QCCTVCamera.turnOnLight()
+                    status.display (qsTr ("Flashlight Enabled"))
+                }
+
+                else {
+                    QCCTVCamera.turnOffLight()
+                    status.display (qsTr ("Flashlight Disabled"))
+                }
+            }
         }
-    }
 
-    //
-    // Light button
-    //
-    Button {
-        id: light
+        //
+        // Settings button
+        //
+        Button {
+            width: 64
+            height: 64
+            source: "qrc:/images/settings.png"
+            anchors.verticalCenter: parent.verticalCenter
+        }
 
-        width: 54
-        height: 54
-        onClicked: toggled = !toggled
-        source: "qrc:/images/light.png"
+        //
+        // Photo button
+        //
+        Button {
+            width: 64
+            height: 64
+            source: "qrc:/images/recorder.png"
+            anchors.verticalCenter: parent.verticalCenter
+        }
 
-        anchors {
-            right: settings.left
-            margins: borderSize * 2
-            verticalCenter: settings.verticalCenter
+        //
+        // Focus button
+        //
+        Button {
+            width: 54
+            height: 54
+            source: "qrc:/images/focus.png"
+            onClicked: QCCTVCamera.focusCamera()
+            anchors.verticalCenter: parent.verticalCenter
         }
     }
 
@@ -164,14 +206,16 @@ ApplicationWindow {
         radius: 2
         height: 24
         opacity: 0
+        border.width: 1
         width: Math.min (app.width * 0.6, sText.width * 2)
 
-        color: "#222"
+        color: "#444"
+        border.color: "#999"
 
         function display (text) {
-            sTimer.start()
+            sTimer.restart()
             sText.text = text
-            status.opacity = 0.8
+            status.opacity = 0.85
         }
 
         Behavior on opacity { NumberAnimation{} }
@@ -184,14 +228,14 @@ ApplicationWindow {
 
         Label {
             id: sText
-            color: "white"
-            font.family: "OpenSans"
+            color: "#fff"
+            font.family: app.family
             anchors.centerIn: parent
         }
 
         anchors {
             top: parent.top
-            topMargin: menu.height + borderSize
+            topMargin: menu.height + 4 * borderSize
             horizontalCenter: video.horizontalCenter
         }
     }

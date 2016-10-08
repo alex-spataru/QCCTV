@@ -39,6 +39,8 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     m_fps = 24;
     m_cameraGroup = "default";
     m_cameraName = "Unknown Camera";
+    m_lightStatus = QCCTV_LIGHT_OFF;
+    m_cameraStatus = QCCTV_CAMSTATUS_OK;
 
     /* Open and configure the camera */
     QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
@@ -46,7 +48,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
         m_camera = new QCamera (cameras.first());
         m_camera->setViewfinder (&m_videoItem);
         m_camera->setCaptureMode (QCamera::CaptureStillImage);
-        m_camera->start();
+        //m_camera->start();
     }
 
     /* There are no cameras available */
