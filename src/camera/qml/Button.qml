@@ -22,25 +22,40 @@
 
 import QtQuick 2.0
 
-Image {
+Rectangle {
     id: button
 
     signal clicked
     property bool toggled: false
+    property alias source: image.source
 
-    sourceSize: Qt.size (36, 36)
+    width: 48
+    height: 48
+    border.width: 1
+    radius: width / 2
+
+    color: "#444"
+    border.color: "#999"
 
     opacity: {
         if (toggled)
-            return 1.0
+            return 0.90
 
         else if (mouse.containsMouse)
-            return 0.8
+            return 0.80
 
-        return 0.4
+        return 0.65
     }
 
     Behavior on opacity { NumberAnimation{} }
+
+    Image {
+        id: image
+        anchors.centerIn: parent
+        sourceSize: Qt.size (button.width * 0.5,
+                             button.height * 0.5)
+    }
+
 
     MouseArea {
         id: mouse

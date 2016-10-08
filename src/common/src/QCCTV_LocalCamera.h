@@ -4,7 +4,9 @@
 #include <QTimer>
 #include <QImage>
 #include <QObject>
+#include <QCamera>
 #include <QUdpSocket>
+#include <QGraphicsVideoItem>
 
 #include "QCCTV.h"
 
@@ -60,8 +62,10 @@ private:
     QString m_cameraName;
     QString m_cameraGroup;
 
-    QTimer m_timer;
+    QCamera* m_camera;
     QImage m_currentImage;
+    QGraphicsVideoItem m_videoItem;
+
     QUdpSocket m_senderSocket;
     QUdpSocket m_commandSocket;
     QUdpSocket m_requestSocket;

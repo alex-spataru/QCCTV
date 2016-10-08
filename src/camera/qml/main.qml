@@ -51,7 +51,7 @@ ApplicationWindow {
     //
     Rectangle {
         id: menu
-        color: "#000"
+        color: app.color
         height: 24 + borderSize
 
         anchors {
@@ -96,26 +96,62 @@ ApplicationWindow {
     //
     // Video output
     //
-    VideoOutput {
+    Rectangle {
         id: video
-
-        source: Camera {
-            captureMode: Camera.CaptureStillImage
-        }
-
+        color: "transparent"
         anchors.fill: parent
-        autoOrientation: true
         anchors.topMargin: menu.height
-        anchors.rightMargin: panel.toggled ? panel.width : 0
+    }
 
-        Behavior on anchors.rightMargin { NumberAnimation{} }
+    //
+    // Settings button
+    //
+    Button {
+        id: settings
 
-        //
-        // Panel togglder
-        //
-        MouseArea {
-            anchors.fill: parent
-            onClicked: panel.toggled = !panel.toggled
+        width: 64
+        height: 64
+        source: "qrc:/images/settings.png"
+
+        anchors {
+            bottom: parent.bottom
+            margins: borderSize * 2
+            horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    //
+    // Focus button
+    //
+    Button {
+        id: focus
+
+        width: 54
+        height: 54
+        source: "qrc:/images/focus.png"
+
+        anchors {
+            left: settings.right
+            margins: borderSize * 2
+            verticalCenter: settings.verticalCenter
+        }
+    }
+
+    //
+    // Light button
+    //
+    Button {
+        id: light
+
+        width: 54
+        height: 54
+        onClicked: toggled = !toggled
+        source: "qrc:/images/light.png"
+
+        anchors {
+            right: settings.left
+            margins: borderSize * 2
+            verticalCenter: settings.verticalCenter
         }
     }
 
@@ -157,63 +193,6 @@ ApplicationWindow {
             top: parent.top
             topMargin: menu.height + borderSize
             horizontalCenter: video.horizontalCenter
-        }
-    }
-
-    //
-    // Panel
-    //
-    Rectangle {
-        id: panel
-        color: "#222"
-        width: 72
-
-        property var toggled: true
-
-        anchors {
-            top: menu.bottom
-            right: parent.right
-            bottom: parent.bottom
-            rightMargin: toggled ? 0 : -2  * width
-        }
-
-        Behavior on anchors.rightMargin { NumberAnimation{} }
-
-        //
-        // Actions column
-        //
-        Column {
-            anchors.fill: parent
-            spacing: borderSize * 2
-            anchors.margins: borderSize * 2
-            anchors.bottomMargin: settings.height
-
-            Button {
-                source: "qrc:/images/focus.png"
-                onClicked: QCCTVCamera.focusCamera()
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Button {
-                onClicked: toggled = !toggled
-                source: "qrc:/images/light.png"
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-        }
-
-        //
-        // Settings Button
-        //
-        Button {
-            id: settings
-            source: "qrc:/images/settings.png"
-            anchors.horizontalCenter: parent.horizontalCenter
-
-            anchors {
-                bottom: parent.bottom
-                margins: borderSize * 2
-                horizontalCenter: parent.horizontalCenter
-            }
         }
     }
 }

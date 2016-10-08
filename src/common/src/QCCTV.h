@@ -48,5 +48,8 @@ enum QCCTV_CameraStatus {
 #define QCCTV_REQUEST_PORT   0x1200
 #define QCCTV_DISCOVERY_PORT 0x1250
 
+/* Image encoding */
+#define QCCTV_IMAGE_FORMAT   "PNG"
+
 #endif
 

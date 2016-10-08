@@ -23,6 +23,7 @@
 QT += core
 QT += network
 QT += multimedia
+QT += multimediawidgets
 
 INCLUDEPATH += $$PWD/src
 
