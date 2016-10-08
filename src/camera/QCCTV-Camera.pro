@@ -26,7 +26,7 @@ QT += quick
 QT += quickcontrols2
 
 TEMPLATE = app
-TARGET = CCTV-Camera
+TARGET = QCCTV-Camera
 
 include ($$PWD/../common/QCCTV.pri)
 

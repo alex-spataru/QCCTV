@@ -28,8 +28,16 @@ import "."
 
 ApplicationWindow {
     id: app
+    
+    //
+    // Window geometry
+    //
     width: 720
     height: 480
+    
+    //
+    // Window properties
+    //
     color: "#000"
     visible: true
     title: AppDspName + " " + AppVersion
@@ -75,17 +83,29 @@ ApplicationWindow {
     //
     Rectangle {
         id: menu
-
+        
+        //
+        // Geometry specifications
+        //
         radius: 2
         border.width: 1
         height: 24 + borderSize
 
+        //
+        // Allow hiding/showing this control
+        //
         opacity: app.controlsEnabled ? 0.85 : 0
         Behavior on opacity { NumberAnimation{} }
 
+        //
+        // Colors
+        //
         color: "#444"
         border.color: "#999"
 
+        //
+        // Layout options
+        //
         anchors {
             top: parent.top
             left: parent.left
@@ -132,9 +152,15 @@ ApplicationWindow {
     Row {
         spacing: borderSize * 2
 
+        //
+        // Allow hiding/showing these controls
+        //
         opacity: app.controlsEnabled ? 1 : 0
         Behavior on opacity { NumberAnimation{} }
 
+        //
+        // Layout options
+        //
         anchors {
             bottom: parent.bottom
             margins: borderSize * 2
@@ -142,7 +168,7 @@ ApplicationWindow {
         }
 
         //
-        // Light button
+        // Light control button
         //
         Button {
             width: 54
@@ -203,40 +229,62 @@ ApplicationWindow {
     Rectangle {
         id: status
 
+        //
+        // Geometry options
+        //
         radius: 2
         height: 24
-        opacity: 0
         border.width: 1
         width: Math.min (app.width * 0.6, sText.width * 2)
 
+        //
+        // Colors
+        //
         color: "#444"
         border.color: "#999"
+        
+        //
+        // Allow hiding/showing this control
+        //
+        opacity: 0
+        Behavior on opacity { NumberAnimation{} }
+        
+        //
+        // Layout options
+        //
+        anchors {
+            top: parent.top
+            topMargin: menu.height + 4 * borderSize
+            horizontalCenter: video.horizontalCenter
+        }
 
+        //
+        // Shows the status window with the given \a text
+        // for two seconds and then hides the window
+        //
         function display (text) {
             sTimer.restart()
             sText.text = text
             status.opacity = 0.85
         }
 
-        Behavior on opacity { NumberAnimation{} }
-
+        //
+        // Window hide timer
+        //
         Timer {
             id: sTimer
             interval: 2000
             onTriggered: status.opacity = 0
         }
 
+        //
+        // Dynamic status label
+        //
         Label {
             id: sText
             color: "#fff"
             font.family: app.family
             anchors.centerIn: parent
-        }
-
-        anchors {
-            top: parent.top
-            topMargin: menu.height + 4 * borderSize
-            horizontalCenter: video.horizontalCenter
         }
     }
 }

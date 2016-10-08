@@ -25,21 +25,40 @@ import QtQuick 2.0
 Rectangle {
     id: button
 
+    //
+    // Widget signals
+    //
     signal clicked
+
+    //
+    // Custom properties
+    //
     property bool toggled: false
     property alias source: image.source
 
+    //
+    // Geometry options
+    //
     width: 48
     height: 48
     border.width: 1
     radius: width / 2
 
+    //
+    // Color and opacity options
+    //
     opacity: 0.85
     border.color: "#999"
     color: mouse.containsMouse ? "#666" : "#444"
 
+    //
+    // Fade between color switches
+    //
     Behavior on color { ColorAnimation{} }
 
+    //
+    // Button image
+    //
     Image {
         id: image
         anchors.centerIn: parent
@@ -47,7 +66,9 @@ Rectangle {
                              button.height * 0.5)
     }
 
-
+    //
+    // Detect mouse events/operations with this control
+    //
     MouseArea {
         id: mouse
         hoverEnabled: true
