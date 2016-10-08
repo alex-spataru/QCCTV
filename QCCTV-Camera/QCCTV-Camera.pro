@@ -28,7 +28,7 @@ QT += quickcontrols2
 TEMPLATE = app
 TARGET = QCCTV-Camera
 
-include ($$PWD/../common/QCCTV.pri)
+include ($$PWD/../QCCTV-Common/QCCTV.pri)
 
 SOURCES += \
     $$PWD/src/main.cpp

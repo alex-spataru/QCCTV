@@ -23,4 +23,4 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    $$PWD/src/camera/QCCTV-Camera.pro
+    $$PWD/QCCTV-Camera/QCCTV-Camera.pro
