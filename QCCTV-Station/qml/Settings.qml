@@ -57,7 +57,6 @@ ApplicationWindow {
     Connections {
         target: QCCTVCamera
 
-        onNewImageRecorded: image.reload()
         onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
         onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
         onCameraStatusChanged: camstatus.text = QCCTVCamera.statusString()
@@ -74,16 +73,11 @@ ApplicationWindow {
     //
     // Video output
     //
-    Image {
-        id: image
+    VideoOutput {
+        id: video
+        //color: "transparent"
         anchors.fill: parent
-
-        property int imageNumber: 0
-
-        function reload() {
-            ++imageNumber
-            source = "image://qcctv/" + imageNumber
-        }
+        autoOrientation: true
 
         //
         // Allow user to toggle controls by touching the video image
@@ -211,7 +205,6 @@ ApplicationWindow {
         Button {
             width: 54
             height: 54
-            enabled: app.controlsEnabled
             source: "qrc:/images/light.png"
             anchors.verticalCenter: parent.verticalCenter
 
@@ -238,7 +231,6 @@ ApplicationWindow {
         Button {
             width: 64
             height: 64
-            enabled: app.controlsEnabled
             source: "qrc:/images/settings.png"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -249,7 +241,6 @@ ApplicationWindow {
         Button {
             width: 64
             height: 64
-            enabled: app.controlsEnabled
             source: "qrc:/images/recorder.png"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -260,7 +251,6 @@ ApplicationWindow {
         Button {
             width: 54
             height: 54
-            enabled: app.controlsEnabled
             source: "qrc:/images/focus.png"
             onClicked: QCCTVCamera.focusCamera()
             anchors.verticalCenter: parent.verticalCenter
@@ -299,7 +289,7 @@ ApplicationWindow {
         anchors {
             bottom: parent.bottom
             bottomMargin: buttons.height + 6 * borderSize
-            horizontalCenter: image.horizontalCenter
+            horizontalCenter: video.horizontalCenter
         }
 
         //

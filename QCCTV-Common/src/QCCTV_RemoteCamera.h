@@ -36,32 +36,36 @@ class QCCTV_RemoteCamera : public QObject
     Q_OBJECT
 
 signals:
-    void newImage();
-    void connected();
-    void disconnected();
-    void newCameraName();
-    void newCameraGroup();
-    void newLightStatus();
-    void newCameraStatus();
+    void newImage (const int id);
+    void connected (const int id);
+    void disconnected (const int id);
+    void newCameraName (const int id);
+    void newCameraGroup (const int id);
+    void newLightStatus (const int id);
+    void newCameraStatus (const int id);
 
 public:
     QCCTV_RemoteCamera();
     ~QCCTV_RemoteCamera();
 
+    Q_INVOKABLE int id() const;
     Q_INVOKABLE int fps() const;
     Q_INVOKABLE QString group() const;
+    Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QImage currentImage() const;
+    Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
-    Q_INVOKABLE QCCTV_CameraStatus cameraStatus() const;
 
 public slots:
     void requestFocus();
+    void turnOnFlashlight();
+    void turnOffFlashlight();
+    void setID (const int id);
     void setFPS (const int fps);
+    void changeFlashlightStatus (const int status);
     void attemptConnection (const QHostAddress& address);
-    void setLightStatus (const QCCTV_LightStatus status);
-    void setCameraStatus (const QCCTV_CameraStatus status);
 
 private slots:
     void sendData();
@@ -71,18 +75,20 @@ private slots:
     void resetFocusRequest();
     void setName (const QString& name);
     void setGroup (const QString& group);
+    void changeCameraStatus (const int status);
 
 private:
+    int m_id;
     int m_fps;
     bool m_focus;
-    QSize m_size;
     QString m_name;
     QImage m_image;
     QString m_group;
+    bool m_connected;
+    int m_cameraStatus;
     int m_requestPackets;
     QHostAddress m_address;
-    QCCTV_LightStatus m_light_status;
-    QCCTV_CameraStatus m_camera_status;
+    QCCTV_LightStatus m_lightStatus;
 
     QUdpSocket m_sender;
     QUdpSocket m_receiver;

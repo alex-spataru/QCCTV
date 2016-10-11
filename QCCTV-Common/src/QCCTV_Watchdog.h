@@ -20,60 +20,29 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-import QtQuick 2.0
+#ifndef _QCCTV_WATCHDOG_H
+#define _QCCTV_WATCHDOG_H
 
-Rectangle {
-    id: button
+#include <QTimer>
+#include <QObject>
 
-    //
-    // Widget signals
-    //
-    signal clicked
+class QCCTV_Watchdog : public QObject
+{
+    Q_OBJECT
 
-    //
-    // Custom properties
-    //
-    property bool toggled: false
-    property alias source: image.source
-    property alias enabled: mouse.enabled
+signals:
+    void expired();
 
-    //
-    // Geometry options
-    //
-    width: 48
-    height: 48
-    border.width: 1
-    radius: width / 2
+public:
+    QCCTV_Watchdog();
+    int expirationTime() const;
 
-    //
-    // Color and opacity options
-    //
-    opacity: 0.85
-    border.color: "#999"
-    color: mouse.containsMouse ? "#666" : "#444"
+public slots:
+    void reset();
+    void setExpirationTime (const int time);
 
-    //
-    // Fade between color switches
-    //
-    Behavior on color { ColorAnimation{} }
+private:
+    QTimer m_timer;
+};
 
-    //
-    // Button image
-    //
-    Image {
-        id: image
-        anchors.centerIn: parent
-        sourceSize: Qt.size (button.width * 0.5,
-                             button.height * 0.5)
-    }
-
-    //
-    // Detect mouse events/operations with this control
-    //
-    MouseArea {
-        id: mouse
-        hoverEnabled: true
-        anchors.fill: parent
-        onClicked: button.clicked()
-    }
-}
+#endif

@@ -22,13 +22,100 @@
 
 #include "QCCTV.h"
 #include "QCCTV_Station.h"
+#include "QCCTV_Discovery.h"
 
-QCCTV_Station::QCCTV_Station() {}
+QCCTV_Station::QCCTV_Station()
+{
+    /* Attempt to connect to a camera as we find it */
+    QCCTV_Discovery* discovery = QCCTV_Discovery::getInstance();
+    connect (discovery, SIGNAL (newCamera (QHostAddress)),
+             this,        SLOT (connectToCamera (QHostAddress)));
+
+    /* Bind connected() and disconnected() signals to cameraCountChanged() */
+    connect (this, SIGNAL (connected (int)),
+             this, SIGNAL (cameraCountChanged()));
+    connect (this, SIGNAL (disconnected (int)),
+             this, SIGNAL (cameraCountChanged()));
+    connect (this, SIGNAL (disconnected (int)),
+             this,   SLOT (removeCamera (int)));
+}
+
 QCCTV_Station::~QCCTV_Station() {}
-QString QCCTV_Station::group() const {}
-int QCCTV_Station::cameraCount() const {}
-QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera) {}
-void QCCTV_Station::setCameraGroup (const QString& group) {}
-void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status) {}
-void QCCTV_Station::setLightStatus (const int camera, const QCCTV_LightStatus status) {}
-void QCCTV_Station::connectToCamera (const QHostAddress& ip) {}
+
+QString QCCTV_Station::group() const
+{
+    return m_group;
+}
+
+int QCCTV_Station::cameraCount() const
+{
+    return m_cameraList.count();
+}
+
+QString QCCTV_Station::statusString (const int camera)
+{
+    QCCTV_RemoteCamera* cam = getCamera (camera);
+
+    if (cam)
+        return cam->statusString();
+
+    return "";
+}
+
+QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
+{
+    if (camera < cameraCount())
+        return m_cameraList.at (camera);
+
+    return NULL;
+}
+
+void QCCTV_Station::setCameraGroup (const QString& group)
+{
+    if (m_group != group) {
+        m_group = group;
+        emit groupChanged();
+    }
+}
+
+void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status)
+{
+    for (int i = 0; i < cameraCount(); ++i)
+        setLightStatus (i, status);
+}
+
+void QCCTV_Station::setLightStatus (const int camera,
+                                    const QCCTV_LightStatus status)
+{
+    if (camera < cameraCount())
+        m_cameraList.at (camera)->changeFlashlightStatus ((int) status);
+}
+
+void QCCTV_Station::removeCamera (const int camera)
+{
+    if (camera < cameraCount()) {
+        m_cameraIPs.removeAt (camera);
+        m_cameraList.removeAt (camera);
+        emit cameraCountChanged();
+    }
+}
+
+void QCCTV_Station::connectToCamera (const QHostAddress& ip)
+{
+    if (!ip.isNull() && !m_cameraIPs.contains (ip)) {
+        m_cameraIPs.append (ip);
+        m_cameraList.append (new QCCTV_RemoteCamera());
+        m_cameraList.last()->attemptConnection (ip);
+
+        connect (m_cameraList.last(), SIGNAL (connected (int)),
+                 this,                SIGNAL (connected (int)));
+        connect (m_cameraList.last(), SIGNAL (disconnected (int)),
+                 this,                SIGNAL (disconnected (int)));
+        connect (m_cameraList.last(), SIGNAL (newCameraGroup (int)),
+                 this,                SIGNAL (cameraGroupChanged (int)));
+        connect (m_cameraList.last(), SIGNAL (newCameraName (int)),
+                 this,                SIGNAL (cameraNameChanged (int)));
+        connect (m_cameraList.last(), SIGNAL (newCameraStatus (int)),
+                 this,                SIGNAL (cameraStatusChanged (int)));
+    }
+}

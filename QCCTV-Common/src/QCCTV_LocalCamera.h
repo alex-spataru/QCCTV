@@ -1,14 +1,15 @@
 #ifndef _QCCTV_LOCAL_CAMERA_H
 #define _QCCTV_LOCAL_CAMERA_H
 
-#include <QTimer>
-#include <QImage>
+#include <QPixmap>
 #include <QObject>
 #include <QCamera>
 #include <QUdpSocket>
-#include <QGraphicsVideoItem>
+#include <QVideoWidget>
+#include <QQuickImageProvider>
 
 #include "QCCTV.h"
+#include "QCCTV_Watchdog.h"
 
 class QCCTV_LocalCamera : public QObject
 {
@@ -28,29 +29,31 @@ public:
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
+    Q_INVOKABLE int cameraStatus() const;
+    Q_INVOKABLE bool flashlightOn() const;
+    Q_INVOKABLE bool flashlightOff() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QString cameraGroup() const;
-    Q_INVOKABLE QImage currentImage() const;
+    Q_INVOKABLE QPixmap currentImage() const;
+    Q_INVOKABLE QString statusString() const;
+    Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
-    Q_INVOKABLE QCCTV_CameraStatus cameraStatus() const;
 
 public slots:
     void focusCamera();
     void setFPS (const int fps);
     void setName (const QString& name);
     void setGroup (const QString& group);
-    void setLightStatus (const QCCTV_LightStatus status);
-    void setCameraStatus (const QCCTV_CameraStatus status);
 
-    inline void turnOnLight()
+    inline void turnOnFlashlight()
     {
-        setLightStatus (QCCTV_LIGHT_CONTINOUS);
+        setFlashlightStatus (QCCTV_FLASHLIGHT_ON);
     }
 
-    inline void turnOffLight()
+    inline void turnOffFlashlight()
     {
-        setLightStatus (QCCTV_LIGHT_OFF);
+        setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
     }
 
 private slots:
@@ -58,28 +61,46 @@ private slots:
     void updateImage();
     void updateStatus();
     void sendCameraData();
+    void disconnectStation();
     void readRequestPacket();
     void readCommandPacket();
     void broadcastInformation();
+    void addStatusFlag (const QCCTV_CameraStatus status);
+    void setCameraStatus (const QCCTV_CameraStatus status);
+    void removeStatusFlag (const QCCTV_CameraStatus status);
+    void setFlashlightStatus (const QCCTV_LightStatus status);
 
 private:
     int m_fps;
-    QCCTV_LightStatus m_lightStatus;
-    QCCTV_CameraStatus m_cameraStatus;
+    int m_cameraStatus;
+    int m_flashlightStatus;
 
-    QList<QHostAddress> m_allowedHosts;
+    QCCTV_Watchdog m_watchdog;
+    QList<QHostAddress> m_hosts;
 
-    QString m_cameraName;
-    QString m_cameraGroup;
+    QString m_name;
+    QString m_group;
 
+    QPixmap m_image;
     QCamera* m_camera;
-    QImage m_currentImage;
-    QGraphicsVideoItem m_videoItem;
+    QVideoWidget m_videoWidget;
 
     QUdpSocket m_senderSocket;
     QUdpSocket m_commandSocket;
     QUdpSocket m_requestSocket;
     QUdpSocket m_broadcastSocket;
+};
+
+class QCCTV_LocalImageProvider : public QQuickImageProvider
+{
+
+public:
+    QCCTV_LocalImageProvider (QCCTV_LocalCamera* camera);
+    QPixmap requestPixmap (const QString& id, QSize* size,
+                           const QSize& requestedSize);
+
+private:
+    QCCTV_LocalCamera* m_camera;
 };
 
 #endif

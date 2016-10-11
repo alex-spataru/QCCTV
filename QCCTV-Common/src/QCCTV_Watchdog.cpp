@@ -20,60 +20,35 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-import QtQuick 2.0
+#include "QCCTV_Watchdog.h"
 
-Rectangle {
-    id: button
+QCCTV_Watchdog::QCCTV_Watchdog()
+{
+    connect (&m_timer, SIGNAL (timeout()), this, SIGNAL (expired()));
+}
 
-    //
-    // Widget signals
-    //
-    signal clicked
+/**
+ * Returns the expiration time of the watchdog in milliseconds
+ */
+int QCCTV_Watchdog::expirationTime() const
+{
+    return m_timer.interval();
+}
 
-    //
-    // Custom properties
-    //
-    property bool toggled: false
-    property alias source: image.source
-    property alias enabled: mouse.enabled
+/**
+ * Resets the watchdog and prevents it from expiring
+ */
+void QCCTV_Watchdog::reset()
+{
+    m_timer.stop();
+    m_timer.start (expirationTime());
+}
 
-    //
-    // Geometry options
-    //
-    width: 48
-    height: 48
-    border.width: 1
-    radius: width / 2
-
-    //
-    // Color and opacity options
-    //
-    opacity: 0.85
-    border.color: "#999"
-    color: mouse.containsMouse ? "#666" : "#444"
-
-    //
-    // Fade between color switches
-    //
-    Behavior on color { ColorAnimation{} }
-
-    //
-    // Button image
-    //
-    Image {
-        id: image
-        anchors.centerIn: parent
-        sourceSize: Qt.size (button.width * 0.5,
-                             button.height * 0.5)
-    }
-
-    //
-    // Detect mouse events/operations with this control
-    //
-    MouseArea {
-        id: mouse
-        hoverEnabled: true
-        anchors.fill: parent
-        onClicked: button.clicked()
-    }
+/**
+ * Changes the expiration time and resets the watchdog
+ */
+void QCCTV_Watchdog::setExpirationTime (const int time)
+{
+    m_timer.setInterval (time);
+    reset();
 }

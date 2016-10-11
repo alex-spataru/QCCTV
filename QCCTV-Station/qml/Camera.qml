@@ -21,59 +21,33 @@
  */
 
 import QtQuick 2.0
+import QtQuick.Controls 2.0
 
 Rectangle {
-    id: button
+    property int camera: 0
 
-    //
-    // Widget signals
-    //
-    signal clicked
+    color: "transparent"
 
-    //
-    // Custom properties
-    //
-    property bool toggled: false
-    property alias source: image.source
-    property alias enabled: mouse.enabled
-
-    //
-    // Geometry options
-    //
-    width: 48
-    height: 48
-    border.width: 1
-    radius: width / 2
-
-    //
-    // Color and opacity options
-    //
-    opacity: 0.85
-    border.color: "#999"
-    color: mouse.containsMouse ? "#666" : "#444"
-
-    //
-    // Fade between color switches
-    //
-    Behavior on color { ColorAnimation{} }
-
-    //
-    // Button image
-    //
-    Image {
-        id: image
-        anchors.centerIn: parent
-        sourceSize: Qt.size (button.width * 0.5,
-                             button.height * 0.5)
+    Connections {
+        target: QCCTVStation
+        onCameraStatusChanged: {
+            if (camera === id)
+                status.text = QCCTVStation.statusString (id)
+        }
     }
 
-    //
-    // Detect mouse events/operations with this control
-    //
-    MouseArea {
-        id: mouse
-        hoverEnabled: true
+    Image {
         anchors.fill: parent
-        onClicked: button.clicked()
+    }
+
+    Label {
+        id: status
+        color: "#fff"
+
+        anchors {
+            top: parent.top
+            right: parent.right
+            margins: app.spacing
+        }
     }
 }

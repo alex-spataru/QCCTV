@@ -21,46 +21,53 @@
  */
 
 #include "QCCTV.h"
-#include "QCCTV_Discovery.h"
-#include "QCCTV_RemoteCamera.h"
+
+#include <QObject>
 
 /**
- * Initializes the class by connecting the signals/slots between the UDP
- * receiver socket and the datagram handler function of this class
+ * If a is not empty, the function appends \a b to \a a and adds a separator.
+ * Otherwise, this function shall return \a b
  */
-QCCTV_Discovery::QCCTV_Discovery()
+static QString append_str (const QString a, QString b)
 {
-    m_socket.bind (QCCTV_DISCOVERY_ADDR,
-                   QCCTV_DISCOVERY_PORT,
-                   QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+    if (a.isEmpty())
+        return b;
 
-    connect (&m_socket, SIGNAL (readyRead()), this, SLOT (readPacket()));
+    else
+        return a + " | " + b;
 }
 
 /**
- * Returns the only instance of the class
+ * Returns a valid FPS value
  */
-QCCTV_Discovery* QCCTV_Discovery::getInstance()
+int QCCTV_GET_VALID_FPS (const int fps)
 {
-    static QCCTV_Discovery instance;
-    return &instance;
+    return qMax (qMin (fps, QCCTV_MAX_FPS), QCCTV_MIN_FPS);
 }
 
 /**
- * Obtains the remote host IP from which we received a packet, if the datagram
- * is valid, then the function will notify the rest of the QCCTV library
+ * Parses the given status flags as a string
  */
-void QCCTV_Discovery::readPacket()
+QString QCCTV_STATUS_STRING (const int status)
 {
-    while (m_socket.hasPendingDatagrams()) {
-        QByteArray data;
-        QHostAddress address;
-        data.resize (m_socket.pendingDatagramSize());
-        int bytes = m_socket.readDatagram (data.data(), data.size(),
-                                           &address, NULL);
+    QString str;
 
-        if (bytes > 0)
-            emit newCamera (address);
-    }
+    if (status & QCCTV_CAMSTATUS_CONNECTED)
+        str = append_str (str, QObject::tr ("Connected"));
+    else
+        str = append_str (str, QObject::tr ("Disconnected"));
+
+    if (status & QCCTV_CAMSTATUS_LOW_BATTERY)
+        str = append_str (str, QObject::tr ("Low Battery"));
+
+    if (status & QCCTV_CAMSTATUS_DISCHARING)
+        str = append_str (str, QObject::tr ("Discharging"));
+
+    if (status & QCCTV_CAMSTATUS_LIGHT_FAILURE)
+        str = append_str (str, QObject::tr ("Flashlight Failure"));
+
+    if (status & QCCTV_CAMSTATUS_VIDEO_FAILURE)
+        str = append_str (str, QObject::tr ("Video Failure"));
+
+    return str;
 }
-

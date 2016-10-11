@@ -25,6 +25,7 @@ QT += network
 QT += multimedia
 QT += multimediawidgets
 
+CONFIG += c++11
 INCLUDEPATH += $$PWD/src
 
 HEADERS += \
@@ -32,10 +33,13 @@ HEADERS += \
     $$PWD/src/QCCTV_LocalCamera.h \
     $$PWD/src/QCCTV_Station.h \
     $$PWD/src/QCCTV_RemoteCamera.h \
-    $$PWD/src/QCCTV.h
+    $$PWD/src/QCCTV.h \
+    $$PWD/src/QCCTV_Watchdog.h
 
 SOURCES += \
     $$PWD/src/QCCTV_Discovery.cpp \
     $$PWD/src/QCCTV_LocalCamera.cpp \
     $$PWD/src/QCCTV_Station.cpp \
-    $$PWD/src/QCCTV_RemoteCamera.cpp
+    $$PWD/src/QCCTV_RemoteCamera.cpp \
+    $$PWD/src/QCCTV.cpp \
+    $$PWD/src/QCCTV_Watchdog.cpp

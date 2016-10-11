@@ -22,37 +22,35 @@
 
 #include <QtQml>
 #include <QQuickStyle>
-#include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-#include "QCCTV_LocalCamera.h"
+#include "QCCTV_Station.h"
 
 const QString APP_VERSION = "1.0";
 const QString APP_COMPANY = "Alex Spataru";
-const QString APP_DSPNAME = "QCCTV Camera";
+const QString APP_DSPNAME = "QCCTV Station";
 const QString APP_WEBSITE = "http://github.com/alex-spataru";
 
 int main (int argc, char* argv[])
 {
     /* Set application information */
-    QApplication::setApplicationName (APP_DSPNAME);
-    QApplication::setOrganizationName (APP_COMPANY);
-    QApplication::setApplicationVersion (APP_VERSION);
-    QApplication::setOrganizationDomain (APP_WEBSITE);
-    QApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
+    QGuiApplication::setApplicationName (APP_DSPNAME);
+    QGuiApplication::setOrganizationName (APP_COMPANY);
+    QGuiApplication::setApplicationVersion (APP_VERSION);
+    QGuiApplication::setOrganizationDomain (APP_WEBSITE);
+    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
     /* Initialize application */
-    QApplication app (argc, argv);
+    QGuiApplication app (argc, argv);
     QQuickStyle::setStyle ("Universal");
 
-    /* Initialize QCCTV camera */
-    QCCTV_LocalCamera camera;
-    QCCTV_LocalImageProvider provider (&camera);
+    /* Initialize QCCTV station */
+    QCCTV_Station station;
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
-    engine.addImageProvider ("qcctv", &provider);
-    engine.rootContext()->setContextProperty ("QCCTVCamera", &camera);
+    engine.rootContext()->setContextProperty ("QCCTVStation", &station);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));

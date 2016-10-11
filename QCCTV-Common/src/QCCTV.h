@@ -23,32 +23,50 @@
 #ifndef _QCCTV_GLOBAL_H
 #define _QCCTV_GLOBAL_H
 
+#include <QString>
+#include <QHostAddress>
+
 enum QCCTV_LightStatus {
-    QCCTV_LIGHT_OFF        = 0x01,
-    QCCTV_LIGHT_SLOW_BLINK = 0x02,
-    QCCTV_LIGHT_FAST_BLINK = 0x03,
-    QCCTV_LIGHT_CONTINOUS  = 0x04,
+    QCCTV_FLASHLIGHT_ON  = 0x01,
+    QCCTV_FLASHLIGHT_OFF = 0x00,
 };
 
 enum QCCTV_CameraStatus {
-    QCCTV_CAMSTATUS_OK            = 0x01,
-    QCCTV_CAMSTATUS_DISCONNECTED  = 0x02,
-    QCCTV_CAMSTATUS_LOW_BATTERY   = 0x03,
-    QCCTV_CAMSTATUS_DISCHARING    = 0x04,
-    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0x05,
-    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0x06,
+    QCCTV_CAMSTATUS_DEFAULT       = 0b0,
+    QCCTV_CAMSTATUS_CONNECTED     = 0b1,
+    QCCTV_CAMSTATUS_LOW_BATTERY   = 0b10,
+    QCCTV_CAMSTATUS_DISCHARING    = 0b100,
+    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0b1000,
+    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b10000,
 };
 
+extern int QCCTV_GET_VALID_FPS (const int fps);
+extern QString QCCTV_STATUS_STRING (const int status);
+
 /* Additional command flags */
-#define QCCTV_FORCE_FOCUS    0x0005
+#define QCCTV_FORCE_FOCUS    0x05
 
 /* Network ports */
-#define QCCTV_STREAM_PORT    0x1100
-#define QCCTV_COMMAND_PORT   0x1150
-#define QCCTV_REQUEST_PORT   0x1200
-#define QCCTV_DISCOVERY_PORT 0x1250
+#define QCCTV_STREAM_PORT    1100
+#define QCCTV_COMMAND_PORT   1150
+#define QCCTV_REQUEST_PORT   1200
+#define QCCTV_DISCOVERY_PORT 1250
+
+/* Network Addresses */
+#define QCCTV_DISCOVERY_ADDR QHostAddress::LocalHost
+
+/* Packet timings */
+#define QCCTV_COMMAND_PKT_TIMING    500
+#define QCCTV_REQUEST_PKT_TIMING    500
+#define QCCTV_DISCVRY_PKT_TIMING    1000
+#define QCCTV_CSTREAM_PKT_TIMING(x) 1000 / QCCTV_GET_VALID_FPS(x)
+
+/* Packet watchdog timeout */
+#define QCCTV_COMMAND_PKT_TIMEOUT 2000
 
 /* Image encoding */
+#define QCCTV_MIN_FPS        10
+#define QCCTV_MAX_FPS        40
 #define QCCTV_IMAGE_FORMAT   "PNG"
 
 #endif

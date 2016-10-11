@@ -26,13 +26,15 @@
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
+    m_id = 0;
     m_fps = 24;
-    m_requestPackets = 0;
     m_focus = false;
+    m_connected = false;
     m_group = "default";
+    m_requestPackets = 0;
     m_name = "Unknown Camera";
-    m_light_status = QCCTV_LIGHT_OFF;
-    m_camera_status = QCCTV_CAMSTATUS_DISCONNECTED;
+    m_lightStatus = QCCTV_FLASHLIGHT_OFF;
+    m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
     /* Connect sockets signals/slots */
     connect (&m_receiver, SIGNAL (readyRead()), this, SLOT (readData()));
@@ -52,6 +54,14 @@ QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 }
 
 /**
+ * Returns the camera ID set by the station
+ */
+int QCCTV_RemoteCamera::id() const
+{
+    return m_id;
+}
+
+/**
  * Returns the FPS set by the station or by the camera itself
  */
 int QCCTV_RemoteCamera::fps() const
@@ -65,6 +75,14 @@ int QCCTV_RemoteCamera::fps() const
 QString QCCTV_RemoteCamera::group() const
 {
     return m_group;
+}
+
+/**
+ * Returns the operation status reported by the camera
+ */
+int QCCTV_RemoteCamera::cameraStatus() const
+{
+    return m_cameraStatus;
 }
 
 /**
@@ -84,6 +102,14 @@ QImage QCCTV_RemoteCamera::currentImage() const
 }
 
 /**
+ * Returns the camera status flags as a string
+ */
+QString QCCTV_RemoteCamera::statusString() const
+{
+    return QCCTV_STATUS_STRING (m_cameraStatus);
+}
+
+/**
  * Returns the network address of the camera
  */
 QHostAddress QCCTV_RemoteCamera::address() const
@@ -96,15 +122,7 @@ QHostAddress QCCTV_RemoteCamera::address() const
  */
 QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
 {
-    return m_light_status;
-}
-
-/**
- * Returns the operation status reported by the camera
- */
-QCCTV_CameraStatus QCCTV_RemoteCamera::cameraStatus() const
-{
-    return m_camera_status;
+    return m_lightStatus;
 }
 
 /**
@@ -121,11 +139,52 @@ void QCCTV_RemoteCamera::requestFocus()
 }
 
 /**
+ * Instructs the camera to turn on its flashlight (on the next command packet)
+ */
+void QCCTV_RemoteCamera::turnOnFlashlight()
+{
+    if (m_lightStatus != QCCTV_FLASHLIGHT_ON) {
+        m_lightStatus = QCCTV_FLASHLIGHT_ON;
+        emit newLightStatus (id());
+    }
+}
+
+/**
+ * Instructs the camera to turn off its flashlight (on the next command packet)
+ */
+void QCCTV_RemoteCamera::turnOffFlashlight()
+{
+    if (m_lightStatus != QCCTV_FLASHLIGHT_OFF) {
+        m_lightStatus = QCCTV_FLASHLIGHT_OFF;
+        emit newLightStatus (id());
+    }
+}
+
+/**
+ * Changes the ID of the camera
+ */
+void QCCTV_RemoteCamera::setID (const int id)
+{
+    m_id = id;
+}
+
+/**
  * Updates the FPS value reported (or assigned) by the camera
  */
 void QCCTV_RemoteCamera::setFPS (const int fps)
 {
-    m_fps = qMax (fps, 10);
+    m_fps = QCCTV_GET_VALID_FPS (fps);
+}
+
+/**
+ * Changes the flashlight status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
+{
+    if (m_lightStatus != status) {
+        m_lightStatus = (QCCTV_LightStatus) status;
+        emit newLightStatus (id());
+    }
 }
 
 /**
@@ -148,42 +207,6 @@ void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
 }
 
 /**
- * Updates the light status reported (or assigned) by the camera
- */
-void QCCTV_RemoteCamera::setLightStatus (const QCCTV_LightStatus status)
-{
-    if (m_light_status != status) {
-        m_light_status = status;
-        emit newLightStatus();
-    }
-}
-
-/**
- * Updates the operation status reported by the camera.
- *
- * This function may notify the library that the camera has been connected
- * or disconnected depending on the new operation \c status
- */
-void QCCTV_RemoteCamera::setCameraStatus (const QCCTV_CameraStatus status)
-{
-    if (m_camera_status != status) {
-        /* If camera status changed, then we are connected to camera */
-        if (m_camera_status == QCCTV_CAMSTATUS_DISCONNECTED)
-            emit connected();
-
-        /* We have disconnected from the camera... */
-        if (status == QCCTV_CAMSTATUS_DISCONNECTED)
-            emit disconnected();
-
-        /* Change camera status */
-        m_camera_status = status;
-
-        /* Notify rest of application */
-        emit newCameraStatus();
-    }
-}
-
-/**
  * Sends a command packet to the camera, which instructs it to:
  *
  * - Change its FPS
@@ -201,7 +224,7 @@ void QCCTV_RemoteCamera::sendData()
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
 
     /* Send the data (if possible) */
-    if (!address().isNull() && cameraStatus() != QCCTV_CAMSTATUS_DISCONNECTED)
+    if (!address().isNull() && cameraStatus() & QCCTV_CAMSTATUS_CONNECTED)
         m_sender.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
 
     /* Schedule the next packet generation process */
@@ -263,14 +286,20 @@ void QCCTV_RemoteCamera::readData()
 
         /* Convert raw image to QImage */
         m_image = QImage::fromData (imageData, QCCTV_IMAGE_FORMAT);
-        emit newImage();
+        emit newImage (id());
 
         /* Update values */
         setFPS (fps);
         setName (name);
         setGroup (group);
-        setLightStatus ((QCCTV_LightStatus) light);
-        setCameraStatus ((QCCTV_CameraStatus) status);
+        changeCameraStatus (status);
+        changeFlashlightStatus (light);
+
+        /* This is the first packet, emit connected() signal */
+        if (!m_connected) {
+            m_connected = true;
+            emit connected (id());
+        }
     }
 }
 
@@ -303,8 +332,11 @@ void QCCTV_RemoteCamera::sendRequest()
  */
 void QCCTV_RemoteCamera::onCameraTimeout()
 {
-    setLightStatus (QCCTV_LIGHT_OFF);
-    setCameraStatus (QCCTV_CAMSTATUS_DISCONNECTED);
+    /* We just have lost connection with the camera */
+    if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED) {
+        changeCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
+        changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+    }
 }
 
 /**
@@ -327,7 +359,7 @@ void QCCTV_RemoteCamera::setName (const QString& name)
         if (m_name.isEmpty())
             m_name = "Unknown Camera";
 
-        emit newCameraName();
+        emit newCameraName (id());
     }
 }
 
@@ -342,6 +374,23 @@ void QCCTV_RemoteCamera::setGroup (const QString& group)
         if (m_group.isEmpty())
             m_group = "default";
 
-        emit newCameraGroup();
+        emit newCameraGroup (id());
+    }
+}
+
+/**
+ * Changes the operation status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::changeCameraStatus (const int status)
+{
+    if (m_cameraStatus != status) {
+        m_cameraStatus = status;
+
+        if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED)
+            emit connected (id());
+        else
+            emit disconnected (id());
+
+        emit newCameraStatus (id());
     }
 }

@@ -20,15 +20,41 @@
 # SOFTWARE.
 #
 
-QT += svg
-QT += core
-QT += quick
-QT += quickcontrols2
+#-------------------------------------------------------------------------------
+# Qt configuration
+#-------------------------------------------------------------------------------
 
 TEMPLATE = app
 TARGET = QCCTV-Camera
 
-include ($$PWD/../QCCTV-Common/QCCTV.pri)
+QT += core
+QT += quick
+QT += quickcontrols2
+
+#-------------------------------------------------------------------------------
+# Make options
+#-------------------------------------------------------------------------------
+
+UI_DIR = uic
+MOC_DIR = moc
+RCC_DIR = qrc
+OBJECTS_DIR = obj
+
+#-------------------------------------------------------------------------------
+# Deploy configurations
+#-------------------------------------------------------------------------------
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+#-------------------------------------------------------------------------------
+# Import libraries
+#-------------------------------------------------------------------------------
+
+include ($$PWD/../QCCTV-Common/QCCTV-Common.pri)
+
+#-------------------------------------------------------------------------------
+# Import QML, resources and source code
+#-------------------------------------------------------------------------------
 
 SOURCES += \
     $$PWD/src/main.cpp
@@ -41,4 +67,4 @@ OTHER_FILES += \
     $$PWD/qml/*.qml
 
 DISTFILES += \
-    qml/images/settings.png
+    $$PWD/android/AndroidManifest.xml

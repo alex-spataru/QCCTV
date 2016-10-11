@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>images/settings.png</file>
+        <file>images/light.png</file>
+        <file>images/focus.png</file>
+        <file>Camera.qml</file>
+        <file>Settings.qml</file>
+    </qresource>
+</RCC>

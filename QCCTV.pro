@@ -23,4 +23,5 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    $$PWD/QCCTV-Camera/QCCTV-Camera.pro
+    $$PWD/QCCTV-Camera/QCCTV-Camera.pro \
+    $$PWD/QCCTV-Station/QCCTV-Station.pro
