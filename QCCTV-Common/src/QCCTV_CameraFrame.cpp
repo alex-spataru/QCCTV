@@ -25,9 +25,8 @@
 QCCTV_CameraFrameGrabber::QCCTV_CameraFrameGrabber (QObject* parent) :
     QAbstractVideoSurface (parent)
 {
-
     m_enabled = false;
-    m_scaleRatio = 1.5;
+    m_scaleRatio = 2.0;
     m_orientation = 180;
     m_grayscale = false;
 }
@@ -125,7 +124,7 @@ bool QCCTV_CameraFrameGrabber::present (const QVideoFrame& frame)
 
             /* Rotate image */
             QTransform transform;
-            transform.rotate (180 - orientation(), Qt::ZAxis);
+            transform.rotate (orientation(), Qt::ZAxis);
             image = image.transformed (transform);
 
             /* Notify application */
@@ -163,12 +162,11 @@ void QCCTV_CameraFrameGrabber::setOrientation (const qreal orientation)
 void QCCTV_CameraFrameGrabber::grayscale (QImage* image)
 {
     if (image) {
-        for (int ii = 0; ii < image->height(); ii++) {
-            uchar* scan = image->scanLine (ii);
+        for (int i = 0; i < image->height(); i++) {
+            uchar* scan = image->scanLine (i);
             int depth = 4;
-            for (int jj = 0; jj < image->width(); jj++) {
-
-                QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + jj * depth);
+            for (int j = 0; j < image->width(); j++) {
+                QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + j * depth);
                 int gray = qGray (*rgbpixel);
                 *rgbpixel = QColor (gray, gray, gray).rgba();
             }
