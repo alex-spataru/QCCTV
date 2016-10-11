@@ -22,7 +22,7 @@
 
 #include <QtQml>
 #include <QQuickStyle>
-#include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
 #include "QCCTV_LocalCamera.h"
@@ -35,14 +35,14 @@ const QString APP_WEBSITE = "http://github.com/alex-spataru";
 int main (int argc, char* argv[])
 {
     /* Set application information */
-    QApplication::setApplicationName (APP_DSPNAME);
-    QApplication::setOrganizationName (APP_COMPANY);
-    QApplication::setApplicationVersion (APP_VERSION);
-    QApplication::setOrganizationDomain (APP_WEBSITE);
-    QApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
+    QGuiApplication::setApplicationName (APP_DSPNAME);
+    QGuiApplication::setOrganizationName (APP_COMPANY);
+    QGuiApplication::setApplicationVersion (APP_VERSION);
+    QGuiApplication::setOrganizationDomain (APP_WEBSITE);
+    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
     /* Initialize application */
-    QApplication app (argc, argv);
+    QGuiApplication app (argc, argv);
     QQuickStyle::setStyle ("Universal");
 
     /* Initialize QCCTV camera */

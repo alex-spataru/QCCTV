@@ -20,32 +20,42 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_DISCOVERY_H
-#define _QCCTV_DISCOVERY_H
+#ifndef _QCCTV_CAMERA_FRAME_GRABBER_H
+#define _QCCTV_CAMERA_FRAME_GRABBER_H
 
 #include <QObject>
-#include <QUdpSocket>
-#include <QHostAddress>
+#include <QPixmap>
+#include <QAbstractVideoSurface>
 
-class QCCTV_Discovery : public QObject
+class QCCTV_CameraFrameGrabber : public QAbstractVideoSurface
 {
     Q_OBJECT
 
 signals:
-    void newCamera (const QHostAddress& camera);
+    void newFrame (const QPixmap& frame);
 
 public:
-    static QCCTV_Discovery* getInstance();
+    explicit QCCTV_CameraFrameGrabber (QObject* parent = 0);
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats (QAbstractVideoBuffer::HandleType handleType)
+    const;
+
+    bool isEnabled() const;
+    int scaleRatio() const;
+    bool isGrayscale() const;
+    bool present (const QVideoFrame& frame);
+
+public slots:
+    void setEnabled (const bool enabled);
+    void setScaleRatio (const int resize);
+    void setGrayscale (const bool grayscale);
 
 private slots:
-    void readPacket();
-
-protected:
-    QCCTV_Discovery();
+    void grayscale (QImage* image);
 
 private:
-    QUdpSocket m_socket;
+    bool m_enabled;
+    bool m_grayscale;
+    int m_scaleRatio;
 };
 
 #endif
-

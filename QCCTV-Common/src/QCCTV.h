@@ -45,6 +45,7 @@ extern QString QCCTV_STATUS_STRING (const int status);
 
 /* Additional command flags */
 #define QCCTV_FORCE_FOCUS    0x05
+#define QCCTV_CMD_GRAYSCALE  0x01
 
 /* Network ports */
 #define QCCTV_STREAM_PORT    1100
@@ -53,7 +54,7 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_DISCOVERY_PORT 1250
 
 /* Network Addresses */
-#define QCCTV_DISCOVERY_ADDR QHostAddress::LocalHost
+#define QCCTV_DISCOVERY_ADDR QHostAddress::Any
 
 /* Packet timings */
 #define QCCTV_COMMAND_PKT_TIMING    500
@@ -65,9 +66,10 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_COMMAND_PKT_TIMEOUT 2000
 
 /* Image encoding */
-#define QCCTV_MIN_FPS        10
-#define QCCTV_MAX_FPS        40
-#define QCCTV_IMAGE_FORMAT   "PNG"
+#define QCCTV_MIN_FPS            10
+#define QCCTV_MAX_FPS            40
+#define QCCTV_IMAGE_FORMAT       "PNG"
+#define QCCTV_COMPRESSION_FACTOR 9
 
 #endif
 

@@ -76,6 +76,8 @@ ApplicationWindow {
     //
     Image {
         id: image
+        smooth: false
+        asynchronous: true
         anchors.fill: parent
 
         property int imageNumber: 0

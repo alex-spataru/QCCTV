@@ -5,11 +5,11 @@
 #include <QObject>
 #include <QCamera>
 #include <QUdpSocket>
-#include <QVideoWidget>
 #include <QQuickImageProvider>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
+#include "QCCTV_CameraFrame.h"
 
 class QCCTV_LocalCamera : public QObject
 {
@@ -29,6 +29,8 @@ public:
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
+    Q_INVOKABLE int scaleRatio() const;
+    Q_INVOKABLE bool grayscale() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE bool flashlightOn() const;
     Q_INVOKABLE bool flashlightOff() const;
@@ -45,6 +47,8 @@ public slots:
     void setFPS (const int fps);
     void setName (const QString& name);
     void setGroup (const QString& group);
+    void setScaleRatio (const int ratio);
+    void setGrayscale (const bool grayscale);
 
     inline void turnOnFlashlight()
     {
@@ -58,13 +62,13 @@ public slots:
 
 private slots:
     void update();
-    void updateImage();
     void updateStatus();
     void sendCameraData();
     void disconnectStation();
     void readRequestPacket();
     void readCommandPacket();
     void broadcastInformation();
+    void changeImage (const QPixmap& image);
     void addStatusFlag (const QCCTV_CameraStatus status);
     void setCameraStatus (const QCCTV_CameraStatus status);
     void removeStatusFlag (const QCCTV_CameraStatus status);
@@ -83,7 +87,7 @@ private:
 
     QPixmap m_image;
     QCamera* m_camera;
-    QVideoWidget m_videoWidget;
+    QCCTV_CameraFrameGrabber m_grabber;
 
     QUdpSocket m_senderSocket;
     QUdpSocket m_commandSocket;
@@ -102,5 +106,6 @@ public:
 private:
     QCCTV_LocalCamera* m_camera;
 };
+
 
 #endif
