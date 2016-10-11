@@ -40,14 +40,16 @@ public:
     const;
 
     bool isEnabled() const;
-    int scaleRatio() const;
+    qreal scaleRatio() const;
+    qreal orientation() const;
     bool isGrayscale() const;
     bool present (const QVideoFrame& frame);
 
 public slots:
     void setEnabled (const bool enabled);
-    void setScaleRatio (const int resize);
+    void setScaleRatio (const qreal scale);
     void setGrayscale (const bool grayscale);
+    void setOrientation (const qreal orientation);
 
 private slots:
     void grayscale (QImage* image);
@@ -55,7 +57,8 @@ private slots:
 private:
     bool m_enabled;
     bool m_grayscale;
-    int m_scaleRatio;
+    qreal m_scaleRatio;
+    qreal m_orientation;
 };
 
 #endif

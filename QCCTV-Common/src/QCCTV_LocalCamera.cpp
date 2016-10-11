@@ -48,9 +48,12 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     /* We have access to camera, configure it */
     if (m_camera->isAvailable()) {
         m_camera->setViewfinder (&m_grabber);
-        m_camera->setCaptureMode (QCamera::CaptureViewfinder);
+        m_camera->setCaptureMode (QCamera::CaptureStillImage);
         m_camera->load();
         m_camera->start();
+
+        /* Get camera orientation */
+        m_grabber.setOrientation (QCameraInfo (*m_camera).orientation());
 
         /* Cannot start the camera */
         if (m_camera->status() != QCamera::ActiveStatus)
@@ -114,21 +117,23 @@ int QCCTV_LocalCamera::fps() const
 }
 
 /**
- * Returns the number of times that the image is scaled to 50% of the image
- * captured by the device's camera
- */
-int QCCTV_LocalCamera::scaleRatio() const
-{
-    return m_grabber.scaleRatio();
-}
-
-/**
  * Returns \c true if the obtained image shall be converted to a black and white
  * image (which slightly decreases image size & CPU usage)
  */
 bool QCCTV_LocalCamera::grayscale() const
 {
     return m_grabber.isGrayscale();
+}
+
+/**
+ * To reduce CPU usage and network load, QCCTV can reduce the size of the image
+ * by scaling it down to a smaller value.
+ *
+ * This function returns the scale factor used in this process
+ */
+qreal QCCTV_LocalCamera::scaleRatio() const
+{
+    return m_grabber.scaleRatio();
 }
 
 /**
@@ -261,9 +266,10 @@ void QCCTV_LocalCamera::setGroup (const QString& group)
 }
 
 /**
- * Changes the size of the image obtained from the camera
+ * Changes the scale factor used to resize the captured image to a smaller
+ * image (which is displayed in the UI and sent to the QCCTV network)
  */
-void QCCTV_LocalCamera::setScaleRatio (const int ratio)
+void QCCTV_LocalCamera::setScaleRatio (const qreal ratio)
 {
     m_grabber.setScaleRatio (ratio);
 }

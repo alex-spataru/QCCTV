@@ -25,8 +25,10 @@
 QCCTV_CameraFrameGrabber::QCCTV_CameraFrameGrabber (QObject* parent) :
     QAbstractVideoSurface (parent)
 {
-    m_scaleRatio = 2;
+
     m_enabled = false;
+    m_scaleRatio = 1.5;
+    m_orientation = 180;
     m_grayscale = false;
 }
 
@@ -75,9 +77,9 @@ bool QCCTV_CameraFrameGrabber::isEnabled() const
     return m_enabled;
 }
 
-int QCCTV_CameraFrameGrabber::scaleRatio() const
+qreal QCCTV_CameraFrameGrabber::scaleRatio() const
 {
-    return qMax (m_scaleRatio, 1);
+    return m_scaleRatio;
 }
 
 bool QCCTV_CameraFrameGrabber::isGrayscale() const
@@ -85,10 +87,15 @@ bool QCCTV_CameraFrameGrabber::isGrayscale() const
     return m_grayscale;
 }
 
+qreal QCCTV_CameraFrameGrabber::orientation() const
+{
+    return m_orientation;
+}
+
 bool QCCTV_CameraFrameGrabber::present (const QVideoFrame& frame)
 {
     if (frame.isValid()) {
-        if (m_enabled) {
+        if (isEnabled()) {
             QImage image;
             QVideoFrame clone (frame);
             clone.map (QAbstractVideoBuffer::ReadOnly);
@@ -116,6 +123,12 @@ bool QCCTV_CameraFrameGrabber::present (const QVideoFrame& frame)
             if (isGrayscale())
                 grayscale (&image);
 
+            /* Rotate image */
+            QTransform transform;
+            transform.rotate (180 - orientation(), Qt::ZAxis);
+            image = image.transformed (transform);
+
+            /* Notify application */
             clone.unmap();
             emit newFrame (QPixmap::fromImage (image));
         }
@@ -131,15 +144,20 @@ void QCCTV_CameraFrameGrabber::setEnabled (const bool enabled)
     m_enabled = enabled;
 }
 
-void QCCTV_CameraFrameGrabber::setScaleRatio (const int resize)
+void QCCTV_CameraFrameGrabber::setScaleRatio (const qreal scale)
 {
-    if (resize >= 1)
-        m_scaleRatio = resize;
+    if (scale >= 1)
+        m_scaleRatio = scale;
 }
 
 void QCCTV_CameraFrameGrabber::setGrayscale (const bool grayscale)
 {
     m_grayscale = grayscale;
+}
+
+void QCCTV_CameraFrameGrabber::setOrientation (const qreal orientation)
+{
+    m_orientation = orientation;
 }
 
 void QCCTV_CameraFrameGrabber::grayscale (QImage* image)

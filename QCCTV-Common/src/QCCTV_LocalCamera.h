@@ -29,8 +29,8 @@ public:
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
-    Q_INVOKABLE int scaleRatio() const;
     Q_INVOKABLE bool grayscale() const;
+    Q_INVOKABLE qreal scaleRatio() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE bool flashlightOn() const;
     Q_INVOKABLE bool flashlightOff() const;
@@ -47,7 +47,7 @@ public slots:
     void setFPS (const int fps);
     void setName (const QString& name);
     void setGroup (const QString& group);
-    void setScaleRatio (const int ratio);
+    void setScaleRatio (const qreal ratio);
     void setGrayscale (const bool grayscale);
 
     inline void turnOnFlashlight()
