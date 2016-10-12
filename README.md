@@ -1,6 +1,6 @@
 # QCCTV
 
-QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) as security cameras. Why? Because smart phones are cheaper than (most) CCTV cameras, have better resolutions and are easier to setup.
+QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) as security/CCTV cameras.
 
 Besides security, QCCTV can have many uses, such as recording a video with multiple cameras at once or check that your kitchen is not burning while you are using your computer upstairs. 
 
