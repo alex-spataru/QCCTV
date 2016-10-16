@@ -19,6 +19,12 @@ The QCCTV Station allows you to connect and control any device running the QCCTV
 
 Ideally, you should only have one running instance of the QCCTV Station in all your LAN.
 
+### Icons 
+
+The icons come from the "Global Security" icon set from Aha-Soft and are released under the Creative Commons license.
+
+You can download the icon set from [http://aha-soft.com](http://www.aha-soft.com/free-icons/free-global-security-icons/)
+
 ### License
 
 The QCCTV software suite is released under the MIT license.

@@ -46,6 +46,27 @@ OBJECTS_DIR = obj
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
+win32* {
+    RC_FILE = $$PWD/windows/info.rc
+}
+
+macx* {
+    ICON = $$PWD/mac/icon.icns
+    RC_FILE = $$PWD/mac/icon.icns
+    QMAKE_INFO_PLIST = $$PWD/mac/info.plist
+}
+
+linux:!android {
+    target.path = /usr/bin
+    icon.path = /usr/share/pixmaps
+    desktop.path = /usr/share/applications
+    icon.files += $$PWD/linux/qcctv-camera.png
+    desktop.files += $$PWD/linux/qcctv-camera.desktop
+
+    TARGET = qcctv-camera
+    INSTALLS += target desktop icon
+}
+
 #-------------------------------------------------------------------------------
 # Import libraries
 #-------------------------------------------------------------------------------

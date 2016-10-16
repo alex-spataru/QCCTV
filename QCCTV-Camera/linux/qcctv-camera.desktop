@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=QCCTV Camera
+Exec=qcctv-camera
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Qt;Utility;Network;
+Icon=qcctv-camera

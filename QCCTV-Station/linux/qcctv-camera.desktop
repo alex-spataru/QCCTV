@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=QCCTV Station
+Exec=qcctv-station
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Qt;Utility;Network;
+Icon=qcctv-station
