@@ -20,45 +20,22 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_CAMERA_FRAME_GRABBER_H
-#define _QCCTV_CAMERA_FRAME_GRABBER_H
+#ifndef QCCTV_STATION_IMAGE_PROVIDER
+#define QCCTV_STATION_IMAGE_PROVIDER
 
-#include <QObject>
-#include <QPixmap>
-#include <QAbstractVideoSurface>
+#include <QQuickImageProvider>
 
-class QCCTV_CameraFrameGrabber : public QAbstractVideoSurface
+class QCCTV_Station;
+
+class QCCTV_StationImage : public QQuickImageProvider
 {
-    Q_OBJECT
-
-signals:
-    void newFrame (const QPixmap& frame);
-
 public:
-    explicit QCCTV_CameraFrameGrabber (QObject* parent = 0);
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats (QAbstractVideoBuffer::HandleType handleType)
-    const;
-
-    bool isEnabled() const;
-    qreal scaleRatio() const;
-    qreal orientation() const;
-    bool isGrayscale() const;
-    bool present (const QVideoFrame& frame);
-
-public slots:
-    void setEnabled (const bool enabled);
-    void setScaleRatio (const qreal scale);
-    void setGrayscale (const bool grayscale);
-    void setOrientation (const qreal orientation);
-
-private slots:
-    void grayscale (QImage* image);
+    QCCTV_StationImage (QCCTV_Station* parent);
+    QPixmap requestPixmap (const QString& id, QSize* size,
+                           const QSize& requestedSize);
 
 private:
-    bool m_enabled;
-    bool m_grayscale;
-    qreal m_scaleRatio;
-    qreal m_orientation;
+    QCCTV_Station* m_station;
 };
 
 #endif

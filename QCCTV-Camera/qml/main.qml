@@ -57,7 +57,6 @@ ApplicationWindow {
     Connections {
         target: QCCTVCamera
 
-        onNewImageRecorded: image.reload()
         onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
         onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
         onCameraStatusChanged: camstatus.text = QCCTVCamera.statusString()
@@ -74,17 +73,16 @@ ApplicationWindow {
     //
     // Video output
     //
-    Image {
+    VideoOutput {
         id: image
-        smooth: false
-        asynchronous: true
         anchors.fill: parent
 
-        property int imageNumber: 0
-
-        function reload() {
-            ++imageNumber
-            source = "image://qcctv/" + imageNumber
+        //
+        // Camera object
+        //
+        source: Camera {
+            id: camera
+            objectName: "camera"
         }
 
         //
@@ -252,7 +250,7 @@ ApplicationWindow {
             width: 64
             height: 64
             enabled: app.controlsEnabled
-            source: "qrc:/images/recorder.png"
+            source: "qrc:/images/camera.png"
             anchors.verticalCenter: parent.verticalCenter
         }
 

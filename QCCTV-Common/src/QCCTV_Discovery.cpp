@@ -30,10 +30,7 @@
  */
 QCCTV_Discovery::QCCTV_Discovery()
 {
-    m_socket.bind (QCCTV_DISCOVERY_ADDR,
-                   QCCTV_DISCOVERY_PORT,
-                   QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
-
+    m_socket.bind (QCCTV_DISCOVERY_PORT, QUdpSocket::ShareAddress);
     connect (&m_socket, SIGNAL (readyRead()), this, SLOT (readPacket()));
 }
 
@@ -60,7 +57,7 @@ void QCCTV_Discovery::readPacket()
                                            &address, NULL);
 
         if (bytes > 0)
-            emit newCamera (address);
+            emit newCamera (QHostAddress (address.toIPv4Address()));
     }
 }
 

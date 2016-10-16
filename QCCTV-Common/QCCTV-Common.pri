@@ -34,7 +34,8 @@ HEADERS += \
     $$PWD/src/QCCTV_RemoteCamera.h \
     $$PWD/src/QCCTV.h \
     $$PWD/src/QCCTV_Watchdog.h \
-    $$PWD/src/QCCTV_CameraFrame.h
+    $$PWD/src/QCCTV_FrameGrabber.h \
+    $$PWD/src/QCCTV_StationImage.h
 
 SOURCES += \
     $$PWD/src/QCCTV_Discovery.cpp \
@@ -43,4 +44,5 @@ SOURCES += \
     $$PWD/src/QCCTV_RemoteCamera.cpp \
     $$PWD/src/QCCTV.cpp \
     $$PWD/src/QCCTV_Watchdog.cpp \
-    $$PWD/src/QCCTV_CameraFrame.cpp
+    $$PWD/src/QCCTV_FrameGrabber.cpp \
+    $$PWD/src/QCCTV_StationImage.cpp

@@ -22,10 +22,11 @@
 
 #include "QCCTV.h"
 #include "QCCTV_LocalCamera.h"
-#include "QCCTV_CameraFrame.h"
+#include "QCCTV_FrameGrabber.h"
 
-#include <QThread>
+#include <QFont>
 #include <QBuffer>
+#include <QPainter>
 #include <QCameraInfo>
 #include <QCameraExposure>
 
@@ -38,32 +39,6 @@
  */
 QCCTV_LocalCamera::QCCTV_LocalCamera()
 {
-    /* Try to open the camera */
-    m_camera = new QCamera (QCameraInfo::defaultCamera());
-
-    /* Create the viewfinder */
-    connect (&m_grabber, SIGNAL (newFrame (QPixmap)),
-             this,         SLOT (changeImage (QPixmap)));
-
-    /* We have access to camera, configure it */
-    if (m_camera->isAvailable()) {
-        m_camera->setViewfinder (&m_grabber);
-        m_camera->setCaptureMode (QCamera::CaptureStillImage);
-        m_camera->load();
-        m_camera->start();
-
-        /* Get camera orientation */
-        m_grabber.setOrientation (QCameraInfo (*m_camera).orientation());
-
-        /* Cannot start the camera */
-        if (m_camera->status() != QCamera::ActiveStatus)
-            addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
-    }
-
-    /* Cannot open the camera */
-    else
-        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
-
     /* Bind sockets */
     m_commandSocket.bind (QHostAddress::Any,
                           QCCTV_COMMAND_PORT,
@@ -80,6 +55,10 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     connect (&m_requestSocket, SIGNAL (readyRead()),
              this,               SLOT (readRequestPacket()));
 
+    /* Setup the frame grabber */
+    connect (&m_frameGrabber, SIGNAL (newFrame (QPixmap)),
+             this,              SLOT (changeImage (QPixmap)));
+
     /* Setup the watchdog */
     m_watchdog.setExpirationTime (QCCTV_COMMAND_PKT_TIMEOUT);
     connect (&m_watchdog, SIGNAL (expired()), this, SLOT (disconnectStation()));
@@ -90,6 +69,17 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     setName ("Unknown Camera");
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+
+    /* Set default image */
+    m_image = QPixmap (320, 240);
+    m_image.fill (QColor ("#00f").rgb());
+    QPainter painter (&m_image);
+
+    /* Set default image text */
+    painter.setPen (Qt::white);
+    painter.setFont (QFont ("Arial"));
+    painter.drawText (QRectF (0, 0, 320, 240),
+                      Qt::AlignCenter, "NO CAMERA IMAGE");
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -117,31 +107,28 @@ int QCCTV_LocalCamera::fps() const
 }
 
 /**
- * Returns \c true if the obtained image shall be converted to a black and white
- * image (which slightly decreases image size & CPU usage)
- */
-bool QCCTV_LocalCamera::grayscale() const
-{
-    return m_grabber.isGrayscale();
-}
-
-/**
- * To reduce CPU usage and network load, QCCTV can reduce the size of the image
- * by scaling it down to a smaller value.
- *
- * This function returns the scale factor used in this process
- */
-qreal QCCTV_LocalCamera::scaleRatio() const
-{
-    return m_grabber.scaleRatio();
-}
-
-/**
  * Returns the current status of the flashlight (on or off)
  */
 QCCTV_LightStatus QCCTV_LocalCamera::lightStatus() const
 {
     return (QCCTV_LightStatus) m_flashlightStatus;
+}
+
+/**
+ * Returns \c true if we should send a grayscale image to the QCCTV Station
+ */
+bool QCCTV_LocalCamera::isGrayscale() const
+{
+    return m_frameGrabber.isGrayscale();
+}
+
+/**
+ * Returns the shrink ratio used to resize the image to send it to the
+ * local network
+ */
+qreal QCCTV_LocalCamera::shrinkRatio() const
+{
+    return m_frameGrabber.shrinkRatio();
 }
 
 /**
@@ -197,7 +184,10 @@ QString QCCTV_LocalCamera::statusString() const
  */
 bool QCCTV_LocalCamera::flashlightAvailable() const
 {
-    return m_camera->exposure()->isFlashReady();
+    if (m_camera)
+        return m_camera->exposure()->isFlashReady();
+
+    return false;
 }
 
 /**
@@ -233,6 +223,22 @@ void QCCTV_LocalCamera::focusCamera()
 }
 
 /**
+ * Attempts to turn on the camera flashlight/torch
+ */
+void QCCTV_LocalCamera::turnOnFlashlight()
+{
+    setFlashlightStatus (QCCTV_FLASHLIGHT_ON);
+}
+
+/**
+ * Attempts to turn off the camera flashlight/torch
+ */
+void QCCTV_LocalCamera::turnOffFlashlight()
+{
+    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+}
+
+/**
  * Changes the FPS of the camera
  */
 void QCCTV_LocalCamera::setFPS (const int fps)
@@ -240,6 +246,25 @@ void QCCTV_LocalCamera::setFPS (const int fps)
     if (m_fps != QCCTV_GET_VALID_FPS (fps)) {
         m_fps = QCCTV_GET_VALID_FPS (fps);
         emit fpsChanged();
+    }
+}
+
+/**
+ * Changes the camera used to capture images to send to the QCCTV network
+ */
+void QCCTV_LocalCamera::setCamera (QCamera* camera)
+{
+    if (camera) {
+        /* Re-assign the camera */
+        m_camera = camera;
+
+        /* Configure the camera */
+        m_camera->setCaptureMode (QCamera::CaptureViewfinder);
+        m_camera->load();
+        m_camera->start();
+
+        /* Configure the frame grabber */
+        m_frameGrabber.setSource (m_camera);
     }
 }
 
@@ -255,6 +280,15 @@ void QCCTV_LocalCamera::setName (const QString& name)
 }
 
 /**
+ * Enables or disables sending a grayscale image to the QCCTV Stations
+ * in the local network
+ */
+void QCCTV_LocalCamera::setGrayscale (const bool gray)
+{
+    m_frameGrabber.setGrayscale (gray);
+}
+
+/**
  * Change the group assigned to this camera
  */
 void QCCTV_LocalCamera::setGroup (const QString& group)
@@ -266,25 +300,12 @@ void QCCTV_LocalCamera::setGroup (const QString& group)
 }
 
 /**
- * Changes the scale factor used to resize the captured image to a smaller
- * image (which is displayed in the UI and sent to the QCCTV network)
+ * Changes the shrink factor used to resize the image before sending it to
+ * the QCCTV Stations in the local network
  */
-void QCCTV_LocalCamera::setScaleRatio (const qreal ratio)
+void QCCTV_LocalCamera::setShrinkRatio (const qreal ratio)
 {
-    m_grabber.setScaleRatio (ratio);
-}
-
-/**
- * If \a grayscale is set to \c true, then the image obtained from the camera
- * shall be stripped from its colors, which decreases the CPU usage and
- * the size of the generated image.
- *
- * If \a grayscale is set to \c false, then the image will be processed with
- * all the colors reported from the frame generated by the camera
- */
-void QCCTV_LocalCamera::setGrayscale (const bool grayscale)
-{
-    m_grabber.setGrayscale (grayscale);
+    m_frameGrabber.setShrinkRatio (ratio);
 }
 
 /**
@@ -293,8 +314,8 @@ void QCCTV_LocalCamera::setGrayscale (const bool grayscale)
  */
 void QCCTV_LocalCamera::update()
 {
-    /* Allow grabber to generate camera images */
-    m_grabber.setEnabled (true);
+    /* Enable frame grabber */
+    m_frameGrabber.setEnabled (true);
 
     /* Update operation status and stream data */
     updateStatus();
@@ -362,7 +383,6 @@ void QCCTV_LocalCamera::sendCameraData()
     data.append (fps());
     data.append (lightStatus());
     data.append (cameraStatus());
-    data.append (grayscale() ? QCCTV_CMD_GRAYSCALE : 0x00);
 
     /* Get image buffer */
     QByteArray img;
@@ -371,8 +391,14 @@ void QCCTV_LocalCamera::sendCameraData()
     currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
 
     /* Add image buffer to packet */
-    data.append (qCompress (img, QCCTV_COMPRESSION_FACTOR));
-    buffer.close();
+    if (img.size() > 0 && !currentImage().isNull()) {
+        data.append (img);
+        buffer.close();
+    }
+
+    /* Add image error flag (if required) */
+    else
+        data.append (QCCTV_NO_IMAGE_FLAG);
 
     /* Send generated data */
     foreach (QHostAddress address, m_hosts)
@@ -450,9 +476,6 @@ void QCCTV_LocalCamera::readCommandPacket()
         if (data.at (2) == QCCTV_FORCE_FOCUS)
             focusCamera();
 
-        /* Change the grayscale effect */
-        setGrayscale (data.at (3) == QCCTV_CMD_GRAYSCALE);
-
         /* Feed watchdog timer */
         m_watchdog.reset();
     }
@@ -479,9 +502,7 @@ void QCCTV_LocalCamera::broadcastInformation()
 void QCCTV_LocalCamera::changeImage (const QPixmap& image)
 {
     m_image = image;
-    m_grabber.setEnabled (false);
-
-    emit newImageRecorded();
+    m_frameGrabber.setEnabled (false);
 }
 
 /**
@@ -535,33 +556,4 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
             emit lightStatusChanged();
         }
     }
-}
-
-//==============================================================================
-// QCCTV_LocalImageProvider Class
-//==============================================================================
-
-/**
- * Initializes the image provider with the given \a camera
- */
-QCCTV_LocalImageProvider::QCCTV_LocalImageProvider (QCCTV_LocalCamera* camera) :
-    QQuickImageProvider (QQuickImageProvider::Pixmap)
-{
-    m_camera = camera;
-}
-
-/**
- * Returns the latest image captured by the camera
- */
-QPixmap QCCTV_LocalImageProvider::requestPixmap (const QString& id, QSize* size,
-                                                 const QSize& requestedSize)
-{
-    Q_UNUSED (id);
-    Q_UNUSED (size);
-    Q_UNUSED (requestedSize);
-
-    if (m_camera)
-        return m_camera->currentImage();
-
-    return QPixmap();
 }

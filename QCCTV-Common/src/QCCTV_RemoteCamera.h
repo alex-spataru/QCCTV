@@ -23,13 +23,13 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
-#include <QTimer>
-#include <QImage>
+#include <QPixmap>
 #include <QObject>
 #include <QUdpSocket>
 #include <QHostAddress>
 
 #include "QCCTV.h"
+#include "QCCTV_Watchdog.h"
 
 class QCCTV_RemoteCamera : public QObject
 {
@@ -38,6 +38,7 @@ class QCCTV_RemoteCamera : public QObject
 signals:
     void newImage (const int id);
     void connected (const int id);
+    void fpsChanged (const int id);
     void disconnected (const int id);
     void newCameraName (const int id);
     void newCameraGroup (const int id);
@@ -51,10 +52,9 @@ public:
     Q_INVOKABLE int id() const;
     Q_INVOKABLE int fps() const;
     Q_INVOKABLE QString group() const;
-    Q_INVOKABLE bool grayscale() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE QString cameraName() const;
-    Q_INVOKABLE QImage currentImage() const;
+    Q_INVOKABLE QPixmap currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
@@ -65,7 +65,6 @@ public slots:
     void turnOffFlashlight();
     void setID (const int id);
     void setFPS (const int fps);
-    void setGrayscale (const bool grayscale);
     void changeFlashlightStatus (const int status);
     void attemptConnection (const QHostAddress& address);
 
@@ -84,10 +83,9 @@ private:
     int m_fps;
     bool m_focus;
     QString m_name;
-    QImage m_image;
+    QPixmap m_image;
     QString m_group;
     bool m_connected;
-    bool m_grayscale;
     int m_cameraStatus;
     int m_requestPackets;
     QHostAddress m_address;
@@ -95,6 +93,7 @@ private:
 
     QUdpSocket m_sender;
     QUdpSocket m_receiver;
+    QCCTV_Watchdog m_watchdog;
 };
 
 #endif

@@ -66,9 +66,15 @@ ApplicationWindow {
     //
     GridView {
         id: grid
+        anchors.fill: parent
+        cellWidth: width / model
+        cellHeight: height / model
         model: QCCTVStation.cameraCount()
         delegate: Camera {
-            camera: index
+            id: index
+            width: grid.cellWidth
+            height: grid.cellHeight
+            controlsEnabled: QCCTVStation.cameraCount() === 1
         }
     }
 

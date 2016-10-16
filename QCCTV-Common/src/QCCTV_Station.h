@@ -34,6 +34,7 @@ signals:
     void groupChanged();
     void cameraCountChanged();
     void connected (const int camera);
+    void fpsChanged (const int camera);
     void disconnected (const int camera);
     void newCameraImage (const int camera);
     void cameraNameChanged (const int camera);
@@ -47,11 +48,21 @@ public:
 
     Q_INVOKABLE QString group() const;
     Q_INVOKABLE int cameraCount() const;
+
+    Q_INVOKABLE int fps (const int camera);
+    Q_INVOKABLE QString group (const int camera);
+    Q_INVOKABLE int cameraStatus (const int camera);
+    Q_INVOKABLE QString cameraName (const int camera);
+    Q_INVOKABLE QPixmap currentImage (const int camera);
+    Q_INVOKABLE QHostAddress address (const int camera);
     Q_INVOKABLE QString statusString (const int camera);
+    Q_INVOKABLE QCCTV_LightStatus lightStatus (const int camera);
+
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 public slots:
     void setCameraGroup (const QString& group);
+    void setFPS (const int camera, const int fps);
     void setLightStatusAll (const QCCTV_LightStatus status);
     void setLightStatus (const int camera, const QCCTV_LightStatus status);
 

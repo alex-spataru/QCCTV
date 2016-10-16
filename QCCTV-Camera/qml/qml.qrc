@@ -5,6 +5,6 @@
         <file>Button.qml</file>
         <file>images/light.png</file>
         <file>images/focus.png</file>
-        <file>images/recorder.png</file>
+        <file>images/camera.png</file>
     </qresource>
 </RCC>

@@ -34,6 +34,7 @@ Rectangle {
     // Custom properties
     //
     property bool toggled: false
+    property alias text: label.text
     property alias source: image.source
     property alias enabled: mouse.enabled
 
@@ -65,6 +66,17 @@ Rectangle {
         anchors.centerIn: parent
         sourceSize: Qt.size (button.width * 0.5,
                              button.height * 0.5)
+    }
+
+    //
+    // Label
+    //
+    Text {
+        id: label
+        color: "#fff"
+        font.family: "OpenSans"
+        anchors.centerIn: parent
+        font.pixelSize: parent.height / 2
     }
 
     //

@@ -26,6 +26,7 @@
 #include <QQmlApplicationEngine>
 
 #include "QCCTV_Station.h"
+#include "QCCTV_StationImage.h"
 
 const QString APP_VERSION = "1.0";
 const QString APP_COMPANY = "Alex Spataru";
@@ -47,9 +48,11 @@ int main (int argc, char* argv[])
 
     /* Initialize QCCTV station */
     QCCTV_Station station;
+    QCCTV_StationImage provider (&station);
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
+    engine.addImageProvider ("qcctv", &provider);
     engine.rootContext()->setContextProperty ("QCCTVStation", &station);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);

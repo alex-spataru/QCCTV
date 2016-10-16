@@ -3,13 +3,13 @@
 
 #include <QPixmap>
 #include <QObject>
-#include <QCamera>
 #include <QUdpSocket>
-#include <QQuickImageProvider>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
-#include "QCCTV_CameraFrame.h"
+#include "QCCTV_FrameGrabber.h"
+
+class QCamera;
 
 class QCCTV_LocalCamera : public QObject
 {
@@ -17,7 +17,6 @@ class QCCTV_LocalCamera : public QObject
 
 signals:
     void fpsChanged();
-    void newImageRecorded();
     void cameraNameChanged();
     void cameraGroupChanged();
     void lightStatusChanged();
@@ -29,8 +28,6 @@ public:
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
-    Q_INVOKABLE bool grayscale() const;
-    Q_INVOKABLE qreal scaleRatio() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE bool flashlightOn() const;
     Q_INVOKABLE bool flashlightOff() const;
@@ -42,23 +39,19 @@ public:
     Q_INVOKABLE QStringList connectedHosts() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
 
+    Q_INVOKABLE bool isGrayscale() const;
+    Q_INVOKABLE qreal shrinkRatio() const;
+
 public slots:
     void focusCamera();
+    void turnOnFlashlight();
+    void turnOffFlashlight();
     void setFPS (const int fps);
+    void setCamera (QCamera* camera);
     void setName (const QString& name);
+    void setGrayscale (const bool gray);
     void setGroup (const QString& group);
-    void setScaleRatio (const qreal ratio);
-    void setGrayscale (const bool grayscale);
-
-    inline void turnOnFlashlight()
-    {
-        setFlashlightStatus (QCCTV_FLASHLIGHT_ON);
-    }
-
-    inline void turnOffFlashlight()
-    {
-        setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
-    }
+    void setShrinkRatio (const qreal ratio);
 
 private slots:
     void update();
@@ -87,24 +80,12 @@ private:
 
     QPixmap m_image;
     QCamera* m_camera;
-    QCCTV_CameraFrameGrabber m_grabber;
+    QCCTV_FrameGrabber m_frameGrabber;
 
     QUdpSocket m_senderSocket;
     QUdpSocket m_commandSocket;
     QUdpSocket m_requestSocket;
     QUdpSocket m_broadcastSocket;
-};
-
-class QCCTV_LocalImageProvider : public QQuickImageProvider
-{
-
-public:
-    QCCTV_LocalImageProvider (QCCTV_LocalCamera* camera);
-    QPixmap requestPixmap (const QString& id, QSize* size,
-                           const QSize& requestedSize);
-
-private:
-    QCCTV_LocalCamera* m_camera;
 };
 
 
