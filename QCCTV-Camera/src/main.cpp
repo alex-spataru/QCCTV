@@ -52,8 +52,16 @@ int main (int argc, char* argv[])
     QGuiApplication app (argc, argv);
     QCCTV_LocalCamera camera;
 
+    /* Know if we are running on mobile or not */
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
+    bool mobile = true;
+#else
+    bool mobile = false;
+#endif
+
     /* Load QML interface */
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("QCCTVCamera", &camera);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);

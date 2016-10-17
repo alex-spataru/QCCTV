@@ -84,6 +84,7 @@ Item {
     Image {
         id: image
         anchors.fill: cam
+        asynchronous: true
 
         //
         // Status label

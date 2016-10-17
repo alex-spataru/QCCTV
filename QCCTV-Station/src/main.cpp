@@ -48,9 +48,17 @@ int main (int argc, char* argv[])
     QCCTV_Station station;
     QCCTV_StationImage provider (&station);
 
+    /* Know if we are running on mobile or not */
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
+    bool mobile = true;
+#else
+    bool mobile = false;
+#endif
+
     /* Load QML interface */
     QQmlApplicationEngine engine;
     engine.addImageProvider ("qcctv", &provider);
+    engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("QCCTVStation", &station);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
