@@ -38,10 +38,6 @@ QCCTV_Station::QCCTV_Station()
              this, SIGNAL (cameraCountChanged()));
     connect (this, SIGNAL (disconnected (int)),
              this,   SLOT (removeCamera (int)));
-
-    /* Configure receiver socket */
-    m_receiver.bind (QCCTV_STREAM_PORT, QUdpSocket::ShareAddress);
-    connect (&m_receiver, SIGNAL (readyRead()), this, SLOT (readData()));
 }
 
 QCCTV_Station::~QCCTV_Station() {}
@@ -153,20 +149,6 @@ void QCCTV_Station::setLightStatus (const int camera,
 {
     if (camera < cameraCount())
         m_cameraList.at (camera)->changeFlashlightStatus ((int) status);
-}
-
-void QCCTV_Station::readData()
-{
-    while (m_receiver.hasPendingDatagrams()) {
-        QByteArray data;
-        QHostAddress address;
-        data.resize (m_receiver.pendingDatagramSize());
-        m_receiver.readDatagram (data.data(), data.size(), &address);
-
-        foreach (QCCTV_RemoteCamera* camera, m_cameraList)
-            if (camera)
-                camera->readData (address, data);
-    }
 }
 
 void QCCTV_Station::removeCamera (const int camera)

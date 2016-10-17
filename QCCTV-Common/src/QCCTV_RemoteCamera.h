@@ -26,6 +26,7 @@
 #include <QPixmap>
 #include <QObject>
 #include <QUdpSocket>
+#include <QTcpSocket>
 #include <QHostAddress>
 
 #include "QCCTV.h"
@@ -67,11 +68,10 @@ public slots:
     void setFPS (const int fps);
     void changeFlashlightStatus (const int status);
     void attemptConnection (const QHostAddress& address);
-    void readData (const QHostAddress& address, const QByteArray& data);
 
 private slots:
     void sendData();
-    void sendRequest();
+    void readData();
     void onCameraTimeout();
     void resetFocusRequest();
     void setName (const QString& name);
@@ -87,11 +87,10 @@ private:
     QString m_group;
     bool m_connected;
     int m_cameraStatus;
-    int m_requestPackets;
     QHostAddress m_address;
     QCCTV_LightStatus m_lightStatus;
 
-    QUdpSocket m_sender;
+    QTcpSocket m_socket;
     QCCTV_Watchdog m_watchdog;
 };
 

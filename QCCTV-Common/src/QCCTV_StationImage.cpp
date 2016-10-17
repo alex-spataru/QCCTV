@@ -36,9 +36,13 @@ QPixmap QCCTV_StationImage::requestPixmap (const QString& id,
     Q_UNUSED (size);
     Q_UNUSED (requestedSize);
 
-    if (m_station && !id.isEmpty() && id.toInt() >= 0) {
-        QPixmap pixmap = m_station->currentImage (id.toInt());
-        return pixmap;
+    if (m_station && !id.isEmpty()) {
+        QStringList list = id.split ("_");
+
+        if (!list.isEmpty()) {
+            QPixmap pixmap = m_station->currentImage (list.first().toInt());
+            return pixmap;
+        }
     }
 
     return QPixmap();

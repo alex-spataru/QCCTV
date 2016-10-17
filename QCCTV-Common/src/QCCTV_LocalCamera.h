@@ -4,6 +4,8 @@
 #include <QPixmap>
 #include <QObject>
 #include <QUdpSocket>
+#include <QTcpSocket>
+#include <QTcpServer>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
@@ -57,8 +59,8 @@ private slots:
     void update();
     void updateStatus();
     void sendCameraData();
+    void acceptConnection();
     void disconnectStation();
-    void readRequestPacket();
     void readCommandPacket();
     void broadcastInformation();
     void changeImage (const QPixmap& image);
@@ -73,7 +75,6 @@ private:
     int m_flashlightStatus;
 
     QCCTV_Watchdog m_watchdog;
-    QList<QHostAddress> m_hosts;
 
     QString m_name;
     QString m_group;
@@ -82,10 +83,9 @@ private:
     QCamera* m_camera;
     QCCTV_FrameGrabber m_frameGrabber;
 
-    QUdpSocket m_senderSocket;
-    QUdpSocket m_commandSocket;
-    QUdpSocket m_requestSocket;
+    QTcpServer m_server;
     QUdpSocket m_broadcastSocket;
+    QList<QTcpSocket*> m_sockets;
 };
 
 

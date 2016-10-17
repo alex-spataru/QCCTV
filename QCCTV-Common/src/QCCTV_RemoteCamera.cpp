@@ -23,8 +23,6 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
-#include <QDir>
-
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
@@ -33,7 +31,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_focus = false;
     m_connected = false;
     m_group = "default";
-    m_requestPackets = 0;
     m_name = "Unknown Camera";
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
@@ -42,17 +39,20 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_watchdog.setExpirationTime (2000);
     connect (&m_watchdog, SIGNAL (expired()), this, SLOT (onCameraTimeout()));
 
+    /* Configure receiver socket */
+    connect (&m_socket, SIGNAL (readyRead()),
+             this,        SLOT (readData()));
+
     /* Start loops */
     sendData();
-    sendRequest();
 }
 
 /**
- * Close the sockets when the class is destroyed
+ * Close the sockets
  */
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
-    m_sender.close();
+    m_socket.close();
 }
 
 /**
@@ -131,12 +131,12 @@ QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
  * Instructs the class to generate a packet that requests the camera to perform
  * a forced focus.
  *
- * The focus byte will be reset after sending 4 packets to the camera
+ * The focus byte will be reset after sending some packets to the camera
  */
 void QCCTV_RemoteCamera::requestFocus()
 {
     m_focus = true;
-    QTimer::singleShot (2000, Qt::PreciseTimer,
+    QTimer::singleShot (500, Qt::PreciseTimer,
                         this, SLOT (resetFocusRequest()));
 }
 
@@ -196,7 +196,7 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
 void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
 {
     m_address = address;
-    m_requestPackets = 10;
+    m_socket.connectToHost (address, QCCTV_STREAM_PORT);
 }
 
 /**
@@ -215,14 +215,12 @@ void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
  * - Operation status (1 byte)
  * - Compressed image data
  */
-void QCCTV_RemoteCamera::readData (const QHostAddress& address,
-                                   const QByteArray& data)
+void QCCTV_RemoteCamera::readData()
 {
-    /* This is for another camera */
-    if (address.toIPv4Address() != m_address.toIPv4Address())
-        return;
+    /* Read data */
+    QByteArray data = m_socket.readAll();
 
-    /* Packet is invalid */
+    /* Data is empty */
     if (data.isEmpty())
         return;
 
@@ -251,7 +249,8 @@ void QCCTV_RemoteCamera::readData (const QHostAddress& address,
 
     /* Convert raw image to QImage */
     if (imageData.size() > 0 && imageData.toInt() != QCCTV_NO_IMAGE_FLAG) {
-        QImage image = QImage::fromData (imageData, QCCTV_IMAGE_FORMAT);
+        QImage image = QImage::fromData (qUncompress (imageData),
+                                         QCCTV_IMAGE_FORMAT);
         m_image = QPixmap::fromImage (image);
         emit newImage (id());
     }
@@ -297,30 +296,10 @@ void QCCTV_RemoteCamera::sendData()
 
     /* Send the data (if possible) */
     if (!address().isNull() && cameraStatus() & QCCTV_CAMSTATUS_CONNECTED)
-        m_sender.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
+        m_socket.write (data);
 
     /* Schedule the next packet generation process */
     QTimer::singleShot (500, Qt::PreciseTimer, this, SLOT (sendData()));
-}
-
-/**
- * Sends a request packet if required. Request packets only contain the group
- * assigned/used by the QCCTV Station.
- *
- * This function is called periodically, since we need to send several packets
- * to ensure (or increase the chances) of the camera to receive our request.
- */
-void QCCTV_RemoteCamera::sendRequest()
-{
-    /* Send a request packet if required */
-    if (m_requestPackets > 0) {
-        m_requestPackets -= 1;
-        m_sender.writeDatagram (group().toUtf8(), m_address,
-                                QCCTV_REQUEST_PORT);
-    }
-
-    /* Call this function again in 500 msecs */
-    QTimer::singleShot (500, Qt::PreciseTimer, this, SLOT (sendRequest()));
 }
 
 /**

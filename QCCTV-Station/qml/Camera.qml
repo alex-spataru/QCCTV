@@ -34,15 +34,29 @@ Item {
     //
     // Properties
     //
+    property int forceReload: 0
     property int camNumber: 0
     property bool controlsEnabled: !returnButtonEnabled
     property bool returnButtonEnabled: QCCTVStation.cameraCount() > 1
 
     //
+    // Loads the same image ID with another URL (to trick the image element
+    // and force it to perform a redraw)
+    //
+    function reloadImage() {
+        forceReload += 1
+
+        if (forceReload > 100)
+            forceReload = 0
+
+        image.source = "image://qcctv/" + camNumber + "_" + forceReload
+    }
+
+    //
     // Reloads the information displayed by the camera object
     //
     function reloadData() {
-        image.source = "image://qcctv/" + camNumber
+        reloadImage()
         fps.text = QCCTVStation.fps (camNumber) + " FPS"
         name.text = QCCTVStation.cameraName (camNumber)
         altName.text = QCCTVStation.cameraName (camNumber)
@@ -62,7 +76,7 @@ Item {
 
         onNewCameraImage: {
             if (camera === camNumber)
-                image.source = "image://qcctv/" + camNumber
+                reloadImage()
         }
 
         onCameraNameChanged: {
