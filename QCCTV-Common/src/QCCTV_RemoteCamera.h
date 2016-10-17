@@ -67,10 +67,10 @@ public slots:
     void setFPS (const int fps);
     void changeFlashlightStatus (const int status);
     void attemptConnection (const QHostAddress& address);
+    void readData (const QHostAddress& address, const QByteArray& data);
 
 private slots:
     void sendData();
-    void readData();
     void sendRequest();
     void onCameraTimeout();
     void resetFocusRequest();
@@ -92,7 +92,6 @@ private:
     QCCTV_LightStatus m_lightStatus;
 
     QUdpSocket m_sender;
-    QUdpSocket m_receiver;
     QCCTV_Watchdog m_watchdog;
 };
 

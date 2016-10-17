@@ -22,8 +22,8 @@
 
 import QtQuick 2.0
 import QtMultimedia 5.4
+import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
-import QtQuick.Controls.Universal 2.0
 
 import "."
 
@@ -34,6 +34,7 @@ ApplicationWindow {
     // Global variables
     //
     property int spacing: 12
+    property int magicalNumber: 1
     property string fontFamily: "OpenSans"
 
     //
@@ -47,8 +48,13 @@ ApplicationWindow {
     //
     color: "#000"
     visible: true
-    Universal.theme: Universal.Dark
     title: AppDspName + " " + AppVersion
+
+    //
+    // Resize grid cells when user resizes window
+    //
+    onWidthChanged: grid.redraw()
+    onHeightChanged: grid.redraw()
 
     //
     // QCCTV signals/slots
@@ -58,6 +64,7 @@ ApplicationWindow {
         onCameraCountChanged: {
             grid.model = QCCTVStation.cameraCount()
             noCameras.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
+            grid.redraw()
         }
     }
 
@@ -66,16 +73,115 @@ ApplicationWindow {
     //
     GridView {
         id: grid
+        focus: true
         anchors.fill: parent
-        cellWidth: width / model
-        cellHeight: height / model
-        model: QCCTVStation.cameraCount()
+
+        //
+        // Re-sizes the cells to fit the application window size
+        //
+        function redraw() {
+            var h = 1
+            var w = 1
+            var bool = false
+
+            while (h * w < model) {
+                if (bool)
+                    w += 1
+                else
+                    h += 1
+
+                bool = !bool
+            }
+
+            /* Set initial size */
+            cellWidth = app.width / Math.max (w, 1)
+            cellHeight = app.height / Math.max (h, 1)
+
+            /* Ensure that cells are not too small */
+            cellWidth = Math.max (cellWidth, Math.max (app.width / 12, 140))
+            cellHeight = Math.max (cellHeight, Math.max (app.height / 9, 100))
+        }
+
+        //
+        // Fade while hidding or showing
+        //
+        opacity: enabled ? 1 : 0
+        Behavior on opacity { NumberAnimation {} }
+
+        //
+        // Camera view object
+        //
         delegate: Camera {
-            id: index
+            id: camera
+            camNumber: index
+            enabled: grid.enabled
             width: grid.cellWidth
             height: grid.cellHeight
-            controlsEnabled: QCCTVStation.cameraCount() === 1
+            onClicked: fullscreenCamera.showCamera (camNumber)
+
+            controlsEnabled: {
+                if (QCCTVStation.cameraCount() === 1)
+                    return true
+
+                return false
+            }
         }
+    }
+
+    //
+    // Fullscreen camera
+    //
+    Camera {
+        id: fullscreenCamera
+
+        Connections {
+            target: QCCTVStation
+            onDisconnected: {
+                if (camera === fullscreenCamera.camNumber)
+                    fullscreenCamera.hideCamera()
+
+                if (QCCTVStation.cameraCount() === 1)
+                    fullscreenCamera.showCamera (0)
+            }
+
+            onCameraCountChanged: {
+                fullscreenCamera.returnButtonEnabled = QCCTVStation.cameraCount() > 1
+
+                if (QCCTVStation.cameraCount() === 1)
+                    fullscreenCamera.showCamera (0)
+            }
+        }
+
+        function hideCamera() {
+            grid.enabled = 1
+            fullscreenCamera.opacity = 0
+            fullscreenCamera.enabled = 0
+        }
+
+        function showCamera (camera) {
+            if (QCCTVStation.cameraCount() > 1) {
+                grid.enabled = 0
+
+                fullscreenCamera.opacity = 1
+                fullscreenCamera.enabled = 1
+                fullscreenCamera.camNumber = camera
+                fullscreenCamera.controlsEnabled = 1
+
+                fullscreenCamera.reloadData()
+            }
+
+            else
+                hideCamera()
+        }
+
+        opacity: 0
+        enabled: false
+        anchors.fill: parent
+        controlsEnabled: true
+
+        onBack: hideCamera()
+
+        Behavior on opacity {NumberAnimation {}}
     }
 
     //

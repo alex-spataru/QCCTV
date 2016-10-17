@@ -26,6 +26,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include "AndroidLockHelper.h"
 #include "QCCTV_LocalCamera.h"
 
 const QString APP_VERSION = "1.0";
@@ -41,6 +42,12 @@ int main (int argc, char* argv[])
     QGuiApplication::setApplicationVersion (APP_VERSION);
     QGuiApplication::setOrganizationDomain (APP_WEBSITE);
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
+
+    /* Prevent sleeping in Android */
+#ifdef Q_OS_ANDROID
+    AndroidLockHelper helper;
+    Q_UNUSED (helper);
+#endif
 
     /* Initialize application */
     QGuiApplication app (argc, argv);

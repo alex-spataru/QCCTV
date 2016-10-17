@@ -67,6 +67,10 @@ linux:!android {
     INSTALLS += target desktop icon
 }
 
+android {
+    QT += androidextras
+}
+
 #-------------------------------------------------------------------------------
 # Import libraries
 #-------------------------------------------------------------------------------
@@ -78,7 +82,8 @@ include ($$PWD/../QCCTV-Common/QCCTV-Common.pri)
 #-------------------------------------------------------------------------------
 
 SOURCES += \
-    $$PWD/src/main.cpp
+    $$PWD/src/main.cpp \
+    src/AndroidLockHelper.cpp
 
 RESOURCES += \
     $$PWD/qml/qml.qrc
@@ -89,3 +94,6 @@ OTHER_FILES += \
 
 DISTFILES += \
     $$PWD/android/AndroidManifest.xml
+
+HEADERS += \
+    src/AndroidLockHelper.h

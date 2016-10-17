@@ -76,6 +76,7 @@ ApplicationWindow {
     VideoOutput {
         id: image
         anchors.fill: parent
+        autoOrientation: true
 
         //
         // Camera object

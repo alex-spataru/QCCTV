@@ -548,8 +548,11 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
             return;
 
         if (flashlightAvailable()) {
-            if (flashlightOn())
-                m_camera->exposure()->setFlashMode (QCameraExposure::FlashOn);
+            if (flashlightOn()) {
+                m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
+                focusCamera();
+            }
+
             else
                 m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
 

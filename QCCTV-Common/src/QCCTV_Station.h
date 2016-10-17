@@ -26,6 +26,8 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
+#include <QUdpSocket>
+
 class QCCTV_Station : public QObject
 {
     Q_OBJECT
@@ -67,11 +69,13 @@ public slots:
     void setLightStatus (const int camera, const QCCTV_LightStatus status);
 
 private slots:
+    void readData();
     void removeCamera (const int camera);
     void connectToCamera (const QHostAddress& ip);
 
 private:
     QString m_group;
+    QUdpSocket m_receiver;
     QList<QHostAddress> m_cameraIPs;
     QList<QCCTV_RemoteCamera*> m_cameraList;
 };

@@ -24,44 +24,58 @@ import QtQuick 2.0
 import QtQuick.Controls 2.0
 
 Item {
-    id: camera
+    id: cam
 
+    //
+    // Signals
+    //
     signal back
-    property int id: 0
-    property bool controlsEnabled: false
+    signal clicked
+
+    //
+    // Properties
+    //
+    property int camNumber: 0
+    property bool controlsEnabled: !returnButtonEnabled
     property bool returnButtonEnabled: QCCTVStation.cameraCount() > 1
+
+    //
+    // Reloads the information displayed by the camera object
+    //
+    function reloadData() {
+        image.source = "image://qcctv/" + camNumber
+        fps.text = QCCTVStation.fps (camNumber) + " FPS"
+        name.text = QCCTVStation.cameraName (camNumber)
+        altName.text = QCCTVStation.cameraName (camNumber)
+        status.text = QCCTVStation.statusString (camNumber)
+    }
 
     //
     // React to QCCTV events
     //
     Connections {
         target: QCCTVStation
-        onCameraCountChanged: {
-            camera.returnButtonEnabled = QCCTVStation.cameraCount() > 1
-        }
 
         onCameraStatusChanged: {
-            if (camera === id)
-                status.text = QCCTVStation.statusString (id)
+            if (camera === camNumber)
+                status.text = QCCTVStation.statusString (camNumber)
         }
 
         onNewCameraImage: {
-            if (camera === id) {
-                image.source = ""
-                image.source = "image://qcctv/" + id
-            }
+            if (camera === camNumber)
+                image.source = "image://qcctv/" + camNumber
         }
 
         onCameraNameChanged: {
-            if (camera === id) {
-                name.text = QCCTVStation.cameraName (id)
-                altName.text = QCCTVStation.cameraName (id)
+            if (camera === camNumber) {
+                name.text = QCCTVStation.cameraName (camNumber)
+                altName.text = QCCTVStation.cameraName (camNumber)
             }
         }
 
         onFpsChanged: {
-            if (camera === id)
-                fps.text = QCCTVStation.fps (id) + " FPS"
+            if (camera === camNumber)
+                fps.text = QCCTVStation.fps (camNumber) + " FPS"
         }
     }
 
@@ -70,7 +84,7 @@ Item {
     //
     Image {
         id: image
-        anchors.fill: parent
+        anchors.fill: cam
 
         //
         // Status label
@@ -79,7 +93,7 @@ Item {
             id: status
             color: "#888"
             font.family: app.fontFamily
-            text: QCCTVStation.statusString (id)
+            text: QCCTVStation.statusString (camNumber)
 
             anchors {
                 right: parent.right
@@ -87,7 +101,7 @@ Item {
                 margins: app.spacing
             }
 
-            opacity: camera.controlsEnabled ? 1 : 0
+            opacity: cam.controlsEnabled ? 1 : 0
             Behavior on opacity { NumberAnimation {} }
         }
 
@@ -98,7 +112,8 @@ Item {
             id: altName
             color: "#fff"
             font.family: app.fontFamily
-            text: QCCTVStation.cameraName (id)
+            text: QCCTVStation.cameraName (camNumber)
+            font.pixelSize: Math.min (14, image.height / 12)
 
             anchors {
                 top: parent.top
@@ -106,7 +121,7 @@ Item {
                 margins: app.spacing
             }
 
-            opacity: camera.controlsEnabled ? 0 : 1
+            opacity: cam.controlsEnabled ? 0 : 1
             Behavior on opacity { NumberAnimation {} }
         }
 
@@ -115,7 +130,7 @@ Item {
         //
         MouseArea {
             anchors.fill: parent
-            onClicked: camera.controlsEnabled = !camera.controlsEnabled
+            onClicked: cam.enabled ? cam.clicked() : undefined
         }
     }
 
@@ -130,8 +145,8 @@ Item {
         //
         radius: 2
         border.width: 1
-        width: camera.returnButtonEnabled ? 24 + app.spacing : 0
-        height: camera.returnButtonEnabled > 0 ? 24 + app.spacing : 0
+        width: cam.returnButtonEnabled ? 24 + app.spacing : 0
+        height: cam.returnButtonEnabled > 0 ? 24 + app.spacing : 0
 
         //
         // Colors
@@ -142,7 +157,7 @@ Item {
         //
         // Control visibility
         //
-        opacity: camera.controlsEnabled ? 0.85 : 0
+        opacity: cam.controlsEnabled ? 0.85 : 0
 
         //
         // Animations
@@ -158,7 +173,7 @@ Item {
         anchors {
             top: image.top
             left: image.left
-            margins: camera.returnButtonEnabled ? app.spacing : 0
+            margins: cam.returnButtonEnabled ? app.spacing : 0
         }
 
         //
@@ -168,6 +183,7 @@ Item {
             anchors.centerIn: parent
             sourceSize: Qt.size (18, 18)
             source: "qrc:/images/back.png"
+            visible: cam.returnButtonEnabled
         }
 
         //
@@ -175,8 +191,8 @@ Item {
         //
         MouseArea {
             anchors.fill: parent
-            onClicked: camera.back()
-            enabled: camera.returnButtonEnabled
+            onClicked: cam.back()
+            enabled: cam.returnButtonEnabled && cam.enabled
         }
     }
 
@@ -202,7 +218,7 @@ Item {
         //
         // Control visibility
         //
-        opacity: camera.controlsEnabled ? 0.85 : 0
+        opacity: cam.controlsEnabled ? 0.85 : 0
         Behavior on opacity { NumberAnimation {} }
 
         //
@@ -222,7 +238,7 @@ Item {
             id: name
             color: "#fff"
             font.family: app.fontFamily
-            text: QCCTVStation.cameraName (id)
+            text: QCCTVStation.cameraName (camNumber)
 
             anchors {
                 left: parent.left
@@ -238,7 +254,7 @@ Item {
             id: fps
             color: "#fff"
             font.family: app.fontFamily
-            text: QCCTVStation.fps (id) + " FPS"
+            text: QCCTVStation.fps (camNumber) + " FPS"
 
             anchors {
                 right: parent.right

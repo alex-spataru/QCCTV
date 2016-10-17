@@ -38,12 +38,9 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
-    /* Connect signals/slots */
-    connect (&m_receiver, SIGNAL (readyRead()), this, SLOT (readData()));
-    connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onCameraTimeout()));
-
-    /* Set watchdog timeout */
+    /* Configure watchdog */
     m_watchdog.setExpirationTime (2000);
+    connect (&m_watchdog, SIGNAL (expired()), this, SLOT (onCameraTimeout()));
 
     /* Start loops */
     sendData();
@@ -56,7 +53,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
     m_sender.close();
-    m_receiver.close();
 }
 
 /**
@@ -199,17 +195,87 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
  */
 void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
 {
-    /* Set camera address */
     m_address = address;
-
-    /* Send 10 request packets */
     m_requestPackets = 10;
+}
 
-    /* Bind the socket */
-    m_receiver.close();
-    m_receiver.bind (m_address,
-                     QCCTV_STREAM_PORT,
-                     QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+/**
+ * Called when we receive a datagram from the camera, this function interprets
+ * the status bytes and the image data contained in the received packet.
+ *
+ * The stream packets (the ones that we receive from the camera) have the
+ * following structure:
+ *
+ * - Length of camera name (1 byte)
+ * - Camera name string
+ * - Length of group name (1 byte)
+ * - Group name string
+ * - Camera FPS (1 byte)
+ * - Light status (1 byte)
+ * - Operation status (1 byte)
+ * - Compressed image data
+ */
+void QCCTV_RemoteCamera::readData (const QHostAddress& address,
+                                   const QByteArray& data)
+{
+    /* This is for another camera */
+    if (address.toIPv4Address() != m_address.toIPv4Address())
+        return;
+
+    /* Packet is invalid */
+    if (data.isEmpty())
+        return;
+
+    /* Get camera name */
+    QString name;
+    int name_len = data.at (0);
+    for (int i = 0; i < name_len; ++i)
+        name.append (data.at (1 + i));
+
+    /* Get camera group */
+    QString group;
+    int group_len = data.at (name_len + 1);
+    for (int i = 0; i < group_len; ++i)
+        group.append (data.at (name_len + 2 + i));
+
+    /* Get camera FPS and status */
+    int offset = name_len + group_len + 1;
+    int fps = data.at (offset + 1);
+    int light = data.at (offset + 2);
+    int status = data.at (offset + 3);
+
+    /* Get raw image */
+    QByteArray imageData;
+    for (int i = offset + 4; i < data.size(); ++i)
+        imageData.append (data.at (i));
+
+    /* Convert raw image to QImage */
+    if (imageData.size() > 0 && imageData.toInt() != QCCTV_NO_IMAGE_FLAG) {
+        QImage image = QImage::fromData (imageData, QCCTV_IMAGE_FORMAT);
+        m_image = QPixmap::fromImage (image);
+        emit newImage (id());
+    }
+
+    /* Update values */
+    setFPS (fps);
+    setName (name);
+    setGroup (group);
+    changeCameraStatus (status);
+    changeFlashlightStatus (light);
+
+    /* This is the first packet, emit connected() signal */
+    if (!m_connected) {
+        m_connected = true;
+        emit newImage (id());
+        emit connected (id());
+        emit newCameraName (id());
+        emit newCameraGroup (id());
+        emit newLightStatus (id());
+        emit newCameraStatus (id());
+    }
+
+    /* Feed the watchdog */
+    m_watchdog.reset();
 }
 
 /**
@@ -235,89 +301,6 @@ void QCCTV_RemoteCamera::sendData()
 
     /* Schedule the next packet generation process */
     QTimer::singleShot (500, Qt::PreciseTimer, this, SLOT (sendData()));
-}
-
-/**
- * Called when we receive a datagram from the camera, this function interprets
- * the status bytes and the image data contained in the received packet.
- *
- * The stream packets (the ones that we receive from the camera) have the
- * following structure:
- *
- * - Length of camera name (1 byte)
- * - Camera name string
- * - Length of group name (1 byte)
- * - Group name string
- * - Camera FPS (1 byte)
- * - Light status (1 byte)
- * - Operation status (1 byte)
- * - Compressed image data
- */
-void QCCTV_RemoteCamera::readData()
-{
-    while (m_receiver.hasPendingDatagrams()) {
-        /* Read incoming data */
-        QByteArray data;
-        data.resize (m_receiver.pendingDatagramSize());
-        int bytes = m_receiver.readDatagram (data.data(),
-                                             data.size(),
-                                             NULL, NULL);
-
-        /* Packet is invalid */
-        if (bytes <= 0)
-            return;
-
-        /* Get camera name */
-        QString name;
-        int name_len = data.at (0);
-        for (int i = 0; i < name_len; ++i)
-            name.append (data.at (1 + i));
-
-        /* Get camera group */
-        QString group;
-        int group_len = data.at (name_len + 1);
-        for (int i = 0; i < group_len; ++i)
-            group.append (data.at (name_len + 2 + i));
-
-        /* Get camera FPS and status */
-        int offset = name_len + group_len + 1;
-        int fps = data.at (offset + 1);
-        int light = data.at (offset + 2);
-        int status = data.at (offset + 3);
-
-        /* Get raw image */
-        QByteArray imageData;
-        for (int i = offset + 4; i < data.size(); ++i)
-            imageData.append (data.at (i));
-
-        /* Convert raw image to QImage */
-        if (imageData.size() > 0 && imageData.toInt() != QCCTV_NO_IMAGE_FLAG) {
-            QImage image = QImage::fromData (imageData, QCCTV_IMAGE_FORMAT);
-            m_image = QPixmap::fromImage (image);
-            emit newImage (id());
-        }
-
-        /* Update values */
-        setFPS (fps);
-        setName (name);
-        setGroup (group);
-        changeCameraStatus (status);
-        changeFlashlightStatus (light);
-
-        /* This is the first packet, emit connected() signal */
-        if (!m_connected) {
-            m_connected = true;
-            emit newImage (id());
-            emit connected (id());
-            emit newCameraName (id());
-            emit newCameraGroup (id());
-            emit newLightStatus (id());
-            emit newCameraStatus (id());
-        }
-
-        /* Feed the watchdog */
-        m_watchdog.reset();
-    }
 }
 
 /**
