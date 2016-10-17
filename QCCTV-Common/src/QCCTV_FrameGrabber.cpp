@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE
  */
 
+#include "yuv2rgb.h"
 #include "QCCTV_FrameGrabber.h"
 
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QVideoProbe (parent)
@@ -67,56 +68,60 @@ void QCCTV_FrameGrabber::setGrayscale (const bool grayscale)
     m_grayscale = grayscale;
 }
 
-void QCCTV_FrameGrabber::grayscale (QImage* image)
-{
-    if (image) {
-        for (int i = 0; i < image->height(); i++) {
-            uchar* scan = image->scanLine (i);
-            int depth = 4;
-            for (int j = 0; j < image->width(); j++) {
-                QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + j * depth);
-                int gray = qGray (*rgbpixel);
-                *rgbpixel = QColor (gray, gray, gray).rgba();
-            }
-        }
-    }
-}
-
 void QCCTV_FrameGrabber::processImage (const QVideoFrame& frame)
 {
     if (isEnabled()) {
-        QImage image;
+        QImage img;
+        QPixmap pixmap;
         QVideoFrame clone (frame);
         clone.map (QAbstractVideoBuffer::ReadOnly);
         QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
 
-        /* We know the frame format, construct the image directly */
+        /* Get the image from the frame */
         if (imageFormat != QImage::Format_Invalid) {
-            image = QImage (clone.bits(),
-                            clone.width(),
-                            clone.height(),
-                            imageFormat);
+            img = QImage (clone.bits(),
+                          clone.width(),
+                          clone.height(),
+                          clone.bytesPerLine(),
+                          imageFormat);
         }
 
-        /* Construct the image using the raw bytes */
-        else
-            image = QImage::fromData (clone.bits(), clone.mappedBytes());
+        /* Image is in NV12 or NV21 format */
+        else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
+                 clone.pixelFormat() == QVideoFrame::Format_NV21) {
+            uchar* rgb = (uchar*) calloc (1, clone.mappedBytes() * 3);
 
-        /* Image is invalid, abort */
-        if (image.isNull())
-            return;
+            nv21_to_rgba (rgb, 1,
+                          clone.bits(),
+                          clone.width(),
+                          clone.height());
+
+            img = QImage (rgb,
+                          clone.width(),
+                          clone.height(),
+                          QImage::Format_ARGB32_Premultiplied);
+
+            free (rgb);
+            rgb = NULL;
+        }
+
+        /* Last ditch attempt to save the world */
+        else
+            img = QImage::fromData (clone.bits(), clone.mappedBytes());
+
+        /* Convert image to pixmap */
+        if (isGrayscale())
+            pixmap = QPixmap::fromImage (img, Qt::OrderedDither | Qt::MonoOnly);
+        else
+            pixmap = QPixmap::fromImage (img, Qt::OrderedDither | Qt::AutoColor);
 
         /* Resize the image */
-        image = image.scaled (image.width() / shrinkRatio(),
-                              image.height() / shrinkRatio(),
-                              Qt::KeepAspectRatio);
-
-        /* Make the image black and white */
-        if (isGrayscale())
-            grayscale (&image);
+        pixmap = pixmap.scaled (img.width() / shrinkRatio(),
+                                img.height() / shrinkRatio(),
+                                Qt::KeepAspectRatio);
 
         /* Notify application */
         clone.unmap();
-        emit newFrame (QPixmap::fromImage (image));
+        emit newFrame (pixmap);
     }
 }

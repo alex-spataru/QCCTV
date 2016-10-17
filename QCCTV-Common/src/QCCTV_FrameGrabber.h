@@ -47,7 +47,6 @@ public slots:
     void setGrayscale (const bool grayscale);
 
 private slots:
-    void grayscale (QImage* image);
     void processImage (const QVideoFrame& frame);
 
 private:

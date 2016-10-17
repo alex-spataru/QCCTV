@@ -67,7 +67,7 @@ extern QString QCCTV_STATUS_STRING (const int status);
 /* Image encoding */
 #define QCCTV_MIN_FPS            10
 #define QCCTV_MAX_FPS            40
-#define QCCTV_IMAGE_FORMAT       "PNG"
+#define QCCTV_IMAGE_FORMAT       "PPM"
 #define QCCTV_COMPRESSION_FACTOR 0x09
 #define QCCTV_NO_IMAGE_FLAG      0x05
 
