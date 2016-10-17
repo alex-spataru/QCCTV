@@ -29,7 +29,6 @@ TARGET = QCCTV-Camera
 
 QT += core
 QT += quick
-QT += quickcontrols2
 
 #-------------------------------------------------------------------------------
 # Make options

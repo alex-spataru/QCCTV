@@ -22,12 +22,13 @@
 
 import QtQuick 2.0
 import QtMultimedia 5.4
+import QtQuick.Window 2.0
 import QtQuick.Layouts 1.0
-import QtQuick.Controls 2.0
+import Qt.labs.settings 1.0
 
 import "."
 
-ApplicationWindow {
+Window {
     id: app
     
     //
@@ -40,6 +41,8 @@ ApplicationWindow {
     //
     // Window geometry
     //
+    x: 100
+    y: 100
     width: 840
     height: 520
     
@@ -55,6 +58,16 @@ ApplicationWindow {
     //
     onWidthChanged: grid.redraw()
     onHeightChanged: grid.redraw()
+
+    //
+    // Settings
+    //
+    Settings {
+        property alias x: app.x
+        property alias y: app.y
+        property alias width: app.width
+        property alias height: app.height
+    }
 
     //
     // QCCTV signals/slots
@@ -195,7 +208,7 @@ ApplicationWindow {
 
         Behavior on opacity { NumberAnimation{} }
 
-        Label {
+        Text {
             color: "#fff"
             font.bold: true
             font.pixelSize: 24
@@ -204,7 +217,7 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
-        Label {
+        Text {
             color: "#ccc"
             font.pixelSize: 16
             font.family: app.fontFamily

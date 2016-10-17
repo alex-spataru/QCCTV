@@ -22,34 +22,45 @@
 
 import QtQuick 2.0
 import QtMultimedia 5.4
-import QtQuick.Controls 2.0
-import QtQuick.Controls.Universal 2.0
+import QtQuick.Window 2.0
+import Qt.labs.settings 1.0
 
 import "."
 
-ApplicationWindow {
+Window {
     id: app
     
     //
     // Window geometry
     //
+    x: 100
+    y: 100
     width: 720
     height: 480
-    
+
     //
     // Window properties
     //
     color: "#000"
     visible: true
-    Universal.theme: Universal.Dark
     title: AppDspName + " " + AppVersion
 
     //
     // Global variables
     //
     property var borderSize: 8
-    property string fontFamily: "OpenSans"
     property bool controlsEnabled: true
+    property string fontFamily: "OpenSans"
+
+    //
+    // Settings
+    //
+    Settings {
+        property alias x: app.x
+        property alias y: app.y
+        property alias width: app.width
+        property alias height: app.height
+    }
 
     //
     // QCCTV signals/slots
@@ -59,7 +70,6 @@ ApplicationWindow {
 
         onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
         onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
-        onCameraStatusChanged: camstatus.text = QCCTVCamera.statusString()
         onFocusStatusChanged: status.display (qsTr ("Focusing Camera") + "...")
 
         onLightStatusChanged: {
@@ -84,6 +94,10 @@ ApplicationWindow {
         source: Camera {
             id: camera
             objectName: "camera"
+            Component.onCompleted: {
+                camera.captureMode = Camera.CaptureStillImage
+                camera.start()
+            }
         }
 
         //
@@ -92,27 +106,6 @@ ApplicationWindow {
         MouseArea {
             anchors.fill: parent
             onClicked: app.controlsEnabled = !app.controlsEnabled
-        }
-
-        //
-        // Status label
-        //
-        Label {
-            id: camstatus
-            color: "#888"
-            font.family: app.fontFamily
-            text: QCCTVCamera.statusString()
-
-            anchors {
-                top: parent.top
-                right: parent.right
-                margins: 3 * borderSize
-                topMargin: app.controlsEnabled ?
-                               4 * borderSize + menu.height :
-                               3 * borderSize
-            }
-
-            Behavior on anchors.topMargin {NumberAnimation{}}
         }
     }
 
@@ -154,7 +147,7 @@ ApplicationWindow {
         //
         // Camera name
         //
-        Label {
+        Text {
             id: camName
             color: "#fff"
             font.family: app.fontFamily
@@ -170,7 +163,7 @@ ApplicationWindow {
         //
         // FPS indicator
         //
-        Label {
+        Text {
             id: fps
             color: "white"
             font.family: app.fontFamily
@@ -253,6 +246,15 @@ ApplicationWindow {
             enabled: app.controlsEnabled
             source: "qrc:/images/camera.png"
             anchors.verticalCenter: parent.verticalCenter
+            onClicked: {
+                if (camera.imageCapture.ready) {
+                    status.display (qsTr ("Saving Photo") + "...")
+                    camera.imageCapture.capture()
+                }
+
+                else
+                    status.display (qsTr ("Camera not Ready!"))
+            }
         }
 
         //
@@ -325,7 +327,7 @@ ApplicationWindow {
         //
         // Dynamic status label
         //
-        Label {
+        Text {
             id: sText
             color: "#fff"
             font.family: app.fontFamily

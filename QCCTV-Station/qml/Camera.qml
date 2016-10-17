@@ -21,7 +21,6 @@
  */
 
 import QtQuick 2.0
-import QtQuick.Controls 2.0
 
 Item {
     id: cam
@@ -89,7 +88,7 @@ Item {
         //
         // Status label
         //
-        Label {
+        Text {
             id: status
             color: "#888"
             font.family: app.fontFamily
@@ -108,7 +107,7 @@ Item {
         //
         // Alternative name label
         //
-        Label {
+        Text {
             id: altName
             color: "#fff"
             font.family: app.fontFamily
@@ -234,7 +233,7 @@ Item {
         //
         // Camera name
         //
-        Label {
+        Text {
             id: name
             color: "#fff"
             font.family: app.fontFamily
@@ -250,7 +249,7 @@ Item {
         //
         // FPS indicator
         //
-        Label {
+        Text {
             id: fps
             color: "#fff"
             font.family: app.fontFamily

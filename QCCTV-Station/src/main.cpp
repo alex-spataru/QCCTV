@@ -21,7 +21,6 @@
  */
 
 #include <QtQml>
-#include <QQuickStyle>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -44,7 +43,6 @@ int main (int argc, char* argv[])
 
     /* Initialize application */
     QGuiApplication app (argc, argv);
-    QQuickStyle::setStyle ("Universal");
 
     /* Initialize QCCTV station */
     QCCTV_Station station;

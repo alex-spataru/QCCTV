@@ -22,7 +22,6 @@
 
 #include <QtQml>
 #include <QCamera>
-#include <QQuickStyle>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -51,9 +50,6 @@ int main (int argc, char* argv[])
 
     /* Initialize application */
     QGuiApplication app (argc, argv);
-    QQuickStyle::setStyle ("Universal");
-
-    /* Initialize QCCTV camera */
     QCCTV_LocalCamera camera;
 
     /* Load QML interface */

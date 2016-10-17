@@ -255,15 +255,7 @@ void QCCTV_LocalCamera::setFPS (const int fps)
 void QCCTV_LocalCamera::setCamera (QCamera* camera)
 {
     if (camera) {
-        /* Re-assign the camera */
         m_camera = camera;
-
-        /* Configure the camera */
-        m_camera->setCaptureMode (QCamera::CaptureViewfinder);
-        m_camera->load();
-        m_camera->start();
-
-        /* Configure the frame grabber */
         m_frameGrabber.setSource (m_camera);
     }
 }
