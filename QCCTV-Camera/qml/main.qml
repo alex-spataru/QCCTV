@@ -93,8 +93,18 @@ ApplicationWindow {
     //
     VideoOutput {
         id: image
-        anchors.fill: parent
         autoOrientation: true
+        fillMode: VideoOutput.PreserveAspectCrop
+
+        //
+        // Anchors
+        //
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: settings.left
+            bottom: parent.bottom
+        }
 
         //
         // Camera object
@@ -115,6 +125,11 @@ ApplicationWindow {
             anchors.fill: parent
             onClicked: app.controlsEnabled = !app.controlsEnabled
         }
+
+        //
+        // Animations
+        //
+        Behavior on opacity { NumberAnimation{} }
     }
 
     //
@@ -240,6 +255,7 @@ ApplicationWindow {
         Button {
             width: 64
             height: 64
+            onClicked: settings.showPanel()
             enabled: app.controlsEnabled
             source: "qrc:/images/settings.png"
             anchors.verticalCenter: parent.verticalCenter
@@ -340,6 +356,64 @@ ApplicationWindow {
             color: "#fff"
             font.family: app.fontFamily
             anchors.centerIn: parent
+        }
+    }
+
+    //
+    // Settings panel
+    //
+    Rectangle {
+        id: settings
+        Component.onCompleted: settings.hidePanel()
+
+        //
+        // Resize the margins when window size changes
+        //
+        Connections {
+            target: app
+            onWidthChanged: {
+                if (settings.anchors.leftMargin > 0)
+                    settings.anchors.leftMargin = app.width
+            }
+        }
+
+        //
+        // Shows the settings dialog
+        //
+        function showPanel() {
+            image.opacity = 0
+            anchors.leftMargin = 0
+            controlsEnabled = false
+        }
+
+        //
+        // Hides the settings dialog
+        //
+        function hidePanel() {
+            image.opacity = 1
+            controlsEnabled = true
+            anchors.leftMargin = app.width
+        }
+
+        //
+        // Background
+        //
+        color: "#000"
+        anchors.fill: parent
+        anchors.leftMargin: parent.width
+
+        //
+        // Animations
+        //
+        Behavior on anchors.leftMargin { NumberAnimation{} }
+
+        //
+        // Dialog hide
+        //
+        MouseArea {
+            anchors.fill: parent
+            enabled: anchors.leftMargin === 0
+            onClicked: settings.hidePanel()
         }
     }
 }

@@ -55,7 +55,7 @@ public:
     Q_INVOKABLE QString group() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE QString cameraName() const;
-    Q_INVOKABLE QPixmap currentImage() const;
+    Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
@@ -83,7 +83,7 @@ private:
     int m_fps;
     bool m_focus;
     QString m_name;
-    QPixmap m_image;
+    QImage m_image;
     QString m_group;
     bool m_connected;
     int m_cameraStatus;

@@ -57,13 +57,13 @@ AndroidLockHelper::AndroidLockHelper()
         }
     }
 
-    if ( m_wakeLock.isValid() )
+    if (m_wakeLock.isValid())
         m_wakeLock.callMethod<void> ("acquire", "()V");
 }
 
 AndroidLockHelper::~AndroidLockHelper()
 {
-    if ( m_wakeLock.isValid() )
+    if (m_wakeLock.isValid())
         m_wakeLock.callMethod<void> ("release", "()V");
 }
 

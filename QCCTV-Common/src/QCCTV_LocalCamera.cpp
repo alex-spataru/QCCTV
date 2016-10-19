@@ -25,6 +25,7 @@
 #include "QCCTV_FrameGrabber.h"
 
 #include <QFont>
+#include <QThread>
 #include <QBuffer>
 #include <QPainter>
 #include <QCameraInfo>
@@ -47,8 +48,13 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
              this,        SLOT (acceptConnection()));
 
     /* Setup the frame grabber */
-    connect (&m_frameGrabber, SIGNAL (newFrame (QPixmap)),
-             this,              SLOT (changeImage (QPixmap)));
+    connect (&m_frameGrabber, SIGNAL (newFrame (QImage)),
+             this,              SLOT (changeImage (QImage)));
+
+    /* Move frame grabber to child thread */
+    QThread thread;
+    m_frameGrabber.moveToThread (&thread);
+    thread.start (QThread::NormalPriority);
 
     /* Setup the watchdog */
     m_watchdog.setExpirationTime (QCCTV_COMMAND_PKT_TIMEOUT);
@@ -62,15 +68,18 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 
     /* Set default image */
-    m_image = QPixmap (320, 240);
-    m_image.fill (QColor ("#00f").rgb());
-    QPainter painter (&m_image);
+    QPixmap pixmap = QPixmap (320, 240);
+    pixmap.fill (QColor ("#000").rgb());
+    QPainter painter (&pixmap);
 
     /* Set default image text */
     painter.setPen (Qt::white);
     painter.setFont (QFont ("Arial"));
     painter.drawText (QRectF (0, 0, 320, 240),
                       Qt::AlignCenter, "NO CAMERA IMAGE");
+
+    /* Get generated image buffer */
+    m_image = pixmap.toImage();
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -157,9 +166,9 @@ QString QCCTV_LocalCamera::cameraGroup() const
 }
 
 /**
- * Returns the current image recorded by the camera
+ * Returns the image that is currently being sent to the CCTV stations
  */
-QPixmap QCCTV_LocalCamera::currentImage() const
+QImage QCCTV_LocalCamera::currentImage() const
 {
     return m_image;
 }
@@ -373,19 +382,15 @@ void QCCTV_LocalCamera::sendCameraData()
     QByteArray img;
     QBuffer buffer (&img);
     buffer.open (QIODevice::WriteOnly);
-    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
+    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, QCCTV_IMAGE_QUALITY);
 
-    /* Add image buffer to packet */
-    if (img.size() > 0 && !currentImage().isNull()) {
-        data.append (qCompress (img, 9));
-        buffer.close();
-    }
-
-    /* Add image error flag (if required) */
+    /* Put image to packet */
+    if (!img.isEmpty())
+        data.append (qCompress (img));
     else
         data.append (QCCTV_NO_IMAGE_FLAG);
 
-    /* Send generated data */
+    /* Send generated data using TCP */
     foreach (QTcpSocket* socket, m_sockets)
         if (socket)
             socket->write (data);
@@ -467,7 +472,7 @@ void QCCTV_LocalCamera::broadcastInformation()
 /**
  * Replaces the current image and notifies the application
  */
-void QCCTV_LocalCamera::changeImage (const QPixmap& image)
+void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_image = image;
     m_frameGrabber.setEnabled (false);

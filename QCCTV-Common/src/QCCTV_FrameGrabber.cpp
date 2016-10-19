@@ -71,19 +71,18 @@ void QCCTV_FrameGrabber::setGrayscale (const bool grayscale)
 void QCCTV_FrameGrabber::processImage (const QVideoFrame& frame)
 {
     if (isEnabled()) {
-        QImage img;
-        QPixmap pixmap;
+        QImage image;
         QVideoFrame clone (frame);
         clone.map (QAbstractVideoBuffer::ReadOnly);
         QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
 
         /* Get the image from the frame */
         if (imageFormat != QImage::Format_Invalid) {
-            img = QImage (clone.bits(),
-                          clone.width(),
-                          clone.height(),
-                          clone.bytesPerLine(),
-                          imageFormat);
+            image = QImage (clone.bits(),
+                            clone.width(),
+                            clone.height(),
+                            clone.bytesPerLine(),
+                            imageFormat);
         }
 
         /* Image is in NV12 or NV21 format */
@@ -96,10 +95,10 @@ void QCCTV_FrameGrabber::processImage (const QVideoFrame& frame)
                           clone.width(),
                           clone.height());
 
-            img = QImage (rgb,
-                          clone.width(),
-                          clone.height(),
-                          QImage::Format_ARGB32_Premultiplied);
+            image = QImage (rgb,
+                            clone.width(),
+                            clone.height(),
+                            QImage::Format_ARGB32_Premultiplied);
 
             free (rgb);
             rgb = NULL;
@@ -107,21 +106,15 @@ void QCCTV_FrameGrabber::processImage (const QVideoFrame& frame)
 
         /* Last ditch attempt to save the world */
         else
-            img = QImage::fromData (clone.bits(), clone.mappedBytes());
-
-        /* Convert image to pixmap */
-        if (isGrayscale())
-            pixmap = QPixmap::fromImage (img, Qt::OrderedDither | Qt::MonoOnly);
-        else
-            pixmap = QPixmap::fromImage (img, Qt::OrderedDither | Qt::AutoColor);
+            image = QImage::fromData (clone.bits(), clone.mappedBytes());
 
         /* Resize the image */
-        pixmap = pixmap.scaled (img.width() / shrinkRatio(),
-                                img.height() / shrinkRatio(),
-                                Qt::KeepAspectRatio);
+        image = image.scaled (image.width() / shrinkRatio(),
+                              image.height() / shrinkRatio(),
+                              Qt::KeepAspectRatio);
 
         /* Notify application */
         clone.unmap();
-        emit newFrame (pixmap);
+        emit newFrame (image);
     }
 }

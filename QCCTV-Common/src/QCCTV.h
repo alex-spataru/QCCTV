@@ -65,11 +65,11 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_COMMAND_PKT_TIMEOUT 2000
 
 /* Image encoding */
-#define QCCTV_MIN_FPS            10
-#define QCCTV_MAX_FPS            40
-#define QCCTV_IMAGE_FORMAT       "JPEG"
-#define QCCTV_COMPRESSION_FACTOR 0x09
 #define QCCTV_NO_IMAGE_FLAG      0x05
+#define QCCTV_MIN_FPS            0x0A
+#define QCCTV_MAX_FPS            0x28
+#define QCCTV_IMAGE_QUALITY      0x46
+#define QCCTV_IMAGE_FORMAT       "JPG"
 
 #endif
 

@@ -84,12 +84,12 @@ QString QCCTV_Station::cameraName (const int camera)
     return "";
 }
 
-QPixmap QCCTV_Station::currentImage (const int camera)
+QImage QCCTV_Station::currentImage (const int camera)
 {
     if (getCamera (camera))
         return getCamera (camera)->currentImage();
 
-    return QPixmap();
+    return QImage();
 }
 
 QHostAddress QCCTV_Station::address (const int camera)

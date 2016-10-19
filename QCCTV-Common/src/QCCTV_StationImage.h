@@ -31,10 +31,11 @@ class QCCTV_StationImage : public QQuickImageProvider
 {
 public:
     QCCTV_StationImage (QCCTV_Station* parent);
-    QPixmap requestPixmap (const QString& id, QSize* size,
-                           const QSize& requestedSize);
+    QImage requestImage (const QString& id, QSize* size,
+                         const QSize& requestedSize);
 
 private:
+    QImage m_cameraError;
     QCCTV_Station* m_station;
 };
 

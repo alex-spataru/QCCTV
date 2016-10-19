@@ -55,7 +55,7 @@ public:
     Q_INVOKABLE QString group (const int camera);
     Q_INVOKABLE int cameraStatus (const int camera);
     Q_INVOKABLE QString cameraName (const int camera);
-    Q_INVOKABLE QPixmap currentImage (const int camera);
+    Q_INVOKABLE QImage currentImage (const int camera);
     Q_INVOKABLE QHostAddress address (const int camera);
     Q_INVOKABLE QString statusString (const int camera);
     Q_INVOKABLE QCCTV_LightStatus lightStatus (const int camera);

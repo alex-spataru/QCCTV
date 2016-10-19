@@ -39,6 +39,10 @@ int main (int argc, char* argv[])
     QGuiApplication::setOrganizationName (APP_COMPANY);
     QGuiApplication::setApplicationVersion (APP_VERSION);
     QGuiApplication::setOrganizationDomain (APP_WEBSITE);
+
+    /* Set application attributes */
+    QGuiApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
+    QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
     /* Initialize application */

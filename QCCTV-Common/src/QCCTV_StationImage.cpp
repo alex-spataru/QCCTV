@@ -23,15 +23,32 @@
 #include "QCCTV_Station.h"
 #include "QCCTV_StationImage.h"
 
+#include <QPainter>
+
 QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
-    QQuickImageProvider (QQuickImageProvider::Pixmap)
+    QQuickImageProvider (QQuickImageProvider::Image,
+                         QQuickImageProvider::ForceAsynchronousImageLoading)
 {
     m_station = parent;
+
+    /* Set error image */
+    QPixmap pixmap = QPixmap (320, 240);
+    pixmap.fill (QColor ("#000").rgb());
+    QPainter painter (&pixmap);
+
+    /* Set default image text */
+    painter.setPen (Qt::white);
+    painter.setFont (QFont ("Arial"));
+    painter.drawText (QRectF (0, 0, 320, 240),
+                      Qt::AlignCenter, "CAMERA ERROR");
+
+    /* Convert pixmap to image */
+    m_cameraError = pixmap.toImage();
 }
 
-QPixmap QCCTV_StationImage::requestPixmap (const QString& id,
-                                           QSize* size,
-                                           const QSize& requestedSize)
+QImage QCCTV_StationImage::requestImage (const QString& id,
+                                         QSize* size,
+                                         const QSize& requestedSize)
 {
     Q_UNUSED (size);
     Q_UNUSED (requestedSize);
@@ -39,11 +56,9 @@ QPixmap QCCTV_StationImage::requestPixmap (const QString& id,
     if (m_station && !id.isEmpty()) {
         QStringList list = id.split ("_");
 
-        if (!list.isEmpty()) {
-            QPixmap pixmap = m_station->currentImage (list.first().toInt());
-            return pixmap;
-        }
+        if (!list.isEmpty())
+            return m_station->currentImage (list.first().toInt());
     }
 
-    return QPixmap();
+    return m_cameraError;
 }

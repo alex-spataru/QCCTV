@@ -98,7 +98,7 @@ QString QCCTV_RemoteCamera::cameraName() const
 /**
  * Returns the latest image captured by the camera
  */
-QPixmap QCCTV_RemoteCamera::currentImage() const
+QImage QCCTV_RemoteCamera::currentImage() const
 {
     return m_image;
 }
@@ -243,15 +243,14 @@ void QCCTV_RemoteCamera::readData()
     int status = data.at (offset + 3);
 
     /* Get raw image */
-    QByteArray imageData;
+    QByteArray buffer;
     for (int i = offset + 4; i < data.size(); ++i)
-        imageData.append (data.at (i));
+        buffer.append (data.at (i));
 
     /* Convert raw image to QImage */
-    if (imageData.size() > 0 && imageData.toInt() != QCCTV_NO_IMAGE_FLAG) {
-        QImage image = QImage::fromData (qUncompress (imageData),
-                                         QCCTV_IMAGE_FORMAT);
-        m_image = QPixmap::fromImage (image);
+    buffer = qUncompress (buffer);
+    if (buffer.size() > 1) {
+        m_image = QImage::fromData (buffer, QCCTV_IMAGE_FORMAT);
         emit newImage (id());
     }
 

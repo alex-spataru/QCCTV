@@ -35,7 +35,7 @@ public:
     Q_INVOKABLE bool flashlightOff() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QString cameraGroup() const;
-    Q_INVOKABLE QPixmap currentImage() const;
+    Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
@@ -63,7 +63,7 @@ private slots:
     void disconnectStation();
     void readCommandPacket();
     void broadcastInformation();
-    void changeImage (const QPixmap& image);
+    void changeImage (const QImage& image);
     void addStatusFlag (const QCCTV_CameraStatus status);
     void setCameraStatus (const QCCTV_CameraStatus status);
     void removeStatusFlag (const QCCTV_CameraStatus status);
@@ -79,7 +79,7 @@ private:
     QString m_name;
     QString m_group;
 
-    QPixmap m_image;
+    QImage m_image;
     QCamera* m_camera;
     QCCTV_FrameGrabber m_frameGrabber;
 

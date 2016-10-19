@@ -32,7 +32,7 @@ class QCCTV_FrameGrabber : public QVideoProbe
     Q_OBJECT
 
 signals:
-    void newFrame (const QPixmap& frame);
+    void newFrame (const QImage& frame);
 
 public:
     QCCTV_FrameGrabber (QObject* parent = NULL);
