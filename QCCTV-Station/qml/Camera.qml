@@ -35,6 +35,7 @@ Item {
     // Properties
     //
     property int camNumber: 0
+    property int forceReload: 0
     property bool controlsEnabled: !returnButtonEnabled
     property bool returnButtonEnabled: QCCTVStation.cameraCount() > 1
 
@@ -43,8 +44,13 @@ Item {
     // and force it to perform a redraw)
     //
     function reloadImage() {
+        forceReload += 1
+
+        if (forceReload > 100)
+            forceReload = 0
+
         image.source = ""
-        image.source = "image://qcctv/" + camNumber
+        image.source = "image://qcctv/" + camNumber + "_" + forceReload
     }
 
     //

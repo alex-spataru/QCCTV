@@ -49,6 +49,7 @@ ApplicationWindow {
     // Global variables
     //
     property var borderSize: 8
+    property int forceReload: 0
     property bool controlsEnabled: true
     property string fontFamily: "OpenSans"
 
@@ -60,6 +61,19 @@ ApplicationWindow {
         property alias y: app.y
         property alias width: app.width
         property alias height: app.height
+    }
+
+    //
+    // Reloads the displayed image by changing the URL to load the images
+    // from (which forces the image to perform a redraw)
+    //
+    function reloadImage() {
+        forceReload += 1
+
+        if (forceReload > 100)
+            forceReload = 0
+
+        image.source = "image://qcctv-local-camera/" + forceReload
     }
 
     //
@@ -76,6 +90,7 @@ ApplicationWindow {
     Connections {
         target: QCCTVCamera
 
+        onImageChanged: reloadImage()
         onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
         onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
         onFocusStatusChanged: status.display (qsTr ("Focusing Camera") + "...")
@@ -91,10 +106,12 @@ ApplicationWindow {
     //
     // Video output
     //
-    VideoOutput {
+    Image {
         id: image
-        autoOrientation: true
-        fillMode: VideoOutput.PreserveAspectCrop
+        cache: false
+        smooth: true
+        asynchronous: true
+        fillMode: Image.PreserveAspectCrop
 
         //
         // Anchors
@@ -104,18 +121,6 @@ ApplicationWindow {
             left: parent.left
             right: settings.left
             bottom: parent.bottom
-        }
-
-        //
-        // Camera object
-        //
-        source: Camera {
-            id: camera
-            objectName: "camera"
-            Component.onCompleted: {
-                camera.captureMode = Camera.CaptureStillImage
-                camera.start()
-            }
         }
 
         //
@@ -271,9 +276,9 @@ ApplicationWindow {
             source: "qrc:/images/camera.png"
             anchors.verticalCenter: parent.verticalCenter
             onClicked: {
-                if (camera.imageCapture.ready) {
+                if (QCCTVCamera.readyForCapture()) {
                     status.display (qsTr ("Saving Photo") + "...")
-                    camera.imageCapture.capture()
+                    QCCTVCamera.takePhoto()
                 }
 
                 else

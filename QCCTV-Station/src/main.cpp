@@ -25,7 +25,7 @@
 #include <QQmlApplicationEngine>
 
 #include "QCCTV_Station.h"
-#include "QCCTV_StationImage.h"
+#include "QCCTV_ImageProvider.h"
 
 const QString APP_VERSION = "1.0";
 const QString APP_COMPANY = "Alex Spataru";

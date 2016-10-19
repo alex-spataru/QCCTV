@@ -24,10 +24,9 @@
 #define _QCCTV_FRAME_GRABBER_H
 
 #include <QObject>
-#include <QPixmap>
-#include <QVideoProbe>
+#include <QAbstractVideoSurface>
 
-class QCCTV_FrameGrabber : public QVideoProbe
+class QCCTV_FrameGrabber : public QAbstractVideoSurface
 {
     Q_OBJECT
 
@@ -38,8 +37,12 @@ public:
     QCCTV_FrameGrabber (QObject* parent = NULL);
 
     bool isEnabled() const;
-    qreal shrinkRatio() const;
     bool isGrayscale() const;
+    qreal shrinkRatio() const;
+
+    bool present (const QVideoFrame& frame);
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats
+    (QAbstractVideoBuffer::HandleType handleType) const;
 
 public slots:
     void setEnabled (const bool enabled);
@@ -47,7 +50,7 @@ public slots:
     void setGrayscale (const bool grayscale);
 
 private slots:
-    void processImage (const QVideoFrame& frame);
+    void makeGrayscale (QImage* image);
 
 private:
     bool m_enabled;

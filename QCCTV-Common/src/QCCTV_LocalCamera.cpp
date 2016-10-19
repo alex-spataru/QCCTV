@@ -30,6 +30,7 @@
 #include <QPainter>
 #include <QCameraInfo>
 #include <QCameraExposure>
+#include <QCameraImageCapture>
 
 /**
  * Initializes the class by binding the sockets and connecting the
@@ -40,6 +41,10 @@
  */
 QCCTV_LocalCamera::QCCTV_LocalCamera()
 {
+    /* Initialize pointers */
+    m_camera = NULL;
+    m_capture = NULL;
+
     /* Listen for incoming connections */
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
 
@@ -50,11 +55,6 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     /* Setup the frame grabber */
     connect (&m_frameGrabber, SIGNAL (newFrame (QImage)),
              this,              SLOT (changeImage (QImage)));
-
-    /* Move frame grabber to child thread */
-    QThread thread;
-    m_frameGrabber.moveToThread (&thread);
-    thread.start (QThread::NormalPriority);
 
     /* Setup the watchdog */
     m_watchdog.setExpirationTime (QCCTV_COMMAND_PKT_TIMEOUT);
@@ -182,6 +182,17 @@ QString QCCTV_LocalCamera::statusString() const
 }
 
 /**
+ * Returns \c true if the camera is ready for saving photos
+ */
+bool QCCTV_LocalCamera::readyForCapture() const
+{
+    if (m_camera && m_capture)
+        return m_capture->isReadyForCapture();
+
+    return false;
+}
+
+/**
  * Returns \c true if the camera's flashlight is ready for use
  */
 bool QCCTV_LocalCamera::flashlightAvailable() const
@@ -211,6 +222,15 @@ QStringList QCCTV_LocalCamera::connectedHosts() const
 int QCCTV_LocalCamera::cameraStatus() const
 {
     return m_cameraStatus;
+}
+
+/**
+ * Attempts to take a photo using the current camera
+ */
+void QCCTV_LocalCamera::takePhoto()
+{
+    if (readyForCapture())
+        m_capture->capture();
 }
 
 /**
@@ -258,7 +278,14 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
 {
     if (camera) {
         m_camera = camera;
-        m_frameGrabber.setSource (m_camera);
+        m_camera->setViewfinder (&m_frameGrabber);
+        m_camera->setCaptureMode (QCamera::CaptureStillImage);
+        m_camera->start();
+
+        if (m_capture)
+            delete m_capture;
+
+        m_capture = new QCameraImageCapture (m_camera);
     }
 }
 
@@ -476,6 +503,8 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_image = image;
     m_frameGrabber.setEnabled (false);
+
+    emit imageChanged();
 }
 
 /**

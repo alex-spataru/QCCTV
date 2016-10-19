@@ -20,17 +20,13 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "yuv2rgb.h"
 #include "QCCTV_FrameGrabber.h"
 
-QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QVideoProbe (parent)
+QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
     m_ratio = 2.0;
     m_enabled = false;
     m_grayscale = false;
-
-    connect (this, SIGNAL (videoFrameProbed (QVideoFrame)),
-             this,   SLOT (processImage (QVideoFrame)));
 }
 
 bool QCCTV_FrameGrabber::isEnabled() const
@@ -38,14 +34,96 @@ bool QCCTV_FrameGrabber::isEnabled() const
     return m_enabled;
 }
 
+bool QCCTV_FrameGrabber::isGrayscale() const
+{
+    return m_grayscale;
+}
+
 qreal QCCTV_FrameGrabber::shrinkRatio() const
 {
     return m_ratio;
 }
 
-bool QCCTV_FrameGrabber::isGrayscale() const
+bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
 {
-    return m_grayscale;
+    /* Frame grabber is disabled */
+    if (!isEnabled())
+        return false;
+
+    /* Create variables */
+    QImage image;
+    QVideoFrame clone (frame);
+    clone.map (QAbstractVideoBuffer::ReadOnly);
+
+    /* Get the image from the frame */
+    image = QImage (clone.bits(),
+                    clone.width(),
+                    clone.height(),
+                    clone.bytesPerLine(),
+                    QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat()));
+
+    /* Image is invalid, abort */
+    if (image.isNull())
+        return false;
+
+    /* Resize the image */
+    image = image.scaled (image.width() / shrinkRatio(),
+                          image.height() / shrinkRatio(),
+                          Qt::KeepAspectRatio);
+
+    /* Make the image grayscale */
+    if (isGrayscale())
+        makeGrayscale (&image);
+
+    /* Fix mirrored image issue */
+#if defined Q_OS_WIN
+    image = image.mirrored (false, true);
+#endif
+
+    /* Send image to parent object */
+    clone.unmap();
+    emit newFrame (image);
+    return true;
+}
+
+QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
+(QAbstractVideoBuffer::HandleType handleType) const
+{
+    Q_UNUSED (handleType);
+
+    return QList<QVideoFrame::PixelFormat>()
+           << QVideoFrame::Format_ARGB32
+           << QVideoFrame::Format_ARGB32_Premultiplied
+           << QVideoFrame::Format_RGB32
+           << QVideoFrame::Format_RGB24
+           << QVideoFrame::Format_RGB565
+           << QVideoFrame::Format_RGB555
+           << QVideoFrame::Format_ARGB8565_Premultiplied
+           << QVideoFrame::Format_BGRA32
+           << QVideoFrame::Format_BGRA32_Premultiplied
+           << QVideoFrame::Format_BGR32
+           << QVideoFrame::Format_BGR24
+           << QVideoFrame::Format_BGR565
+           << QVideoFrame::Format_BGR555
+           << QVideoFrame::Format_BGRA5658_Premultiplied
+           << QVideoFrame::Format_AYUV444
+           << QVideoFrame::Format_AYUV444_Premultiplied
+           << QVideoFrame::Format_YUV444
+           << QVideoFrame::Format_YUV420P
+           << QVideoFrame::Format_YV12
+           << QVideoFrame::Format_UYVY
+           << QVideoFrame::Format_YUYV
+           << QVideoFrame::Format_NV12
+           << QVideoFrame::Format_NV21
+           << QVideoFrame::Format_IMC1
+           << QVideoFrame::Format_IMC2
+           << QVideoFrame::Format_IMC3
+           << QVideoFrame::Format_IMC4
+           << QVideoFrame::Format_Y8
+           << QVideoFrame::Format_Y16
+           << QVideoFrame::Format_Jpeg
+           << QVideoFrame::Format_CameraRaw
+           << QVideoFrame::Format_AdobeDng;
 }
 
 void QCCTV_FrameGrabber::setEnabled (const bool enabled)
@@ -68,53 +146,19 @@ void QCCTV_FrameGrabber::setGrayscale (const bool grayscale)
     m_grayscale = grayscale;
 }
 
-void QCCTV_FrameGrabber::processImage (const QVideoFrame& frame)
+void QCCTV_FrameGrabber::makeGrayscale (QImage* image)
 {
-    if (isEnabled()) {
-        QImage image;
-        QVideoFrame clone (frame);
-        clone.map (QAbstractVideoBuffer::ReadOnly);
-        QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
+    if (!image)
+        return;
 
-        /* Get the image from the frame */
-        if (imageFormat != QImage::Format_Invalid) {
-            image = QImage (clone.bits(),
-                            clone.width(),
-                            clone.height(),
-                            clone.bytesPerLine(),
-                            imageFormat);
+    for (int i = 0; i < image->height(); i++) {
+        int depth = 4;
+        uchar* scan = image->scanLine (i);
+
+        for (int j = 0; j < image->width(); j++) {
+            QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + j * depth);
+            int gray = qGray (*rgbpixel);
+            *rgbpixel = QColor (gray, gray, gray).rgba();
         }
-
-        /* Image is in NV12 or NV21 format */
-        else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
-                 clone.pixelFormat() == QVideoFrame::Format_NV21) {
-            uchar* rgb = (uchar*) calloc (1, clone.mappedBytes() * 3);
-
-            nv21_to_rgba (rgb, 1,
-                          clone.bits(),
-                          clone.width(),
-                          clone.height());
-
-            image = QImage (rgb,
-                            clone.width(),
-                            clone.height(),
-                            QImage::Format_ARGB32_Premultiplied);
-
-            free (rgb);
-            rgb = NULL;
-        }
-
-        /* Last ditch attempt to save the world */
-        else
-            image = QImage::fromData (clone.bits(), clone.mappedBytes());
-
-        /* Resize the image */
-        image = image.scaled (image.width() / shrinkRatio(),
-                              image.height() / shrinkRatio(),
-                              Qt::KeepAspectRatio);
-
-        /* Notify application */
-        clone.unmap();
-        emit newFrame (image);
     }
 }

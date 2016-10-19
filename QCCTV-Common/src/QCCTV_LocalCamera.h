@@ -1,7 +1,6 @@
 #ifndef _QCCTV_LOCAL_CAMERA_H
 #define _QCCTV_LOCAL_CAMERA_H
 
-#include <QPixmap>
 #include <QObject>
 #include <QUdpSocket>
 #include <QTcpSocket>
@@ -12,6 +11,7 @@
 #include "QCCTV_FrameGrabber.h"
 
 class QCamera;
+class QCameraImageCapture;
 
 class QCCTV_LocalCamera : public QObject
 {
@@ -19,6 +19,7 @@ class QCCTV_LocalCamera : public QObject
 
 signals:
     void fpsChanged();
+    void imageChanged();
     void cameraNameChanged();
     void cameraGroupChanged();
     void lightStatusChanged();
@@ -37,6 +38,7 @@ public:
     Q_INVOKABLE QString cameraGroup() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
+    Q_INVOKABLE bool readyForCapture() const;
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
@@ -45,6 +47,7 @@ public:
     Q_INVOKABLE qreal shrinkRatio() const;
 
 public slots:
+    void takePhoto();
     void focusCamera();
     void turnOnFlashlight();
     void turnOffFlashlight();
@@ -81,6 +84,7 @@ private:
 
     QImage m_image;
     QCamera* m_camera;
+    QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;
 
     QTcpServer m_server;
