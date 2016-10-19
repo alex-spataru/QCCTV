@@ -61,8 +61,11 @@ QImage QCCTV_StationImage::requestImage (const QString& id,
     if (m_station && !id.isEmpty()) {
         QStringList list = id.split ("_");
 
-        if (!list.isEmpty())
-            return m_station->currentImage (list.first().toInt());
+        if (!list.isEmpty()) {
+            QImage image = m_station->currentImage (list.first().toInt());
+            if (!image.isNull())
+                return image;
+        }
     }
 
     return m_cameraError;

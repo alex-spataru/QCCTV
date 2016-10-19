@@ -45,12 +45,15 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     m_camera = NULL;
     m_capture = NULL;
 
-    /* Listen for incoming connections */
-    m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
-
     /* Connect sockets signals/slots */
-    connect (&m_server, SIGNAL (newConnection()),
-             this,        SLOT (acceptConnection()));
+    connect (&m_requestSocket, SIGNAL (readyRead()),
+             this,               SLOT (readRequestPacket()));
+    connect (&m_commandSocket, SIGNAL (readyRead()),
+             this,               SLOT (readCommandPacket()));
+
+    /* Bind the sockets */
+    m_requestSocket.bind (QCCTV_REQUEST_PORT, QUdpSocket::ReuseAddressHint);
+    m_commandSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ReuseAddressHint);
 
     /* Setup the frame grabber */
     connect (&m_frameGrabber, SIGNAL (newFrame (QImage)),
@@ -91,13 +94,9 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
  */
 QCCTV_LocalCamera::~QCCTV_LocalCamera()
 {
-    /* Close broadcast socket */
+    m_commandSocket.close();
+    m_requestSocket.close();
     m_broadcastSocket.close();
-
-    /* Close TCP connections */
-    foreach (QTcpSocket* socket, m_sockets)
-        if (socket)
-            socket->close();
 }
 
 /**
@@ -343,9 +342,7 @@ void QCCTV_LocalCamera::update()
     sendCameraData();
 
     /* Schedule another function call */
-    QTimer::singleShot (QCCTV_CSTREAM_PKT_TIMING (m_fps),
-                        Qt::PreciseTimer,
-                        this, SLOT (update()));
+    QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
 }
 
 /**
@@ -409,7 +406,7 @@ void QCCTV_LocalCamera::sendCameraData()
     QByteArray img;
     QBuffer buffer (&img);
     buffer.open (QIODevice::WriteOnly);
-    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, QCCTV_IMAGE_QUALITY);
+    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
 
     /* Add image to packet */
     if (!img.isEmpty())
@@ -419,22 +416,22 @@ void QCCTV_LocalCamera::sendCameraData()
 
     /* Send generated data using TCP */
     foreach (QTcpSocket* socket, m_sockets)
-        if (socket)
-            socket->write (data);
+        socket->write (data);
 }
 
 /**
- * Interprets a connection request packet and decides whenever to accept it
- * or not
+ * Closes and un-registers a station when the TCP connection is aborted
  */
-void QCCTV_LocalCamera::acceptConnection()
+void QCCTV_LocalCamera::onDisconnected()
 {
-    while (m_server.hasPendingConnections()) {
-        QTcpSocket* socket = m_server.nextPendingConnection();
-        m_sockets.append (socket);
+    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
 
-        connect (socket, SIGNAL (readyRead()),
-                 this,    SLOT  (readCommandPacket()));
+    if (socket) {
+        socket->close();
+        m_sockets.removeAt (m_sockets.indexOf (socket));
+
+        if (m_sockets.count() < 1)
+            disconnectStation();
     }
 }
 
@@ -447,6 +444,34 @@ void QCCTV_LocalCamera::disconnectStation()
     removeStatusFlag (QCCTV_CAMSTATUS_CONNECTED);
 }
 
+/**
+ * Interprets a connection request packet and decides whenever to allow the
+ * incoming station to receive the image feed or not
+ */
+void QCCTV_LocalCamera::readRequestPacket()
+{
+    while (m_requestSocket.hasPendingDatagrams()) {
+        QByteArray data;
+        QHostAddress host;
+
+        /* Read datagram */
+        data.resize (m_requestSocket.pendingDatagramSize());
+        m_requestSocket.readDatagram (data.data(), data.size(), &host);
+
+        /* Check if we need to establish a new TCP connection */
+        host = QHostAddress (host.toIPv4Address());
+        if (!data.isEmpty() && !connectedHosts().contains (host.toString())) {
+            QTcpSocket* socket = new QTcpSocket (this);
+            m_sockets.append (socket);
+
+            connect (socket, SIGNAL (disconnected()),
+                     this,     SLOT (onDisconnected()));
+
+            socket->connectToHost (host, QCCTV_STREAM_PORT,
+                                   QTcpSocket::WriteOnly);
+        }
+    }
+}
 
 /**
  * Interprets a command packet issued by the QCCTV station in the LAN.
@@ -459,26 +484,29 @@ void QCCTV_LocalCamera::disconnectStation()
  */
 void QCCTV_LocalCamera::readCommandPacket()
 {
-    /* Get socket and data */
-    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
-    QByteArray data = socket->readAll();
+    while (m_commandSocket.hasPendingDatagrams()) {
+        /* Read packet */
+        QByteArray data;
+        data.resize (m_commandSocket.pendingDatagramSize());
+        m_commandSocket.readDatagram (data.data(), data.size());
 
-    /* Packet length is invalid */
-    if (data.size() != 3)
-        return;
+        /* Packet length is invalid */
+        if (data.size() != 3)
+            return;
 
-    /* Change the FPS */
-    setFPS ((int) data.at (0));
+        /* Change the FPS */
+        setFPS ((int) data.at (0));
 
-    /* Change the light status */
-    setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
+        /* Change the light status */
+        setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
 
-    /* Focus the camera */
-    if (data.at (2) == QCCTV_FORCE_FOCUS)
-        focusCamera();
+        /* Focus the camera */
+        if (data.at (2) == QCCTV_FORCE_FOCUS)
+            focusCamera();
 
-    /* Feed watchdog timer */
-    m_watchdog.reset();
+        /* Feed watchdog timer */
+        m_watchdog.reset();
+    }
 }
 
 /**

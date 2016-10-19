@@ -23,11 +23,10 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
-#include <QPixmap>
-#include <QObject>
-#include <QUdpSocket>
+#include <QImage>
+#include <QTcpServer>
 #include <QTcpSocket>
-#include <QHostAddress>
+#include <QUdpSocket>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
@@ -67,31 +66,38 @@ public slots:
     void setID (const int id);
     void setFPS (const int fps);
     void changeFlashlightStatus (const int status);
-    void attemptConnection (const QHostAddress& address);
+    void setAddress (const QHostAddress& address);
 
 private slots:
-    void sendData();
-    void readData();
+    void onDataReceived();
+    void onDisconnected();
     void onCameraTimeout();
+    void acceptConnection();
+    void sendCommandPacket();
     void resetFocusRequest();
+    void sendRequestPacket();
     void setName (const QString& name);
     void setGroup (const QString& group);
     void changeCameraStatus (const int status);
+    void readCameraPacket (const QByteArray& data);
 
 private:
     int m_id;
     int m_fps;
     bool m_focus;
+    bool m_connected;
+    int m_cameraStatus;
+
     QString m_name;
     QImage m_image;
     QString m_group;
-    bool m_connected;
-    int m_cameraStatus;
     QHostAddress m_address;
     QCCTV_LightStatus m_lightStatus;
 
-    QTcpSocket m_socket;
+    QUdpSocket m_sender;
+    QTcpServer m_server;
     QCCTV_Watchdog m_watchdog;
+    QList<QTcpSocket*> m_sockets;
 };
 
 #endif

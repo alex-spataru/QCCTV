@@ -31,10 +31,8 @@ QCCTV_Station::QCCTV_Station()
     connect (discovery, SIGNAL (newCamera (QHostAddress)),
              this,        SLOT (connectToCamera (QHostAddress)));
 
-    /* Bind connected() and disconnected() signals to cameraCountChanged() */
+    /* Remove a camera when we disconnect from it */
     connect (this, SIGNAL (connected (int)),
-             this, SIGNAL (cameraCountChanged()));
-    connect (this, SIGNAL (disconnected (int)),
              this, SIGNAL (cameraCountChanged()));
     connect (this, SIGNAL (disconnected (int)),
              this,   SLOT (removeCamera (int)));
@@ -181,6 +179,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         connect (m_cameraList.last(), SIGNAL (newImage (int)),
                  this,                SIGNAL (newCameraImage (int)));
 
-        m_cameraList.last()->attemptConnection (ip);
+        m_cameraList.last()->setAddress (ip);
     }
 }

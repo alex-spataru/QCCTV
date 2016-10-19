@@ -2,9 +2,8 @@
 #define _QCCTV_LOCAL_CAMERA_H
 
 #include <QObject>
-#include <QUdpSocket>
 #include <QTcpSocket>
-#include <QTcpServer>
+#include <QUdpSocket>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
@@ -62,8 +61,9 @@ private slots:
     void update();
     void updateStatus();
     void sendCameraData();
-    void acceptConnection();
+    void onDisconnected();
     void disconnectStation();
+    void readRequestPacket();
     void readCommandPacket();
     void broadcastInformation();
     void changeImage (const QImage& image);
@@ -87,8 +87,11 @@ private:
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;
 
-    QTcpServer m_server;
+    QUdpSocket m_commandSocket;
+    QUdpSocket m_requestSocket;
     QUdpSocket m_broadcastSocket;
+
+    QList<QHostAddress> m_hosts;
     QList<QTcpSocket*> m_sockets;
 };
 

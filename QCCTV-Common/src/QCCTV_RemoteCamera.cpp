@@ -35,16 +35,17 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
-    /* Configure watchdog */
+    /* Configure the watchdog */
     m_watchdog.setExpirationTime (2000);
     connect (&m_watchdog, SIGNAL (expired()), this, SLOT (onCameraTimeout()));
 
-    /* Configure receiver socket */
-    connect (&m_socket, SIGNAL (readyRead()),
-             this,        SLOT (readData()));
+    /* Configure the listener socket */
+    connect (&m_server, SIGNAL (newConnection()),
+             this,        SLOT (acceptConnection()));
 
     /* Start loops */
-    sendData();
+    sendCommandPacket();
+    sendRequestPacket();
 }
 
 /**
@@ -52,7 +53,15 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
  */
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
-    m_socket.close();
+    m_sender.close();
+    m_server.close();
+
+    foreach (QTcpSocket* socket, m_sockets) {
+        socket->close();
+        delete socket;
+    }
+
+    m_sockets.clear();
 }
 
 /**
@@ -191,12 +200,178 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
 }
 
 /**
- * Sends 10 connection requests to the camera
+ * Changes the camera's remote address
  */
-void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
+void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 {
-    m_address = address;
-    m_socket.connectToHost (address, QCCTV_STREAM_PORT);
+    if (m_address != address) {
+        m_address = address;
+
+        m_server.close();
+        m_server.listen (m_address, QCCTV_STREAM_PORT);
+    }
+}
+
+/**
+ * Obtains the information received by the TCP socket and calls the functions
+ * neccessary to interpret the received data
+ */
+void QCCTV_RemoteCamera::onDataReceived()
+{
+    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
+
+    if (socket)
+        readCameraPacket (socket->readAll());
+}
+
+/**
+ * Called when the TCP connection between the camera and the station is aborted
+ */
+void QCCTV_RemoteCamera::onDisconnected()
+{
+    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
+
+    if (socket) {
+        socket->close();
+        m_sockets.removeAt (m_sockets.indexOf (socket));
+
+        emit disconnected (id());
+    }
+}
+
+/**
+ * Called when we have not received a stream packet for some time (this forces
+ * us to believe that the camera is no longer active).
+ *
+ * This function resets the light status and changes the camera's
+ * operation status to 'disconnected'.
+ */
+void QCCTV_RemoteCamera::onCameraTimeout()
+{
+    if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED) {
+        changeCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
+        changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+    }
+}
+
+/**
+ * Accepts any TCP connection request from a QCCTV camera
+ */
+void QCCTV_RemoteCamera::acceptConnection()
+{
+    while (m_server.hasPendingConnections()) {
+        QTcpSocket* socket = m_server.nextPendingConnection();
+
+        connect (socket, SIGNAL (readyRead()),
+                 this,     SLOT (onDataReceived()));
+        connect (socket, SIGNAL (disconnected()),
+                 this,     SLOT (onDisconnected()));
+
+        m_sockets.append (socket);
+    }
+}
+
+/**
+ * Disables the focus flag. This function is called after 3 command packets
+ * instructing the camera to re-focus itself have been sent.
+ */
+void QCCTV_RemoteCamera::resetFocusRequest()
+{
+    m_focus = false;
+}
+
+/**
+ * Sends a packet with the group name to the camera.
+ * This packet is used to establish a connection with the camera (which decides
+ * if we are worthy or not by looking at our group name)
+ */
+void QCCTV_RemoteCamera::sendRequestPacket()
+{
+    /* Generate the data */
+    QByteArray data;
+    data.append (group().isEmpty() ? "default" : group());
+
+    /* Send the data */
+    m_sender.writeDatagram (data, address(), QCCTV_REQUEST_PORT);
+
+    /* Call this function again in 1 second */
+    QTimer::singleShot (1000, Qt::PreciseTimer,
+                        this, SLOT (sendRequestPacket()));
+}
+
+/**
+ * Sends a command packet to the camera, which instructs it to:
+ *
+ * - Change its FPS
+ * - Change its light status
+ * - Focus the camera device (if required)
+ *
+ * These packets are sent every 500 milliseconds
+ */
+void QCCTV_RemoteCamera::sendCommandPacket()
+{
+    /* Generate the data */
+    QByteArray data;
+    data.append (fps());
+    data.append (lightStatus());
+    data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
+
+    /* Send the generated data */
+    if (!address().isNull() && cameraStatus() & QCCTV_CAMSTATUS_CONNECTED)
+        m_sender.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
+
+    /* Schedule the next packet generation process */
+    QTimer::singleShot (500, Qt::PreciseTimer, this, SLOT (sendCommandPacket()));
+}
+
+/**
+ * Updates the name reported by the camera
+ */
+void QCCTV_RemoteCamera::setName (const QString& name)
+{
+    if (m_name != name) {
+        m_name = name;
+
+        if (m_name.isEmpty())
+            m_name = "Unknown Camera";
+
+        emit newCameraName (id());
+    }
+}
+
+/**
+ * Updates the group reported by the camera
+ */
+void QCCTV_RemoteCamera::setGroup (const QString& group)
+{
+    if (m_group != group) {
+        m_group = group;
+
+        if (m_group.isEmpty())
+            m_group = "default";
+
+        emit newCameraGroup (id());
+    }
+}
+
+/**
+ * Changes the operation status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::changeCameraStatus (const int status)
+{
+    if (m_cameraStatus != status) {
+        m_cameraStatus = status;
+
+        if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED) {
+            m_connected = true;
+            emit connected (id());
+        } else {
+            m_connected = false;
+            emit disconnected (id());
+        }
+
+        emit newCameraStatus (id());
+    }
 }
 
 /**
@@ -215,12 +390,9 @@ void QCCTV_RemoteCamera::attemptConnection (const QHostAddress& address)
  * - Operation status (1 byte)
  * - Compressed image data
  */
-void QCCTV_RemoteCamera::readData()
+void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
 {
-    /* Read data */
-    QByteArray data = m_socket.readAll();
-
-    /* Data is empty */
+    /* Data is invalid */
     if (data.isEmpty())
         return;
 
@@ -264,6 +436,7 @@ void QCCTV_RemoteCamera::readData()
     /* This is the first packet, emit connected() signal */
     if (!m_connected) {
         m_connected = true;
+
         emit newImage (id());
         emit connected (id());
         emit newCameraName (id());
@@ -274,101 +447,4 @@ void QCCTV_RemoteCamera::readData()
 
     /* Feed the watchdog */
     m_watchdog.reset();
-}
-
-/**
- * Sends a command packet to the camera, which instructs it to:
- *
- * - Change its FPS
- * - Change its light status
- * - Focus the camera device (if required)
- *
- * These packets are sent every 500 milliseconds
- */
-void QCCTV_RemoteCamera::sendData()
-{
-    /* Generate the data */
-    QByteArray data;
-    data.append (fps());
-    data.append (lightStatus());
-    data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
-
-    /* Send the data (if possible) */
-    if (!address().isNull() && cameraStatus() & QCCTV_CAMSTATUS_CONNECTED)
-        m_socket.write (data);
-
-    /* Schedule the next packet generation process */
-    QTimer::singleShot (500, Qt::PreciseTimer, this, SLOT (sendData()));
-}
-
-/**
- * Called when we have not received a stream packet for some time (this forces
- * us to believe that the camera is no longer active).
- *
- * This function resets the light status and changes the camera's
- * operation status to 'disconnected'.
- */
-void QCCTV_RemoteCamera::onCameraTimeout()
-{
-    /* We just have lost connection with the camera */
-    if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED) {
-        changeCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
-        changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
-    }
-}
-
-/**
- * Disables the focus flag. This function is called after 3 command packets
- * instructing the camera to re-focus itself have been sent.
- */
-void QCCTV_RemoteCamera::resetFocusRequest()
-{
-    m_focus = false;
-}
-
-/**
- * Updates the name reported by the camera
- */
-void QCCTV_RemoteCamera::setName (const QString& name)
-{
-    if (m_name != name) {
-        m_name = name;
-
-        if (m_name.isEmpty())
-            m_name = "Unknown Camera";
-
-        emit newCameraName (id());
-    }
-}
-
-/**
- * Updates the group reported by the camera
- */
-void QCCTV_RemoteCamera::setGroup (const QString& group)
-{
-    if (m_group != group) {
-        m_group = group;
-
-        if (m_group.isEmpty())
-            m_group = "default";
-
-        emit newCameraGroup (id());
-    }
-}
-
-/**
- * Changes the operation status of the camera and emits the appropiate signals
- */
-void QCCTV_RemoteCamera::changeCameraStatus (const int status)
-{
-    if (m_cameraStatus != status) {
-        m_cameraStatus = status;
-
-        if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED)
-            emit connected (id());
-        else
-            emit disconnected (id());
-
-        emit newCameraStatus (id());
-    }
 }
