@@ -73,7 +73,7 @@ ApplicationWindow {
         if (forceReload > 100)
             forceReload = 0
 
-        image.source = "image://qcctv-local-camera/" + forceReload
+        image.source = "image://qcctv/" + forceReload
     }
 
     //
@@ -413,7 +413,7 @@ ApplicationWindow {
         Behavior on anchors.leftMargin { NumberAnimation{} }
 
         //
-        // Dialog hide
+        // Hide the panel when clicking on it
         //
         MouseArea {
             anchors.fill: parent

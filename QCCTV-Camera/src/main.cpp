@@ -67,7 +67,7 @@ int main (int argc, char* argv[])
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
-    engine.addImageProvider ("qcctv-local-camera", &provider);
+    engine.addImageProvider ("qcctv", &provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("QCCTVCamera", &camera);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);

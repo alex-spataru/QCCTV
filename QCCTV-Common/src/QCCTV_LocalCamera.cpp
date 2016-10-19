@@ -411,9 +411,9 @@ void QCCTV_LocalCamera::sendCameraData()
     buffer.open (QIODevice::WriteOnly);
     currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, QCCTV_IMAGE_QUALITY);
 
-    /* Put image to packet */
+    /* Add image to packet */
     if (!img.isEmpty())
-        data.append (qCompress (img));
+        data.append (qCompress (img, 9));
     else
         data.append (QCCTV_NO_IMAGE_FLAG);
 
