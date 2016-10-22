@@ -325,19 +325,20 @@ void QCCTV_LocalCamera::setShrinkRatio (const qreal ratio)
 }
 
 /**
- * Obtains a new image from the camera, updates the camera status and sends
- * the newly obtained data to the stations
+ * Obtains a new image from the camera and updates the camera status
  */
 void QCCTV_LocalCamera::update()
 {
-    /* Enable frame grabber */
+    /* Generate a new camera status */
+    updateStatus();
+
+    /* Obtain a new image from the camera */
     m_frameGrabber.setEnabled (true);
 
-    /* Update operation status and stream data */
-    updateStatus();
-    sendCameraData();
+    /* Construct a new stream of data to send */
+    generateDataStream();
 
-    /* Schedule another function call */
+    /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
 }
 
@@ -372,47 +373,27 @@ void QCCTV_LocalCamera::updateStatus()
 }
 
 /**
- * Generates a network packet with the following information
- *
- * - The camera name
- * - The camera group
- * - The FPS of the camera
- * - The light status of the camera
- * - The camera status
- * - The latest camera image
+ * Sends the generated data packet to all connected QCCTV Stations.
+ * The data is sent 'chunk by chunk' to avoid errors and ensure that the
+ * generated data is interpreted correctly by the station(s).
  */
 void QCCTV_LocalCamera::sendCameraData()
 {
-    QByteArray data;
+}
 
-    /* Add camera name string */
-    data.append (cameraName().length());
-    data.append (cameraName());
+/**
+ * Creates and sends a new packet that announces the existence of this
+ * camera to the local network
+ */
+void QCCTV_LocalCamera::broadcastInfo()
+{
+    QString str = "QCCTV_DISCOVERY_SERVICE";
+    m_broadcastSocket.writeDatagram (str.toUtf8(),
+                                     QCCTV_DISCOVERY_ADDR,
+                                     QCCTV_DISCOVERY_PORT);
 
-    /* Add camera group */
-    data.append (cameraGroup().length());
-    data.append (cameraGroup());
-
-    /* Add FPS, light, operation status and color mode */
-    data.append (fps());
-    data.append (lightStatus());
-    data.append (cameraStatus());
-
-    /* Get image buffer */
-    QByteArray img;
-    QBuffer buffer (&img);
-    buffer.open (QIODevice::WriteOnly);
-    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
-
-    /* Add image to packet */
-    if (!img.isEmpty())
-        data.append (qCompress (img, 9));
-    else
-        data.append (QCCTV_NO_IMAGE_FLAG);
-
-    /* Send generated data using TCP */
-    foreach (QTcpSocket* socket, m_sockets)
-        socket->write (data);
+    QTimer::singleShot (QCCTV_DISCVRY_PKT_TIMING, Qt::PreciseTimer,
+                        this, SLOT (broadcastInfo()));
 }
 
 /**
@@ -429,6 +410,11 @@ void QCCTV_LocalCamera::onDisconnected()
     }
 }
 
+/**
+ * Called when a CCTV station wants to receive images from this camera
+ * This function shall configure the TCP socket used for streaming the
+ * images and receiving commands from the station
+ */
 void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
@@ -473,18 +459,45 @@ void QCCTV_LocalCamera::readCommandPacket()
 }
 
 /**
- * Creates and sends a new packet that announces the existence of this
- * camera to the local network
+ * Generates a byte array with the following information:
+ *
+ * - The camera name
+ * - The camera group
+ * - The FPS of the camera
+ * - The light status of the camera
+ * - The camera status
+ * - The latest camera image
+ *
+ * This byte array will be sent to all connected QCCTV Stations in the LAN
  */
-void QCCTV_LocalCamera::broadcastInfo()
-{
-    QString str = "QCCTV_DISCOVERY_SERVICE";
-    m_broadcastSocket.writeDatagram (str.toUtf8(),
-                                     QCCTV_DISCOVERY_ADDR,
-                                     QCCTV_DISCOVERY_PORT);
+void QCCTV_LocalCamera::generateDataStream() {
+    /* Clear the data stream */
+    m_dataStream.clear();
 
-    QTimer::singleShot (QCCTV_DISCVRY_PKT_TIMING, Qt::PreciseTimer,
-                        this, SLOT (broadcastInfo()));
+    /* Add camera name */
+    m_dataStream.append (cameraName().length());
+    m_dataStream.append (cameraName());
+
+    /* Add camera group */
+    m_dataStream.append (cameraGroup().length());
+    m_dataStream.append (cameraGroup());
+
+    /* Add FPS, light status and camera status */
+    m_dataStream.append (fps());
+    m_dataStream.append (lightStatus());
+    m_dataStream.append (cameraStatus());
+
+    /* Get image buffer */
+    QByteArray img;
+    QBuffer buffer (&img);
+    buffer.open (QIODevice::WriteOnly);
+    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
+
+    /* Add image to data stream */
+    if (!img.isEmpty())
+        m_dataStream.append (qCompress (img, 9));
+    else
+        m_dataStream.append (QCCTV_NO_IMAGE_FLAG);
 }
 
 /**
@@ -537,19 +550,25 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
     if (m_flashlightStatus != status) {
         m_flashlightStatus = status;
 
+        /* The camera is not available */
         if (!m_camera)
             return;
 
-        if (flashlightAvailable()) {
-            if (flashlightOn()) {
-                m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
-                focusCamera();
-            }
+        /* The flashlight is not available */
+        if (!flashlightAvailable())
+            return;
 
-            else
-                m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
-
-            emit lightStatusChanged();
+        /* Turn on the flashlight (and focus the camera) */
+        if (flashlightOn()) {
+            m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
+            focusCamera();
         }
+
+        /* Turn off the flashlight */
+        else
+            m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
+
+        /* Tell everyone that we changed the flashlight status */
+        emit lightStatusChanged();
     }
 }

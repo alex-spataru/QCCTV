@@ -45,6 +45,11 @@ int main (int argc, char* argv[])
     QGuiApplication::setOrganizationDomain (APP_WEBSITE);
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
+    /* Set application attributes */
+    QGuiApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
+    QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
+    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
+
     /* Prevent sleeping in Android */
 #ifdef Q_OS_ANDROID
     AndroidLockHelper helper;

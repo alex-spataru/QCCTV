@@ -24,7 +24,7 @@
 
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
-    m_ratio = 2.0;
+    m_ratio = 1.0;
     m_enabled = false;
     m_grayscale = false;
 }
@@ -75,7 +75,7 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     if (isGrayscale())
         makeGrayscale (&image);
 
-    /* Fix mirrored image issue */
+    /* Fix mirrored image issue on Windows */
 #if defined Q_OS_WIN
     image = image.mirrored (false, true);
 #endif

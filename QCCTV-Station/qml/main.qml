@@ -83,6 +83,7 @@ ApplicationWindow {
     Connections {
         target: QCCTVStation
         onCameraCountChanged: {
+            grid.model = 0
             grid.model = QCCTVStation.cameraCount()
             noCameras.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
             grid.redraw()

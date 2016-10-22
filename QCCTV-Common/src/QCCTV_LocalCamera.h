@@ -61,11 +61,12 @@ public slots:
 private slots:
     void update();
     void updateStatus();
+    void broadcastInfo();
     void sendCameraData();
     void onDisconnected();
     void acceptConnection();
     void readCommandPacket();
-    void broadcastInfo();
+    void generateDataStream();
     void changeImage (const QImage& image);
     void addStatusFlag (const QCCTV_CameraStatus status);
     void setCameraStatus (const QCCTV_CameraStatus status);
@@ -77,10 +78,11 @@ private:
     int m_cameraStatus;
     int m_flashlightStatus;
 
+    QImage m_image;
     QString m_name;
     QString m_group;
+    QByteArray m_dataStream;
 
-    QImage m_image;
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;

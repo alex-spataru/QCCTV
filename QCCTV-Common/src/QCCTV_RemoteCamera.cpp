@@ -213,13 +213,9 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::onDisconnected()
 {
-    m_socket.abort();
+    m_socket.close();
     m_socket.connectToHost (address(), QCCTV_STREAM_PORT);
-
-    changeCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
-
-    emit disconnected (id());
 }
 
 /**

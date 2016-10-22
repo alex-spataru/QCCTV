@@ -163,6 +163,7 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
     if (!ip.isNull() && !m_cameraIPs.contains (ip)) {
         m_cameraIPs.append (ip);
         m_cameraList.append (new QCCTV_RemoteCamera());
+        m_cameraList.last()->setID (m_cameraList.count() - 1);
 
         connect (m_cameraList.last(), SIGNAL (connected (int)),
                  this,                SIGNAL (connected (int)));
