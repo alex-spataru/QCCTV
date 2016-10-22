@@ -59,7 +59,7 @@ ApplicationWindow {
     onWidthChanged: grid.redraw()
     onHeightChanged: grid.redraw()
 
-    //
+    //`
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
@@ -139,14 +139,8 @@ ApplicationWindow {
             enabled: grid.enabled
             width: grid.cellWidth
             height: grid.cellHeight
+            controlsEnabled: grid.model === 1
             onClicked: fullscreenCamera.showCamera (camNumber)
-
-            controlsEnabled: {
-                if (QCCTVStation.cameraCount() === 1)
-                    return true
-
-                return false
-            }
         }
     }
 

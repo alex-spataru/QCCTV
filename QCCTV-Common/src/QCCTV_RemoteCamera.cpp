@@ -36,8 +36,9 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
     /* Configure the socket */
-    connect (&m_socket, SIGNAL (readyRead()),    this, SLOT (onDataReceived()));
-    connect (&m_socket, SIGNAL (disconnected()), this, SLOT (onDisconnected()));
+    m_watchdog.setExpirationTime (2000);
+    connect (&m_socket,   SIGNAL (readyRead()), this, SLOT (onDataReceived()));
+    connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
 
     /* Start loops */
     sendCommandPacket();
@@ -205,7 +206,7 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
  */
 void QCCTV_RemoteCamera::onDataReceived()
 {
-    readCameraPacket (m_socket.readAll());
+    readCameraPacket (m_socket.read (m_socket.bytesAvailable()));
 }
 
 /**
@@ -213,9 +214,11 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::onDisconnected()
 {
-    m_socket.close();
+    m_socket.abort();
     m_socket.connectToHost (address(), QCCTV_STREAM_PORT);
     changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+
+    emit disconnected (id());
 }
 
 /**
@@ -321,6 +324,12 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     if (data.isEmpty())
         return;
 
+    /* Packet is incomplete, just feed the watchdog */
+    if (!data.endsWith (QString (QCCTV_EOD).toUtf8())) {
+        m_watchdog.reset();
+        return;
+    }
+
     /* Get camera name */
     QString name;
     int name_len = data.at (0);
@@ -339,18 +348,6 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     int light = data.at (offset + 2);
     int status = data.at (offset + 3);
 
-    /* Get raw image */
-    QByteArray buffer;
-    for (int i = offset + 4; i < data.size(); ++i)
-        buffer.append (data.at (i));
-
-    /* Convert raw image to QImage */
-    buffer = qUncompress (buffer);
-    if (buffer.size() > 1) {
-        m_image = QImage::fromData (buffer, QCCTV_IMAGE_FORMAT);
-        emit newImage (id());
-    }
-
     /* Update values */
     setFPS (fps);
     setName (name);
@@ -362,12 +359,27 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     if (!m_connected) {
         m_connected = true;
 
-        emit newImage (id());
         emit connected (id());
         emit newCameraName (id());
         emit newCameraGroup (id());
         emit newLightStatus (id());
         emit newCameraStatus (id());
+    }
+
+    /* Get raw image */
+    QByteArray buffer;
+    QString eod = QString (QCCTV_EOD);
+    for (int i = offset + 4; i < (data.size() - eod.size()); ++i)
+        buffer.append (data.at (i));
+
+    /* Convert raw image to QImage */
+    if (buffer.size() > 1) {
+        QImage image = QImage::fromData (buffer, QCCTV_IMAGE_FORMAT);
+
+        if (!image.isNull()) {
+            m_image = image;
+            emit newImage (id());
+        }
     }
 
     /* Feed the watchdog */

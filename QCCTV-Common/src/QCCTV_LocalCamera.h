@@ -75,6 +75,7 @@ private slots:
 
 private:
     int m_fps;
+    int m_percent;
     int m_cameraStatus;
     int m_flashlightStatus;
 

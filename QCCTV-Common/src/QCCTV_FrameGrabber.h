@@ -36,7 +36,6 @@ signals:
 public:
     QCCTV_FrameGrabber (QObject* parent = NULL);
 
-    bool isEnabled() const;
     bool isGrayscale() const;
     qreal shrinkRatio() const;
 
@@ -45,17 +44,15 @@ public:
     (QAbstractVideoBuffer::HandleType handleType) const;
 
 public slots:
-    void setEnabled (const bool enabled);
     void setShrinkRatio (const qreal ratio);
     void setGrayscale (const bool grayscale);
 
-private slots:
-    void makeGrayscale (QImage* image);
+private:
+    QImage makeGrayscale (QImage& image);
 
 private:
-    bool m_enabled;
-    bool m_grayscale;
     qreal m_ratio;
+    bool m_grayscale;
 };
 
 #endif

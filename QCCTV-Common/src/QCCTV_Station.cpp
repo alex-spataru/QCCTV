@@ -45,11 +45,17 @@ QString QCCTV_Station::group() const
     return m_group;
 }
 
+/**
+ * Returns the number of cameras that the station is connected to
+ */
 int QCCTV_Station::cameraCount() const
 {
     return m_cameraList.count();
 }
 
+/**
+ * Returns the FPS reported by the given \a camera
+ */
 int QCCTV_Station::fps (const int camera)
 {
     if (getCamera (camera))

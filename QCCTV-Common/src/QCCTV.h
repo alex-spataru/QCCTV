@@ -70,6 +70,7 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_MAX_FPS            0x28
 #define QCCTV_IMAGE_QUALITY      0x46
 #define QCCTV_IMAGE_FORMAT       "JPG"
+#define QCCTV_EOD                "END_OF_DATA"
 
 #endif
 

@@ -25,13 +25,7 @@
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
     m_ratio = 1.0;
-    m_enabled = false;
     m_grayscale = false;
-}
-
-bool QCCTV_FrameGrabber::isEnabled() const
-{
-    return m_enabled;
 }
 
 bool QCCTV_FrameGrabber::isGrayscale() const
@@ -46,10 +40,6 @@ qreal QCCTV_FrameGrabber::shrinkRatio() const
 
 bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
 {
-    /* Frame grabber is disabled */
-    if (!isEnabled())
-        return false;
-
     /* Create variables */
     QImage image;
     QVideoFrame clone (frame);
@@ -67,13 +57,15 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
         return false;
 
     /* Resize the image */
-    image = image.scaled (image.width() / shrinkRatio(),
-                          image.height() / shrinkRatio(),
-                          Qt::KeepAspectRatio);
+    if (shrinkRatio() > 1) {
+        image = image.scaled (image.width() / shrinkRatio(),
+                              image.height() / shrinkRatio(),
+                              Qt::KeepAspectRatio);
+    }
 
     /* Make the image grayscale */
     if (isGrayscale())
-        makeGrayscale (&image);
+        image = makeGrayscale (image);
 
     /* Fix mirrored image issue on Windows */
 #if defined Q_OS_WIN
@@ -126,11 +118,6 @@ QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
            << QVideoFrame::Format_AdobeDng;
 }
 
-void QCCTV_FrameGrabber::setEnabled (const bool enabled)
-{
-    m_enabled = enabled;
-}
-
 void QCCTV_FrameGrabber::setShrinkRatio (const qreal ratio)
 {
     if (ratio != 0) {
@@ -146,19 +133,18 @@ void QCCTV_FrameGrabber::setGrayscale (const bool grayscale)
     m_grayscale = grayscale;
 }
 
-void QCCTV_FrameGrabber::makeGrayscale (QImage* image)
+QImage QCCTV_FrameGrabber::makeGrayscale (QImage& image)
 {
-    if (!image)
-        return;
-
-    for (int i = 0; i < image->height(); i++) {
+    for (int i = 0; i < image.height(); i++) {
         int depth = 4;
-        uchar* scan = image->scanLine (i);
+        uchar* scan = image.scanLine (i);
 
-        for (int j = 0; j < image->width(); j++) {
+        for (int j = 0; j < image.width(); j++) {
             QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + j * depth);
             int gray = qGray (*rgbpixel);
             *rgbpixel = QColor (gray, gray, gray).rgba();
         }
     }
+
+    return image;
 }

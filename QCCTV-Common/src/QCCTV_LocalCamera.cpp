@@ -33,11 +33,12 @@
 #include <QCameraImageCapture>
 
 /**
- * Initializes the class by binding the sockets and connecting the
- * signals/slots of the different sockets used by the local camera.
- *
- * Additionaly, the class will try to gain access to the frontal camera
- * during initalization...
+ * Initializes the class by:
+ *     - Bind receiver sockets
+ *     - Starting the broadcast service
+ *     - Generating the default image
+ *     - Configuring the TCP server
+ *     - Configuring the frame grabber
  */
 QCCTV_LocalCamera::QCCTV_LocalCamera()
 {
@@ -332,11 +333,9 @@ void QCCTV_LocalCamera::update()
     /* Generate a new camera status */
     updateStatus();
 
-    /* Obtain a new image from the camera */
-    m_frameGrabber.setEnabled (true);
-
     /* Construct a new stream of data to send */
     generateDataStream();
+    sendCameraData();
 
     /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
@@ -379,6 +378,8 @@ void QCCTV_LocalCamera::updateStatus()
  */
 void QCCTV_LocalCamera::sendCameraData()
 {
+    foreach (QTcpSocket* socket, m_sockets)
+        socket->write (m_dataStream);
 }
 
 /**
@@ -470,7 +471,8 @@ void QCCTV_LocalCamera::readCommandPacket()
  *
  * This byte array will be sent to all connected QCCTV Stations in the LAN
  */
-void QCCTV_LocalCamera::generateDataStream() {
+void QCCTV_LocalCamera::generateDataStream()
+{
     /* Clear the data stream */
     m_dataStream.clear();
 
@@ -495,9 +497,12 @@ void QCCTV_LocalCamera::generateDataStream() {
 
     /* Add image to data stream */
     if (!img.isEmpty())
-        m_dataStream.append (qCompress (img, 9));
+        m_dataStream.append (img);
     else
         m_dataStream.append (QCCTV_NO_IMAGE_FLAG);
+
+    /* Add end bytes */
+    m_dataStream.append (QCCTV_EOD);
 }
 
 /**
@@ -506,8 +511,6 @@ void QCCTV_LocalCamera::generateDataStream() {
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_image = image;
-    m_frameGrabber.setEnabled (false);
-
     emit imageChanged();
 }
 
