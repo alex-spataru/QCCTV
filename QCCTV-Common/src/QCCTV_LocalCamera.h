@@ -21,7 +21,6 @@ signals:
     void fpsChanged();
     void imageChanged();
     void cameraNameChanged();
-    void cameraGroupChanged();
     void lightStatusChanged();
     void focusStatusChanged();
     void cameraStatusChanged();
@@ -35,7 +34,6 @@ public:
     Q_INVOKABLE bool flashlightOn() const;
     Q_INVOKABLE bool flashlightOff() const;
     Q_INVOKABLE QString cameraName() const;
-    Q_INVOKABLE QString cameraGroup() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE bool readyForCapture() const;
@@ -55,7 +53,6 @@ public slots:
     void setCamera (QCamera* camera);
     void setName (const QString& name);
     void setGrayscale (const bool gray);
-    void setGroup (const QString& group);
     void setShrinkRatio (const qreal ratio);
 
 private slots:
@@ -75,13 +72,11 @@ private slots:
 
 private:
     int m_fps;
-    int m_percent;
     int m_cameraStatus;
     int m_flashlightStatus;
 
     QImage m_image;
     QString m_name;
-    QString m_group;
     QByteArray m_dataStream;
 
     QCamera* m_camera;

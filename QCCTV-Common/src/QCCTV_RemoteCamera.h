@@ -39,7 +39,6 @@ signals:
     void fpsChanged (const int id);
     void disconnected (const int id);
     void newCameraName (const int id);
-    void newCameraGroup (const int id);
     void newLightStatus (const int id);
     void newCameraStatus (const int id);
 
@@ -49,7 +48,6 @@ public:
 
     Q_INVOKABLE int id() const;
     Q_INVOKABLE int fps() const;
-    Q_INVOKABLE QString group() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QImage currentImage() const;
@@ -72,7 +70,6 @@ private slots:
     void sendCommandPacket();
     void resetFocusRequest();
     void setName (const QString& name);
-    void setGroup (const QString& group);
     void changeCameraStatus (const int status);
     void readCameraPacket (const QByteArray& data);
 
@@ -85,7 +82,6 @@ private:
 
     QString m_name;
     QImage m_image;
-    QString m_group;
     QHostAddress m_address;
     QCCTV_LightStatus m_lightStatus;
 

@@ -30,7 +30,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_fps = 24;
     m_focus = false;
     m_connected = false;
-    m_group = "default";
     m_name = "Unknown Camera";
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
@@ -67,14 +66,6 @@ int QCCTV_RemoteCamera::id() const
 int QCCTV_RemoteCamera::fps() const
 {
     return m_fps;
-}
-
-/**
- * Returns the group asociated with this camera
- */
-QString QCCTV_RemoteCamera::group() const
-{
-    return m_group;
 }
 
 /**
@@ -268,21 +259,6 @@ void QCCTV_RemoteCamera::setName (const QString& name)
 }
 
 /**
- * Updates the group reported by the camera
- */
-void QCCTV_RemoteCamera::setGroup (const QString& group)
-{
-    if (m_group != group) {
-        m_group = group;
-
-        if (m_group.isEmpty())
-            m_group = "default";
-
-        emit newCameraGroup (id());
-    }
-}
-
-/**
  * Changes the operation status of the camera and emits the appropiate signals
  */
 void QCCTV_RemoteCamera::changeCameraStatus (const int status)
@@ -311,8 +287,6 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
  *
  * - Length of camera name (1 byte)
  * - Camera name string
- * - Length of group name (1 byte)
- * - Group name string
  * - Camera FPS (1 byte)
  * - Light status (1 byte)
  * - Operation status (1 byte)
@@ -336,14 +310,8 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     for (int i = 0; i < name_len; ++i)
         name.append (data.at (1 + i));
 
-    /* Get camera group */
-    QString group;
-    int group_len = data.at (name_len + 1);
-    for (int i = 0; i < group_len; ++i)
-        group.append (data.at (name_len + 2 + i));
-
     /* Get camera FPS and status */
-    int offset = name_len + group_len + 1;
+    int offset = name_len + 1;
     int fps = data.at (offset + 1);
     int light = data.at (offset + 2);
     int status = data.at (offset + 3);
@@ -351,35 +319,28 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     /* Update values */
     setFPS (fps);
     setName (name);
-    setGroup (group);
     changeCameraStatus (status);
     changeFlashlightStatus (light);
 
     /* This is the first packet, emit connected() signal */
     if (!m_connected) {
         m_connected = true;
-
         emit connected (id());
         emit newCameraName (id());
-        emit newCameraGroup (id());
         emit newLightStatus (id());
         emit newCameraStatus (id());
     }
 
-    /* Get raw image */
-    QByteArray buffer;
-    QString eod = QString (QCCTV_EOD);
-    for (int i = offset + 4; i < (data.size() - eod.size()); ++i)
-        buffer.append (data.at (i));
+    /* Get image bytes */
+    QByteArray buf;
+    for (int i = 0; i < data.size() - QString (QCCTV_EOD).size(); ++i)
+        buf.append (data.at (offset + 4 + i));
 
-    /* Convert raw image to QImage */
-    if (buffer.size() > 1) {
-        QImage image = QImage::fromData (buffer, QCCTV_IMAGE_FORMAT);
-
-        if (!image.isNull()) {
-            m_image = image;
-            emit newImage (id());
-        }
+    /* Obtain image from data */
+    QImage img = QImage::fromData (qUncompress (buf));
+    if (!img.isNull()) {
+        m_image = img;
+        emit newImage (id());
     }
 
     /* Feed the watchdog */

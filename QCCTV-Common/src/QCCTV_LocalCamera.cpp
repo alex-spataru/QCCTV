@@ -57,7 +57,6 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
 
     /* Set default values */
     setFPS (24);
-    setGroup ("default");
     setName ("Unknown Camera");
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
@@ -151,14 +150,6 @@ bool QCCTV_LocalCamera::flashlightOff() const
 QString QCCTV_LocalCamera::cameraName() const
 {
     return m_name;
-}
-
-/**
- * Returns the camera group associated with this camera
- */
-QString QCCTV_LocalCamera::cameraGroup() const
-{
-    return m_group;
 }
 
 /**
@@ -306,17 +297,6 @@ void QCCTV_LocalCamera::setGrayscale (const bool gray)
 }
 
 /**
- * Change the group assigned to this camera
- */
-void QCCTV_LocalCamera::setGroup (const QString& group)
-{
-    if (m_group != group) {
-        m_group = group;
-        emit cameraGroupChanged();
-    }
-}
-
-/**
  * Changes the shrink factor used to resize the image before sending it to
  * the QCCTV Stations in the local network
  */
@@ -380,6 +360,8 @@ void QCCTV_LocalCamera::sendCameraData()
 {
     foreach (QTcpSocket* socket, m_sockets)
         socket->write (m_dataStream);
+
+    m_dataStream.clear();
 }
 
 /**
@@ -463,7 +445,6 @@ void QCCTV_LocalCamera::readCommandPacket()
  * Generates a byte array with the following information:
  *
  * - The camera name
- * - The camera group
  * - The FPS of the camera
  * - The light status of the camera
  * - The camera status
@@ -473,36 +454,33 @@ void QCCTV_LocalCamera::readCommandPacket()
  */
 void QCCTV_LocalCamera::generateDataStream()
 {
-    /* Clear the data stream */
-    m_dataStream.clear();
+    /* Only generate the data stream if the previous one has been sent */
+    if (m_dataStream.isEmpty()) {
+        /* Add camera name */
+        m_dataStream.append (cameraName().length());
+        m_dataStream.append (cameraName());
 
-    /* Add camera name */
-    m_dataStream.append (cameraName().length());
-    m_dataStream.append (cameraName());
+        /* Add FPS, light status and camera status */
+        m_dataStream.append (fps());
+        m_dataStream.append (lightStatus());
+        m_dataStream.append (cameraStatus());
 
-    /* Add camera group */
-    m_dataStream.append (cameraGroup().length());
-    m_dataStream.append (cameraGroup());
+        /* Allow the frame grabber to capture images from camera */
+        m_frameGrabber.setEnabled (true);
 
-    /* Add FPS, light status and camera status */
-    m_dataStream.append (fps());
-    m_dataStream.append (lightStatus());
-    m_dataStream.append (cameraStatus());
+        /* Add image to data stream */
+        if (!currentImage().isNull()) {
+            QByteArray img;
+            QBuffer buffer (&img);
+            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
+            buffer.close();
 
-    /* Get image buffer */
-    QByteArray img;
-    QBuffer buffer (&img);
-    buffer.open (QIODevice::WriteOnly);
-    currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
+            m_dataStream.append (qCompress (img, 9));
+        }
 
-    /* Add image to data stream */
-    if (!img.isEmpty())
-        m_dataStream.append (img);
-    else
-        m_dataStream.append (QCCTV_NO_IMAGE_FLAG);
-
-    /* Add end bytes */
-    m_dataStream.append (QCCTV_EOD);
+        /* Add end bytes */
+        m_dataStream.append (QCCTV_EOD);
+    }
 }
 
 /**
@@ -511,6 +489,8 @@ void QCCTV_LocalCamera::generateDataStream()
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_image = image;
+    m_frameGrabber.setEnabled (false);
+
     emit imageChanged();
 }
 

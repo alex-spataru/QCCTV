@@ -40,11 +40,6 @@ QCCTV_Station::QCCTV_Station()
 
 QCCTV_Station::~QCCTV_Station() {}
 
-QString QCCTV_Station::group() const
-{
-    return m_group;
-}
-
 /**
  * Returns the number of cameras that the station is connected to
  */
@@ -62,14 +57,6 @@ int QCCTV_Station::fps (const int camera)
         return getCamera (camera)->fps();
 
     return 0;
-}
-
-QString QCCTV_Station::group (const int camera)
-{
-    if (getCamera (camera))
-        return getCamera (camera)->group();
-
-    return "";
 }
 
 int QCCTV_Station::cameraStatus (const int camera)
@@ -128,14 +115,6 @@ QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
     return NULL;
 }
 
-void QCCTV_Station::setCameraGroup (const QString& group)
-{
-    if (m_group != group) {
-        m_group = group;
-        emit groupChanged();
-    }
-}
-
 void QCCTV_Station::setFPS (const int camera, const int fps)
 {
     if (camera < cameraCount())
@@ -177,8 +156,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,                SIGNAL (disconnected (int)));
         connect (m_cameraList.last(), SIGNAL (fpsChanged (int)),
                  this,                SIGNAL (fpsChanged (int)));
-        connect (m_cameraList.last(), SIGNAL (newCameraGroup (int)),
-                 this,                SIGNAL (cameraGroupChanged (int)));
         connect (m_cameraList.last(), SIGNAL (newCameraName (int)),
                  this,                SIGNAL (cameraNameChanged (int)));
         connect (m_cameraList.last(), SIGNAL (newCameraStatus (int)),

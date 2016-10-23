@@ -22,7 +22,6 @@
 
 #include "QCCTV.h"
 #include "QCCTV_Discovery.h"
-#include "QCCTV_RemoteCamera.h"
 
 /**
  * Initializes the class by connecting the signals/slots between the UDP
