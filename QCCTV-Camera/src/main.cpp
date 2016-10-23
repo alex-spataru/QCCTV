@@ -60,8 +60,8 @@ int main (int argc, char* argv[])
     QGuiApplication app (argc, argv);
 
     /* Initialize QCCTV */
-    QCCTV_LocalCamera camera;
-    QCCTV_LocalCameraImage provider (&camera);
+    QCCTV_LocalCamera localCamera;
+    QCCTV_LocalCameraImage provider (&localCamera);
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS
@@ -74,14 +74,14 @@ int main (int argc, char* argv[])
     QQmlApplicationEngine engine;
     engine.addImageProvider ("qcctv", &provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
-    engine.rootContext()->setContextProperty ("QCCTVCamera", &camera);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
+    engine.rootContext()->setContextProperty ("QCCTVCamera", &localCamera);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
 
-    /* Load camera object */
+    /* Obtain camera from QML interface */
     QCamera cam (QCameraInfo::defaultCamera());
-    camera.setCamera (&cam);
+    localCamera.setCamera (&cam);
 
     /* Exit if QML fails to load */
     if (engine.rootObjects().isEmpty())

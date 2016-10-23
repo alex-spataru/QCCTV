@@ -52,9 +52,6 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_REQUEST_PORT   1200
 #define QCCTV_DISCOVERY_PORT 1250
 
-/* Network Addresses */
-#define QCCTV_DISCOVERY_ADDR QHostAddress::Broadcast
-
 /* Packet timings */
 #define QCCTV_COMMAND_PKT_TIMING    500
 #define QCCTV_REQUEST_PKT_TIMING    500

@@ -25,13 +25,7 @@
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
     m_ratio = 1.0;
-    m_enabled = false;
     m_grayscale = false;
-}
-
-bool QCCTV_FrameGrabber::isEnabled() const
-{
-    return m_enabled;
 }
 
 bool QCCTV_FrameGrabber::isGrayscale() const
@@ -46,10 +40,6 @@ qreal QCCTV_FrameGrabber::shrinkRatio() const
 
 bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
 {
-    /* Frame grabber is disabled */
-    if (!isEnabled())
-        return false;
-
     /* Create variables */
     QImage image;
     QVideoFrame clone (frame);
@@ -70,12 +60,17 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     if (shrinkRatio() > 1) {
         image = image.scaled (image.width() / shrinkRatio(),
                               image.height() / shrinkRatio(),
-                              Qt::KeepAspectRatio);
+                              Qt::KeepAspectRatio,
+                              Qt::SmoothTransformation);
     }
 
     /* Make the image grayscale */
     if (isGrayscale())
         image = makeGrayscale (image);
+
+    /* Do not allow the image to have a width greater than 720px */
+    if (image.width() > 720)
+        image = image.scaledToWidth (720, Qt::SmoothTransformation);
 
     /* Fix mirrored image issue on Windows */
 #if defined Q_OS_WIN
@@ -126,11 +121,6 @@ QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
            << QVideoFrame::Format_Jpeg
            << QVideoFrame::Format_CameraRaw
            << QVideoFrame::Format_AdobeDng;
-}
-
-void QCCTV_FrameGrabber::setEnabled (const bool enabled)
-{
-    m_enabled = enabled;
 }
 
 void QCCTV_FrameGrabber::setShrinkRatio (const qreal ratio)

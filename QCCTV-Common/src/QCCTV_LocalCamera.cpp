@@ -371,8 +371,12 @@ void QCCTV_LocalCamera::sendCameraData()
 void QCCTV_LocalCamera::broadcastInfo()
 {
     QString str = "QCCTV_DISCOVERY_SERVICE";
+
     m_broadcastSocket.writeDatagram (str.toUtf8(),
-                                     QCCTV_DISCOVERY_ADDR,
+                                     QHostAddress::Broadcast,
+                                     QCCTV_DISCOVERY_PORT);
+    m_broadcastSocket.writeDatagram (str.toUtf8(),
+                                     QHostAddress::LocalHost,
                                      QCCTV_DISCOVERY_PORT);
 
     QTimer::singleShot (QCCTV_DISCVRY_PKT_TIMING, Qt::PreciseTimer,
@@ -403,6 +407,7 @@ void QCCTV_LocalCamera::acceptConnection()
     while (m_server.hasPendingConnections()) {
         m_sockets.append (m_server.nextPendingConnection());
 
+        m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, true);
         connect (m_sockets.last(), SIGNAL (disconnected()),
                  this,               SLOT (onDisconnected()));
         connect (m_sockets.last(), SIGNAL (readyRead()),
@@ -465,17 +470,13 @@ void QCCTV_LocalCamera::generateDataStream()
         m_dataStream.append (lightStatus());
         m_dataStream.append (cameraStatus());
 
-        /* Allow the frame grabber to capture images from camera */
-        m_frameGrabber.setEnabled (true);
-
         /* Add image to data stream */
         if (!currentImage().isNull()) {
             QByteArray img;
             QBuffer buffer (&img);
-            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT);
+            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, 50);
+            m_dataStream.append (img);
             buffer.close();
-
-            m_dataStream.append (qCompress (img, 9));
         }
 
         /* Add end bytes */
@@ -488,10 +489,10 @@ void QCCTV_LocalCamera::generateDataStream()
  */
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
-    m_image = image;
-    m_frameGrabber.setEnabled (false);
-
-    emit imageChanged();
+    if (!image.isNull()) {
+        m_image = image;
+        emit imageChanged();
+    }
 }
 
 /**

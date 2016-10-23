@@ -36,6 +36,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 
     /* Configure the socket */
     m_watchdog.setExpirationTime (2000);
+    m_socket.setSocketOption (QTcpSocket::LowDelayOption, true);
     connect (&m_socket,   SIGNAL (readyRead()), this, SLOT (onDataReceived()));
     connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
 
@@ -290,7 +291,7 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
  * - Camera FPS (1 byte)
  * - Light status (1 byte)
  * - Operation status (1 byte)
- * - Compressed image data
+ * - Image data
  */
 void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
 {
@@ -311,10 +312,9 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         name.append (data.at (1 + i));
 
     /* Get camera FPS and status */
-    int offset = name_len + 1;
-    int fps = data.at (offset + 1);
-    int light = data.at (offset + 2);
-    int status = data.at (offset + 3);
+    int fps = data.at (name_len + 1);
+    int light = data.at (name_len + 2);
+    int status = data.at (name_len + 3);
 
     /* Update values */
     setFPS (fps);
@@ -334,10 +334,10 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     /* Get image bytes */
     QByteArray buf;
     for (int i = 0; i < data.size() - QString (QCCTV_EOD).size(); ++i)
-        buf.append (data.at (offset + 4 + i));
+        buf.append (data.at (name_len + 4 + i));
 
     /* Obtain image from data */
-    QImage img = QImage::fromData (qUncompress (buf));
+    QImage img = QImage::fromData (buf);
     if (!img.isNull()) {
         m_image = img;
         emit newImage (id());
