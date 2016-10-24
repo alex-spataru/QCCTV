@@ -37,15 +37,15 @@ QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
     m_station = parent;
 
     /* Set error image */
-    QPixmap pixmap = QPixmap (320, 240);
+    QPixmap pixmap = QPixmap (640, 480);
     pixmap.fill (QColor ("#000").rgb());
     QPainter painter (&pixmap);
 
     /* Set default image text */
     painter.setPen (Qt::white);
     painter.setFont (QFont ("Arial"));
-    painter.drawText (QRectF (0, 0, 320, 240),
-                      Qt::AlignCenter, "CAMERA ERROR");
+    painter.drawText (QRectF (0, 0, 640, 480),
+                      Qt::AlignCenter, "IMAGE ERROR");
 
     /* Convert pixmap to image */
     m_cameraError = pixmap.toImage();
@@ -76,21 +76,20 @@ QImage QCCTV_StationImage::requestImage (const QString& id,
 //------------------------------------------------------------------------------
 
 QCCTV_LocalCameraImage::QCCTV_LocalCameraImage (QCCTV_LocalCamera* parent) :
-    QQuickImageProvider (QQuickImageProvider::Image,
-                         QQuickImageProvider::ForceAsynchronousImageLoading)
+    QQuickImageProvider (QQuickImageProvider::Image)
 {
     m_localCamera = parent;
 
     /* Set error image */
-    QPixmap pixmap = QPixmap (320, 240);
+    QPixmap pixmap = QPixmap (640, 480);
     pixmap.fill (QColor ("#000").rgb());
     QPainter painter (&pixmap);
 
     /* Set default image text */
     painter.setPen (Qt::white);
     painter.setFont (QFont ("Arial"));
-    painter.drawText (QRectF (0, 0, 320, 240),
-                      Qt::AlignCenter, "CAMERA ERROR");
+    painter.drawText (QRectF (0, 0, 640, 480),
+                      Qt::AlignCenter, "IMAGE ERROR");
 
     /* Convert pixmap to image */
     m_cameraError = pixmap.toImage();

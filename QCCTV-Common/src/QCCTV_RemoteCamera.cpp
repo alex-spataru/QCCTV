@@ -27,10 +27,10 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
     m_id = 0;
-    m_fps = 24;
     m_focus = false;
     m_connected = false;
     m_name = "Unknown Camera";
+    m_fps = QCCTV_DEFAULT_FPS;
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
@@ -266,15 +266,6 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
 {
     if (m_cameraStatus != status) {
         m_cameraStatus = status;
-
-        if (m_cameraStatus & QCCTV_CAMSTATUS_CONNECTED) {
-            m_connected = true;
-            emit connected (id());
-        } else {
-            m_connected = false;
-            emit disconnected (id());
-        }
-
         emit newCameraStatus (id());
     }
 }

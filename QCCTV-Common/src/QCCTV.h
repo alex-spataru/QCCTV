@@ -33,18 +33,17 @@ enum QCCTV_LightStatus {
 
 enum QCCTV_CameraStatus {
     QCCTV_CAMSTATUS_DEFAULT       = 0b0,
-    QCCTV_CAMSTATUS_CONNECTED     = 0b1,
-    QCCTV_CAMSTATUS_LOW_BATTERY   = 0b10,
-    QCCTV_CAMSTATUS_DISCHARING    = 0b100,
-    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0b1000,
-    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b10000,
+    QCCTV_CAMSTATUS_LOW_BATTERY   = 0b1,
+    QCCTV_CAMSTATUS_DISCHARING    = 0b10,
+    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0b100,
+    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b1000,
 };
 
 extern int QCCTV_GET_VALID_FPS (const int fps);
 extern QString QCCTV_STATUS_STRING (const int status);
 
 /* Additional command flags */
-#define QCCTV_FORCE_FOCUS    0x05
+#define QCCTV_FORCE_FOCUS    5
 
 /* Network ports */
 #define QCCTV_STREAM_PORT    1100
@@ -58,16 +57,12 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_DISCVRY_PKT_TIMING    1000
 #define QCCTV_CSTREAM_PKT_TIMING(x) 1000 / QCCTV_GET_VALID_FPS(x)
 
-/* Packet watchdog timeout */
-#define QCCTV_COMMAND_PKT_TIMEOUT 2000
-
 /* Image encoding */
-#define QCCTV_NO_IMAGE_FLAG      0x05
-#define QCCTV_MIN_FPS            0x0A
-#define QCCTV_MAX_FPS            0x28
-#define QCCTV_IMAGE_QUALITY      0x46
-#define QCCTV_IMAGE_FORMAT       "JPG"
-#define QCCTV_EOD                "END_OF_DATA"
+#define QCCTV_DEFAULT_FPS  30
+#define QCCTV_MIN_FPS      10
+#define QCCTV_MAX_FPS      60
+#define QCCTV_IMAGE_FORMAT "JPG"
+#define QCCTV_EOD          "END_OF_DATA"
 
 #endif
 

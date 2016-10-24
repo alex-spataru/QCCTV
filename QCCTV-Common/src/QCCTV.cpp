@@ -52,11 +52,6 @@ QString QCCTV_STATUS_STRING (const int status)
 {
     QString str;
 
-    if (status & QCCTV_CAMSTATUS_CONNECTED)
-        str = append_str (str, QObject::tr ("Connected"));
-    else
-        str = append_str (str, QObject::tr ("Disconnected"));
-
     if (status & QCCTV_CAMSTATUS_LOW_BATTERY)
         str = append_str (str, QObject::tr ("Low Battery"));
 
@@ -68,6 +63,9 @@ QString QCCTV_STATUS_STRING (const int status)
 
     if (status & QCCTV_CAMSTATUS_VIDEO_FAILURE)
         str = append_str (str, QObject::tr ("Video Failure"));
+
+    if (status == QCCTV_CAMSTATUS_DEFAULT)
+        str = QObject::tr ("Camera OK");
 
     return str;
 }

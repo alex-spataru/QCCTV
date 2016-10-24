@@ -68,9 +68,11 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     if (isGrayscale())
         image = makeGrayscale (image);
 
-    /* Do not allow the image to have a width greater than 720px */
-    if (image.width() > 720)
-        image = image.scaledToWidth (720, Qt::SmoothTransformation);
+    /* Do not allow the image to be larger than 640x480 */
+    if (image.width() > 640)
+        image = image.scaledToWidth (640, Qt::SmoothTransformation);
+    if (image.height() > 480)
+        image = image.scaledToHeight (480, Qt::SmoothTransformation);
 
     /* Fix mirrored image issue on Windows */
 #if defined Q_OS_WIN

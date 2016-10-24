@@ -46,7 +46,7 @@ int main (int argc, char* argv[])
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
     /* Set application attributes */
-    QGuiApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
+    QGuiApplication::setAttribute (Qt::AA_UseOpenGLES);
     QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 

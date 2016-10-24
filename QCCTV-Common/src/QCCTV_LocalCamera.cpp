@@ -56,7 +56,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
              this,              SLOT (changeImage (QImage)));
 
     /* Set default values */
-    setFPS (24);
+    setFPS (QCCTV_DEFAULT_FPS);
     setName ("Unknown Camera");
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
@@ -343,12 +343,6 @@ void QCCTV_LocalCamera::updateStatus()
         addStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
     else
         removeStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
-
-    /* Check if we are connected to a CCTV station */
-    if (!connectedHosts().isEmpty())
-        addStatusFlag (QCCTV_CAMSTATUS_CONNECTED);
-    else
-        removeStatusFlag (QCCTV_CAMSTATUS_CONNECTED);
 }
 
 /**
@@ -374,9 +368,6 @@ void QCCTV_LocalCamera::broadcastInfo()
 
     m_broadcastSocket.writeDatagram (str.toUtf8(),
                                      QHostAddress::Broadcast,
-                                     QCCTV_DISCOVERY_PORT);
-    m_broadcastSocket.writeDatagram (str.toUtf8(),
-                                     QHostAddress::LocalHost,
                                      QCCTV_DISCOVERY_PORT);
 
     QTimer::singleShot (QCCTV_DISCVRY_PKT_TIMING, Qt::PreciseTimer,
