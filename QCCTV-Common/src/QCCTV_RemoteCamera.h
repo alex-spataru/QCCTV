@@ -27,6 +27,7 @@
 #include <QTcpSocket>
 
 #include "QCCTV.h"
+#include "QCCTV_CRC32.h"
 #include "QCCTV_Watchdog.h"
 
 class QCCTV_RemoteCamera : public QObject
@@ -86,6 +87,8 @@ private:
     QCCTV_LightStatus m_lightStatus;
 
     QTcpSocket m_socket;
+
+    CRC32 m_crc32;
     QCCTV_Watchdog m_watchdog;
 };
 

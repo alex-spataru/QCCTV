@@ -277,6 +277,7 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
  * The stream packets (the ones that we receive from the camera) have the
  * following structure:
  *
+ * - CRC32 (4 bytes)
  * - Length of camera name (1 byte)
  * - Camera name string
  * - Camera FPS (1 byte)
@@ -297,16 +298,18 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     }
 
     /* Get the checksum */
-    quint8 upper = data.at (0);
-    quint8 lower = data.at (1);
-    quint16 checksum = (upper << 8) | (lower & 0xff);
+    quint8 a = data.at (0);
+    quint8 b = data.at (1);
+    quint8 c = data.at (2);
+    quint8 d = data.at (3);
+    quint32 checksum = (a << 24) | (b << 16) | (c << 8) | (d & 0xff);
 
     /* Create byte array without checksum header */
     QByteArray original = data;
-    original.remove (0, 2);
+    original.remove (0, 4);
 
     /* Compare checksums */
-    quint16 crc = qChecksum (original.data(), original.length());
+    quint32 crc = m_crc32.compute (original);
     if (checksum != crc) {
         m_watchdog.reset();
         return;

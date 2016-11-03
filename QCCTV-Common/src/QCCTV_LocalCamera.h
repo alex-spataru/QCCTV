@@ -7,6 +7,7 @@
 #include <QUdpSocket>
 
 #include "QCCTV.h"
+#include "QCCTV_CRC32.h"
 #include "QCCTV_Watchdog.h"
 #include "QCCTV_FrameGrabber.h"
 
@@ -79,6 +80,7 @@ private:
     QString m_name;
     QByteArray m_data;
 
+    CRC32 m_crc32;
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;

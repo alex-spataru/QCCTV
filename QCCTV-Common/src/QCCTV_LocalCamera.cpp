@@ -324,6 +324,7 @@ void QCCTV_LocalCamera::update()
 /**
  * Generates a byte array with the following information:
  *
+ * - CRC32 bytes
  * - The camera name
  * - The FPS of the camera
  * - The light status of the camera
@@ -358,9 +359,11 @@ void QCCTV_LocalCamera::generateData()
         m_data.append (QCCTV_EOD);
 
         /* Add the cheksum at the start of the data */
-        quint16 checksum = qChecksum (m_data.data(), m_data.size());
-        m_data.prepend ((checksum & 0xff));
-        m_data.prepend ((checksum & 0xff00) >> 8);
+        quint32 crc = m_crc32.compute (m_data);
+        m_data.prepend ((crc & 0xff));
+        m_data.prepend ((crc & 0xff00) >> 8);
+        m_data.prepend ((crc & 0xff0000) >> 16);
+        m_data.prepend ((crc & 0xff000000) >> 24);
     }
 }
 
