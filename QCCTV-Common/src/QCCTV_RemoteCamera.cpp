@@ -296,16 +296,32 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         return;
     }
 
+    /* Get the checksum */
+    quint8 upper = data.at (0);
+    quint8 lower = data.at (1);
+    quint16 checksum = (upper << 8) | (lower & 0xff);
+
+    /* Create byte array without checksum header */
+    QByteArray original = data;
+    original.remove (0, 2);
+
+    /* Compare checksums */
+    quint16 crc = qChecksum (original.data(), original.length());
+    if (checksum != crc) {
+        m_watchdog.reset();
+        return;
+    }
+
     /* Get camera name */
     QString name;
-    int name_len = data.at (0);
+    int name_len = original.at (0);
     for (int i = 0; i < name_len; ++i)
-        name.append (data.at (1 + i));
+        name.append (original.at (1 + i));
 
     /* Get camera FPS and status */
-    int fps = data.at (name_len + 1);
-    int light = data.at (name_len + 2);
-    int status = data.at (name_len + 3);
+    int fps = original.at (name_len + 1);
+    int light = original.at (name_len + 2);
+    int status = original.at (name_len + 3);
 
     /* Update values */
     setFPS (fps);
@@ -324,8 +340,13 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
 
     /* Get image bytes */
     QByteArray buf;
-    for (int i = 0; i < data.size() - QString (QCCTV_EOD).size(); ++i)
-        buf.append (data.at (name_len + 4 + i));
+    int size = original.size() - (QString (QCCTV_EOD).size() + name_len + 4);
+    for (int i = 0; i < size; ++i) {
+        int pos = name_len + 4 + i;
+
+        if (pos < original.size())
+            buf.append (original.at (pos));
+    }
 
     /* Obtain image from data */
     QImage img = QImage::fromData (buf);

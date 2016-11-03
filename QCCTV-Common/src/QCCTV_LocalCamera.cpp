@@ -314,11 +314,54 @@ void QCCTV_LocalCamera::update()
     updateStatus();
 
     /* Construct a new stream of data to send */
-    generateDataStream();
+    generateData();
     sendCameraData();
 
     /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
+}
+
+/**
+ * Generates a byte array with the following information:
+ *
+ * - The camera name
+ * - The FPS of the camera
+ * - The light status of the camera
+ * - The camera status
+ * - The latest camera image
+ *
+ * This byte array will be sent to all connected QCCTV Stations in the LAN
+ */
+void QCCTV_LocalCamera::generateData()
+{
+    /* Only generate the data stream if the previous one has been sent */
+    if (m_data.isEmpty()) {
+        /* Add camera name */
+        m_data.append (cameraName().length());
+        m_data.append (cameraName());
+
+        /* Add FPS, light status and camera status */
+        m_data.append (fps());
+        m_data.append (lightStatus());
+        m_data.append (cameraStatus());
+
+        /* Add image to data stream */
+        if (!currentImage().isNull()) {
+            QByteArray img;
+            QBuffer buffer (&img);
+            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, 50);
+            m_data.append (img);
+            buffer.close();
+        }
+
+        /* Add end bytes */
+        m_data.append (QCCTV_EOD);
+
+        /* Add the cheksum at the start of the data */
+        quint16 checksum = qChecksum (m_data.data(), m_data.size());
+        m_data.prepend ((checksum & 0xff));
+        m_data.prepend ((checksum & 0xff00) >> 8);
+    }
 }
 
 /**
@@ -353,9 +396,9 @@ void QCCTV_LocalCamera::updateStatus()
 void QCCTV_LocalCamera::sendCameraData()
 {
     foreach (QTcpSocket* socket, m_sockets)
-        socket->write (m_dataStream);
+        socket->write (m_data);
 
-    m_dataStream.clear();
+    m_data.clear();
 }
 
 /**
@@ -434,44 +477,6 @@ void QCCTV_LocalCamera::readCommandPacket()
         /* Focus the camera */
         if (data.at (2) == QCCTV_FORCE_FOCUS)
             focusCamera();
-    }
-}
-
-/**
- * Generates a byte array with the following information:
- *
- * - The camera name
- * - The FPS of the camera
- * - The light status of the camera
- * - The camera status
- * - The latest camera image
- *
- * This byte array will be sent to all connected QCCTV Stations in the LAN
- */
-void QCCTV_LocalCamera::generateDataStream()
-{
-    /* Only generate the data stream if the previous one has been sent */
-    if (m_dataStream.isEmpty()) {
-        /* Add camera name */
-        m_dataStream.append (cameraName().length());
-        m_dataStream.append (cameraName());
-
-        /* Add FPS, light status and camera status */
-        m_dataStream.append (fps());
-        m_dataStream.append (lightStatus());
-        m_dataStream.append (cameraStatus());
-
-        /* Add image to data stream */
-        if (!currentImage().isNull()) {
-            QByteArray img;
-            QBuffer buffer (&img);
-            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, 50);
-            m_dataStream.append (img);
-            buffer.close();
-        }
-
-        /* Add end bytes */
-        m_dataStream.append (QCCTV_EOD);
     }
 }
 
