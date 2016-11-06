@@ -12,5 +12,7 @@
         <file>fonts/OpenSans-BoldItalic.ttf</file>
         <file>fonts/OpenSans-Italic.ttf</file>
         <file>fonts/OpenSans-Regular.ttf</file>
+        <file>images/qcctv_inverted.png</file>
+        <file>images/qcctv.png</file>
     </qresource>
 </RCC>

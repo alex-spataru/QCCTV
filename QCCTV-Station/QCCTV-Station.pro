@@ -80,10 +80,10 @@ SOURCES += \
 
 RESOURCES += \
     $$PWD/qml/qml.qrc \
-    $$PWD/../etc/qml/common.qrc
+    $$PWD/../etc/common/common.qrc
 
 OTHER_FILES += \
     $$PWD/qml/*.js \
     $$PWD/qml/*.qml \
-    $$PWD/../etc/qml/*.js \
-    $$PWD/../etc/qml/*.qml \
+    $$PWD/../etc/common/*.js \
+    $$PWD/../etc/common/*.qml \
