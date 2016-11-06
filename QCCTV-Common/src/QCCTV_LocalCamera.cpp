@@ -86,7 +86,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
 QCCTV_LocalCamera::~QCCTV_LocalCamera()
 {
     foreach (QTcpSocket* socket, m_sockets) {
-        socket->abort();
+        socket->close();
         socket->deleteLater();
     }
 
@@ -357,6 +357,9 @@ void QCCTV_LocalCamera::generateData()
             m_data.append (m_imageData);
         }
 
+        /* Compress packet */
+        m_data = qCompress (m_data, 9);
+
         /* Add the cheksum at the start of the data */
         quint32 crc = m_crc32.compute (m_data);
         m_data.prepend ((crc & 0xff));
@@ -400,8 +403,10 @@ void QCCTV_LocalCamera::sendCameraData()
     if (m_data.isEmpty())
         return;
 
-    foreach (QTcpSocket* socket, m_sockets)
-        socket->write (m_data);
+    foreach (QTcpSocket* socket, m_sockets) {
+        if (socket->isWritable())
+            socket->write (m_data);
+    }
 
     m_data.clear();
 }
@@ -430,8 +435,7 @@ void QCCTV_LocalCamera::onDisconnected()
     QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
 
     if (socket) {
-        socket->close();
-        socket->deleteLater();
+        socket->disconnectFromHost();
         m_sockets.removeAt (m_sockets.indexOf (socket));
     }
 }
@@ -446,6 +450,9 @@ void QCCTV_LocalCamera::acceptConnection()
     while (m_server.hasPendingConnections()) {
         m_sockets.append (m_server.nextPendingConnection());
         m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, 1);
+        m_sockets.last()->setSocketOption (QTcpSocket::KeepAliveOption, 1);
+        m_sockets.last()->setSocketOption (QTcpSocket::SendBufferSizeSocketOption, INT_MAX);
+
         connect (m_sockets.last(), SIGNAL (disconnected()),
                  this,               SLOT (onDisconnected()));
         connect (m_sockets.last(), SIGNAL (readyRead()),
