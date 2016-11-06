@@ -25,7 +25,13 @@
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
     m_ratio = 1.0;
+    m_enabled = false;
     m_grayscale = false;
+}
+
+bool QCCTV_FrameGrabber::isEnabled() const
+{
+    return m_enabled;
 }
 
 bool QCCTV_FrameGrabber::isGrayscale() const
@@ -40,6 +46,10 @@ qreal QCCTV_FrameGrabber::shrinkRatio() const
 
 bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
 {
+    /* Grabber is disabled, abort */
+    if (!isEnabled())
+        return false;
+
     /* Create variables */
     QImage image;
     QVideoFrame clone (frame);
@@ -123,6 +133,11 @@ QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
            << QVideoFrame::Format_Jpeg
            << QVideoFrame::Format_CameraRaw
            << QVideoFrame::Format_AdobeDng;
+}
+
+void QCCTV_FrameGrabber::setEnabled (const bool enabled)
+{
+    m_enabled = enabled;
 }
 
 void QCCTV_FrameGrabber::setShrinkRatio (const qreal ratio)

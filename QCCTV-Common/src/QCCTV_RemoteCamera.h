@@ -23,7 +23,6 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
-#include <QImage>
 #include <QTcpSocket>
 
 #include "QCCTV.h"

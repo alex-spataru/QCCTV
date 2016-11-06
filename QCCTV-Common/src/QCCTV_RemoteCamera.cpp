@@ -23,6 +23,9 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
+#include <QPixmap>
+#include <QPainter>
+
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
@@ -36,9 +39,23 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 
     /* Configure the socket */
     m_watchdog.setExpirationTime (2000);
-    m_socket.setSocketOption (QTcpSocket::LowDelayOption, true);
+    m_socket.setSocketOption (QTcpSocket::LowDelayOption, 1);
     connect (&m_socket,   SIGNAL (readyRead()), this, SLOT (onDataReceived()));
     connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
+
+    /* Set default image */
+    QPixmap pixmap = QPixmap (320, 240);
+    pixmap.fill (QColor ("#000").rgb());
+    QPainter painter (&pixmap);
+
+    /* Set default image text */
+    painter.setPen (Qt::white);
+    painter.setFont (QFont ("Arial"));
+    painter.drawText (QRectF (0, 0, 320, 240),
+                      Qt::AlignCenter, "NO CAMERA IMAGE");
+
+    /* Get generated image buffer */
+    m_image = pixmap.toImage();
 
     /* Start loops */
     sendCommandPacket();
@@ -291,12 +308,6 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     if (data.isEmpty())
         return;
 
-    /* Packet is incomplete, just feed the watchdog */
-    if (!data.endsWith (QString (QCCTV_EOD).toUtf8())) {
-        m_watchdog.reset();
-        return;
-    }
-
     /* Get the checksum */
     quint8 a = data.at (0);
     quint8 b = data.at (1);
@@ -318,8 +329,11 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     /* Get camera name */
     QString name;
     int name_len = original.at (0);
-    for (int i = 0; i < name_len; ++i)
-        name.append (original.at (1 + i));
+    for (int i = 0; i < name_len; ++i) {
+        int pos = 1 + i;
+        if (pos > original.size())
+            name.append (original.at (1 + i));
+    }
 
     /* Get camera FPS and status */
     int fps = original.at (name_len + 1);
@@ -341,18 +355,22 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         emit newCameraStatus (id());
     }
 
-    /* Get image bytes */
-    QByteArray buf;
-    int size = original.size() - (QString (QCCTV_EOD).size() + name_len + 4);
-    for (int i = 0; i < size; ++i) {
-        int pos = name_len + 4 + i;
+    /* Get image length */
+    quint8 img_a = original.at (name_len + 4);
+    quint8 img_b = original.at (name_len + 5);
+    quint8 img_c = original.at (name_len + 6);
+    quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
 
+    /* Get image bytes */
+    QByteArray raw_image;
+    for (quint16 i = 0; i < img_len; ++i) {
+        int pos = name_len + 7 + i;
         if (pos < original.size())
-            buf.append (original.at (pos));
+            raw_image.append (original.at (pos));
     }
 
-    /* Obtain image from data */
-    QImage img = QImage::fromData (buf);
+    /* Decode image */
+    QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
         emit newImage (id());

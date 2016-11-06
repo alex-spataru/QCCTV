@@ -23,6 +23,7 @@
 #ifndef _QCCTV_GLOBAL_H
 #define _QCCTV_GLOBAL_H
 
+#include <QImage>
 #include <QString>
 #include <QHostAddress>
 
@@ -42,6 +43,10 @@ enum QCCTV_CameraStatus {
 extern int QCCTV_GET_VALID_FPS (const int fps);
 extern QString QCCTV_STATUS_STRING (const int status);
 
+/* Image encoding/decoding functions */
+extern QImage QCCTV_DECODE_IMAGE (const QByteArray& data);
+extern QByteArray QCCTV_ENCODE_IMAGE (const QImage& image);
+
 /* Additional command flags */
 #define QCCTV_FORCE_FOCUS    5
 
@@ -58,11 +63,10 @@ extern QString QCCTV_STATUS_STRING (const int status);
 #define QCCTV_CSTREAM_PKT_TIMING(x) 1000 / QCCTV_GET_VALID_FPS(x)
 
 /* Image encoding */
-#define QCCTV_DEFAULT_FPS  30
-#define QCCTV_MIN_FPS      10
+#define QCCTV_DEFAULT_FPS  24
+#define QCCTV_MIN_FPS      5
 #define QCCTV_MAX_FPS      60
 #define QCCTV_IMAGE_FORMAT "JPG"
-#define QCCTV_EOD          "END_OF_DATA"
 
 #endif
 

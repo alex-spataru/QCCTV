@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 Alex Spataru
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,6 +22,7 @@
 
 #include "QCCTV.h"
 
+#include <QBuffer>
 #include <QObject>
 
 /**
@@ -68,4 +69,24 @@ QString QCCTV_STATUS_STRING (const int status)
         str = QObject::tr ("Camera OK");
 
     return str;
+}
+
+/**
+ * Returns the raw bytes of the encoded \a image
+ */
+QByteArray QCCTV_ENCODE_IMAGE (const QImage& image)
+{
+    QByteArray raw_bytes;
+    QBuffer buffer (&raw_bytes);
+    image.save (&buffer, QCCTV_IMAGE_FORMAT, 0);
+    buffer.close();
+    return raw_bytes;
+}
+
+/**
+ * Generates a image from the given \a data
+ */
+QImage QCCTV_DECODE_IMAGE (const QByteArray& data)
+{
+    return QImage::fromData (data, QCCTV_IMAGE_FORMAT);
 }

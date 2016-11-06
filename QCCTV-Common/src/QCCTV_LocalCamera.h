@@ -79,6 +79,7 @@ private:
     QImage m_image;
     QString m_name;
     QByteArray m_data;
+    QByteArray m_imageData;
 
     CRC32 m_crc32;
     QCamera* m_camera;

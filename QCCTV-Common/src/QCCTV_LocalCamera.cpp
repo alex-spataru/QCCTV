@@ -313,6 +313,9 @@ void QCCTV_LocalCamera::update()
     /* Generate a new camera status */
     updateStatus();
 
+    /* Enable the frame grabber */
+    m_frameGrabber.setEnabled (true);
+
     /* Construct a new stream of data to send */
     generateData();
     sendCameraData();
@@ -346,17 +349,13 @@ void QCCTV_LocalCamera::generateData()
         m_data.append (lightStatus());
         m_data.append (cameraStatus());
 
-        /* Add image to data stream */
-        if (!currentImage().isNull()) {
-            QByteArray img;
-            QBuffer buffer (&img);
-            currentImage().save (&buffer, QCCTV_IMAGE_FORMAT, 50);
-            m_data.append (img);
-            buffer.close();
+        /* Add raw image bytes */
+        if (!m_imageData.isEmpty()) {
+            m_data.append ((m_imageData.length() & 0xff0000) >> 16);
+            m_data.append ((m_imageData.length() & 0xff00) >> 8);
+            m_data.append ((m_imageData.length() & 0xff));
+            m_data.append (m_imageData);
         }
-
-        /* Add end bytes */
-        m_data.append (QCCTV_EOD);
 
         /* Add the cheksum at the start of the data */
         quint32 crc = m_crc32.compute (m_data);
@@ -398,6 +397,9 @@ void QCCTV_LocalCamera::updateStatus()
  */
 void QCCTV_LocalCamera::sendCameraData()
 {
+    if (m_data.isEmpty())
+        return;
+
     foreach (QTcpSocket* socket, m_sockets)
         socket->write (m_data);
 
@@ -443,8 +445,7 @@ void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
         m_sockets.append (m_server.nextPendingConnection());
-
-        m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, true);
+        m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, 1);
         connect (m_sockets.last(), SIGNAL (disconnected()),
                  this,               SLOT (onDisconnected()));
         connect (m_sockets.last(), SIGNAL (readyRead()),
@@ -488,8 +489,11 @@ void QCCTV_LocalCamera::readCommandPacket()
  */
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
+    m_frameGrabber.setEnabled (false);
+
     if (!image.isNull()) {
-        m_image = image;
+        m_imageData = QCCTV_ENCODE_IMAGE (image);
+        m_image = QCCTV_DECODE_IMAGE (m_imageData);
         emit imageChanged();
     }
 }
