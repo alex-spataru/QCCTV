@@ -36,6 +36,9 @@ QCCTV_Station::QCCTV_Station()
              this, SIGNAL (cameraCountChanged()));
     connect (this, SIGNAL (disconnected (int)),
              this,   SLOT (removeCamera (int)));
+
+    /* Set camera error image */
+    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
 }
 
 QCCTV_Station::~QCCTV_Station() {}
@@ -80,7 +83,7 @@ QImage QCCTV_Station::currentImage (const int camera)
     if (getCamera (camera))
         return getCamera (camera)->currentImage();
 
-    return QImage();
+    return m_cameraError;
 }
 
 QHostAddress QCCTV_Station::address (const int camera)
@@ -146,23 +149,25 @@ void QCCTV_Station::removeCamera (const int camera)
 void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
     if (!ip.isNull() && !m_cameraIPs.contains (ip)) {
+        QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
+
         m_cameraIPs.append (ip);
-        m_cameraList.append (new QCCTV_RemoteCamera());
+        m_cameraList.append (camera);
         m_cameraList.last()->setID (m_cameraList.count() - 1);
 
-        connect (m_cameraList.last(), SIGNAL (connected (int)),
-                 this,                SIGNAL (connected (int)));
-        connect (m_cameraList.last(), SIGNAL (disconnected (int)),
-                 this,                SIGNAL (disconnected (int)));
-        connect (m_cameraList.last(), SIGNAL (fpsChanged (int)),
-                 this,                SIGNAL (fpsChanged (int)));
-        connect (m_cameraList.last(), SIGNAL (newCameraName (int)),
-                 this,                SIGNAL (cameraNameChanged (int)));
-        connect (m_cameraList.last(), SIGNAL (newCameraStatus (int)),
-                 this,                SIGNAL (cameraStatusChanged (int)));
-        connect (m_cameraList.last(), SIGNAL (newImage (int)),
-                 this,                SIGNAL (newCameraImage (int)));
+        connect (camera, SIGNAL (connected (int)),
+                 this,   SIGNAL (connected (int)));
+        connect (camera, SIGNAL (disconnected (int)),
+                 this,   SIGNAL (disconnected (int)));
+        connect (camera, SIGNAL (fpsChanged (int)),
+                 this,   SIGNAL (fpsChanged (int)));
+        connect (camera, SIGNAL (newCameraName (int)),
+                 this,   SIGNAL (cameraNameChanged (int)));
+        connect (camera, SIGNAL (newCameraStatus (int)),
+                 this,   SIGNAL (cameraStatusChanged (int)));
+        connect (camera, SIGNAL (newImage (int)),
+                 this,   SIGNAL (newCameraImage (int)));
 
-        m_cameraList.last()->setAddress (ip);
+        camera->setAddress (ip);
     }
 }

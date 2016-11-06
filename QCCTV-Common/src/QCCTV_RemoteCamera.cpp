@@ -268,6 +268,10 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     /* Send the generated data */
     if (m_socket.isWritable())
         m_socket.write (data);
+
+    /* Call this function again */
+    QTimer::singleShot (500, Qt::PreciseTimer,
+                        this, SLOT (sendCommandPacket()));
 }
 
 /**
@@ -311,6 +315,7 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
  * - Operation status (1 byte)
  * - Image data
  */
+#include <QTime>
 void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
 {
     /* Data is invalid */

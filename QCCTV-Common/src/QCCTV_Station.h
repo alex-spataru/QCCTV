@@ -67,6 +67,7 @@ private slots:
     void connectToCamera (const QHostAddress& ip);
 
 private:
+    QImage m_cameraError;
     QList<QHostAddress> m_cameraIPs;
     QList<QCCTV_RemoteCamera*> m_cameraList;
 };

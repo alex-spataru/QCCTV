@@ -62,18 +62,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 
     /* Set default image */
-    QPixmap pixmap = QPixmap (320, 240);
-    pixmap.fill (QColor ("#000").rgb());
-    QPainter painter (&pixmap);
-
-    /* Set default image text */
-    painter.setPen (Qt::white);
-    painter.setFont (QFont ("Arial"));
-    painter.drawText (QRectF (0, 0, 320, 240),
-                      Qt::AlignCenter, "NO CAMERA IMAGE");
-
-    /* Get generated image buffer */
-    m_image = pixmap.toImage();
+    m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -474,18 +463,12 @@ void QCCTV_LocalCamera::readCommandPacket()
     QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
 
     if (socket) {
-        /* Read packet */
         QByteArray data = socket->readAll();
         if (data.size() != 3)
             return;
 
-        /* Change the FPS */
-        setFPS ((int) data.at (0));
-
-        /* Change the light status */
+        setFPS ((quint8) data.at (0));
         setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
-
-        /* Focus the camera */
         if (data.at (2) == QCCTV_FORCE_FOCUS)
             focusCamera();
     }
@@ -544,25 +527,20 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
     if (m_flashlightStatus != status) {
         m_flashlightStatus = status;
 
-        /* The camera is not available */
         if (!m_camera)
             return;
 
-        /* The flashlight is not available */
         if (!flashlightAvailable())
             return;
 
-        /* Turn on the flashlight (and focus the camera) */
         if (flashlightOn()) {
             m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
             focusCamera();
         }
 
-        /* Turn off the flashlight */
         else
             m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
 
-        /* Tell everyone that we changed the flashlight status */
         emit lightStatusChanged();
     }
 }

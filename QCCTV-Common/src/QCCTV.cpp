@@ -24,6 +24,8 @@
 
 #include <QBuffer>
 #include <QObject>
+#include <QPixmap>
+#include <QPainter>
 
 /**
  * If a is not empty, the function appends \a b to \a a and adds a separator.
@@ -78,7 +80,7 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image)
 {
     QByteArray raw_bytes;
     QBuffer buffer (&raw_bytes);
-    image.save (&buffer, QCCTV_IMAGE_FORMAT, 50);
+    image.save (&buffer, QCCTV_IMAGE_FORMAT);
     buffer.close();
     return raw_bytes;
 }
@@ -89,4 +91,21 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image)
 QImage QCCTV_DECODE_IMAGE (const QByteArray& data)
 {
     return QImage::fromData (data, QCCTV_IMAGE_FORMAT);
+}
+
+/**
+ * Generates an image with the given \a size and \a text
+ */
+QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text)
+{
+    QPixmap pixmap = QPixmap (size);
+    pixmap.fill (QColor ("#000").rgb());
+    QPainter painter (&pixmap);
+
+    painter.setPen (Qt::white);
+    painter.setFont (QFont ("Arial"));
+    painter.drawText (QRectF (0, 0, size.width(), size.height()),
+                      Qt::AlignCenter, text);
+
+    return pixmap.toImage();
 }

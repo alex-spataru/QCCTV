@@ -47,6 +47,9 @@ extern QString QCCTV_STATUS_STRING (const int status);
 extern QImage QCCTV_DECODE_IMAGE (const QByteArray& data);
 extern QByteArray QCCTV_ENCODE_IMAGE (const QImage& image);
 
+/* Image generation function */
+extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
+
 /* Additional command flags */
 #define QCCTV_FORCE_FOCUS    5
 
