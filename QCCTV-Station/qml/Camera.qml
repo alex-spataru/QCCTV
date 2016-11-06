@@ -103,6 +103,7 @@ Item {
         cache: false
         smooth: false
         anchors.fill: cam
+        asynchronous: false
         fillMode: Image.PreserveAspectCrop
 
         //
