@@ -103,7 +103,7 @@ private:
     QByteArray m_data;
     QByteArray m_imageData;
 
-    CRC32 m_crc32;
+    QCCTV_CRC32 m_crc32;
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;

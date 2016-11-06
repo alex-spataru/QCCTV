@@ -25,7 +25,7 @@
 /**
  * Generates the CRC table during initialization
  */
-CRC32::CRC32()
+QCCTV_CRC32::QCCTV_CRC32()
 {
     quint32 crc;
 
@@ -43,7 +43,7 @@ CRC32::CRC32()
  *
  * @param buf the data buffer
  */
-quint32 CRC32::compute (QByteArray buf)
+quint32 QCCTV_CRC32::compute (QByteArray buf)
 {
     return compute (buf, buf.length());
 }
@@ -55,7 +55,7 @@ quint32 CRC32::compute (QByteArray buf)
  * @param off the offset in the buffer where the data starts
  * @param len the length of the data
  */
-quint32 CRC32::compute (QByteArray buf, int len)
+quint32 QCCTV_CRC32::compute (QByteArray buf, int len)
 {
     quint32 crc = 0xFFFFFFFFUL;
 

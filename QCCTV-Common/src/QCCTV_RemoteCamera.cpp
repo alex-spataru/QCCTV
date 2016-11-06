@@ -23,9 +23,6 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
-#include <QPixmap>
-#include <QPainter>
-
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
@@ -187,7 +184,7 @@ void QCCTV_RemoteCamera::setFPS (const int fps)
 /**
  * Changes the flashlight status of the camera and emits the appropiate signals
  */
-void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
+void QCCTV_RemoteCamera::setFlashlightStatus (const int status)
 {
     if (m_lightStatus != status) {
         m_lightStatus = (QCCTV_LightStatus) status;
@@ -198,9 +195,9 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
 /**
  * Updates the connection status of the camera and emits the appropiate signals
  */
-void QCCTV_RemoteCamera::setConnected (const bool connected)
+void QCCTV_RemoteCamera::setConnected (const bool status)
 {
-    m_connected = connected;
+    m_connected = status;
 
     if (m_connected)
         emit connected (id());
@@ -246,7 +243,7 @@ void QCCTV_RemoteCamera::onDisconnected()
     setConnected (false);
     setAddress (address());
     m_watchdog.setExpirationTime (1000);
-    changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 }
 
 /**
@@ -285,7 +282,7 @@ void QCCTV_RemoteCamera::sendCommandPacket()
 }
 
 /**
- * Updates the name reported by the camera
+ * Updates the \a name reported by the camera
  */
 void QCCTV_RemoteCamera::setName (const QString& name)
 {
@@ -302,7 +299,7 @@ void QCCTV_RemoteCamera::setName (const QString& name)
 /**
  * Changes the operation status of the camera and emits the appropiate signals
  */
-void QCCTV_RemoteCamera::changeCameraStatus (const int status)
+void QCCTV_RemoteCamera::setCameraStatus (const int status)
 {
     if (m_cameraStatus != status) {
         m_cameraStatus = status;
@@ -350,7 +347,7 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         return;
     }
 
-    /* Uncompress stream data */
+    /* Uncompress the stream data */
     stream = qUncompress (stream);
 
     /* Get camera name */
@@ -370,8 +367,8 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     /* Update values */
     setFPS (fps);
     setName (name);
-    changeCameraStatus (status);
-    changeFlashlightStatus (light);
+    setCameraStatus (status);
+    setFlashlightStatus (light);
 
     /* Get image length */
     quint8 img_a = stream.at (name_len + 4);

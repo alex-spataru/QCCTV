@@ -17,10 +17,10 @@
  * Can be used to get the CRC32 over a stream if used with checked input/output
  * streams.
  */
-class CRC32
+class QCCTV_CRC32
 {
 public:
-    explicit CRC32();
+    explicit QCCTV_CRC32();
 
     quint32 compute (QByteArray buf);
     quint32 compute (QByteArray buf, int len);

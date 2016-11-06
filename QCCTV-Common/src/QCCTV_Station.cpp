@@ -20,7 +20,6 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV.h"
 #include "QCCTV_Station.h"
 #include "QCCTV_Discovery.h"
 
@@ -41,7 +40,15 @@ QCCTV_Station::QCCTV_Station()
     m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
 }
 
-QCCTV_Station::~QCCTV_Station() {}
+/**
+ * Removes all the registered cameras during the deconstruction of the
+ * \c QCCTV_Station class
+ */
+QCCTV_Station::~QCCTV_Station()
+{
+    for (int i = 0; i < cameraCount(); ++i)
+        removeCamera (i);
+}
 
 /**
  * Returns the number of cameras that the station is connected to
@@ -184,7 +191,7 @@ void QCCTV_Station::setLightStatus (const int camera,
                                     const QCCTV_LightStatus status)
 {
     if (camera < cameraCount())
-        m_cameraList.at (camera)->changeFlashlightStatus ((int) status);
+        m_cameraList.at (camera)->setFlashlightStatus ((int) status);
 }
 
 /**

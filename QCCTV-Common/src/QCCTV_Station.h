@@ -23,10 +23,7 @@
 #ifndef _QCCTV_STATION_H
 #define _QCCTV_STATION_H
 
-#include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
-
-#include <QUdpSocket>
 
 class QCCTV_Station : public QObject
 {

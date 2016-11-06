@@ -62,7 +62,7 @@ public slots:
     void turnOffFlashlight();
     void setID (const int id);
     void setFPS (const int fps);
-    void changeFlashlightStatus (const int status);
+    void setFlashlightStatus (const int status);
     void setAddress (const QHostAddress& address);
 
 private slots:
@@ -71,8 +71,8 @@ private slots:
     void sendCommandPacket();
     void resetFocusRequest();
     void setName (const QString& name);
-    void setConnected (const bool connected);
-    void changeCameraStatus (const int status);
+    void setConnected (const bool status);
+    void setCameraStatus (const int status);
     void readCameraPacket (const QByteArray& data);
 
 private:
@@ -89,7 +89,7 @@ private:
 
     QTcpSocket m_socket;
 
-    CRC32 m_crc32;
+    QCCTV_CRC32 m_crc32;
     QCCTV_Watchdog m_watchdog;
 };
 

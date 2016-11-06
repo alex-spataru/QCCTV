@@ -24,8 +24,6 @@
 #include "QCCTV_LocalCamera.h"
 #include "QCCTV_FrameGrabber.h"
 
-#include <QFont>
-#include <QThread>
 #include <QBuffer>
 #include <QPainter>
 #include <QCameraInfo>
@@ -34,7 +32,7 @@
 
 /**
  * Initializes the class by:
- *     - Bind receiver sockets
+ *     - Configuring the TCP server
  *     - Starting the broadcast service
  *     - Generating the default image
  *     - Configuring the TCP server
