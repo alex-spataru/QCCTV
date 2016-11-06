@@ -7,9 +7,8 @@ QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) t
 Besides security, QCCTV can have many uses, such as recording a video with multiple cameras at once or tell if your cat is plotting to kill you.
 
 The QCCTV suite consists of two applications:
-
-- QCCTV Camera, which streams your camera's live images to the LAN
-- QCCTV Station, which receives camera streams from the LAN and manages each camera individually
+- **QCCTV Camera**, which streams your camera's live images to the LAN
+- **QCCTV Station**, which receives camera streams from the LAN and manages each camera individually
 
 ### How QCCTV works
 
