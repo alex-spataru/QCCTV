@@ -24,8 +24,9 @@ import QtQuick 2.0
 import QtMultimedia 5.4
 import QtQuick.Controls 1.0
 import Qt.labs.settings 1.0
+import QtGraphicalEffects 1.0
 
-import "."
+import "qrc:/common/"
 
 ApplicationWindow {
     id: app
@@ -48,10 +49,9 @@ ApplicationWindow {
     //
     // Global variables
     //
-    property var borderSize: 8
+    property var spacing: 8
     property int forceReload: 0
     property bool controlsEnabled: true
-    property string fontFamily: "OpenSans"
 
     //
     // Settings
@@ -106,81 +106,55 @@ ApplicationWindow {
     Image {
         id: image
         cache: false
-        smooth: true
-        asynchronous: true
+        smooth: true  
+        anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
 
-        //
-        // Anchors
-        //
-        anchors {
-            top: parent.top
-            left: parent.left
-            right: settings.left
-            bottom: parent.bottom
-        }
-
-        //
-        // Allow user to toggle controls by touching the video image
-        //
         MouseArea {
             anchors.fill: parent
             onClicked: app.controlsEnabled = !app.controlsEnabled
         }
 
-        //
-        // Animations
-        //
         Behavior on opacity { NumberAnimation{} }
+    }
+
+    //
+    // Blur image when settings panel is shown
+    //
+    FastBlur {
+        id: blur
+        radius: 0
+        source: image
+        anchors.fill: parent
+
+        Behavior on radius { NumberAnimation {} }
     }
 
     //
     // Top status bar
     //
-    Rectangle {
+    Panel {
         id: menu
-        
-        //
-        // Geometry specifications
-        //
-        radius: 2
-        border.width: 1
-        height: 24 + borderSize
+        height: 24 + spacing
+        opacity: app.controlsEnabled ? 1 : 0
 
-        //
-        // Allow hiding/showing this control
-        //
-        opacity: app.controlsEnabled ? 0.85 : 0
-        Behavior on opacity { NumberAnimation{} }
-
-        //
-        // Colors
-        //
-        color: "#444"
-        border.color: "#999"
-
-        //
-        // Layout options
-        //
         anchors {
             top: parent.top
             left: parent.left
             right: parent.right
-            margins: borderSize * 2
+            margins: app.spacing
         }
 
         //
         // Camera name
         //
-        Text {
+        Label {
             id: camName
-            color: "#fff"
-            font.family: app.fontFamily
             text: QCCTVCamera.cameraName()
 
             anchors {
                 left: parent.left
-                margins: borderSize
+                margins: spacing
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -188,15 +162,13 @@ ApplicationWindow {
         //
         // FPS indicator
         //
-        Text {
+        Label {
             id: fps
-            color: "white"
-            font.family: app.fontFamily
             text: QCCTVCamera.fps() + " FPS"
 
             anchors {
                 right: parent.right
-                margins: borderSize
+                margins: spacing
                 verticalCenter: parent.verticalCenter
             }
         }
@@ -207,20 +179,14 @@ ApplicationWindow {
     //
     Row {
         id: buttons
-        spacing: borderSize * 2
-
-        //
-        // Allow hiding/showing these controls
-        //
+        spacing: app.spacing * 2
         opacity: app.controlsEnabled ? 1 : 0
+
         Behavior on opacity { NumberAnimation{} }
 
-        //
-        // Layout options
-        //
         anchors {
             bottom: parent.bottom
-            margins: borderSize * 2
+            margins: app.spacing * 2
             horizontalCenter: parent.horizontalCenter
         }
 
@@ -231,7 +197,7 @@ ApplicationWindow {
             width: 54
             height: 54
             enabled: app.controlsEnabled
-            source: "qrc:/images/light.png"
+            source: "qrc:/common/images//light.png"
             anchors.verticalCenter: parent.verticalCenter
 
             onClicked: {
@@ -259,7 +225,7 @@ ApplicationWindow {
             height: 64
             onClicked: settings.showPanel()
             enabled: app.controlsEnabled
-            source: "qrc:/images/settings.png"
+            source: "qrc:/common/images//settings.png"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -270,7 +236,7 @@ ApplicationWindow {
             width: 64
             height: 64
             enabled: app.controlsEnabled
-            source: "qrc:/images/camera.png"
+            source: "qrc:/common/images//camera.png"
             anchors.verticalCenter: parent.verticalCenter
             onClicked: {
                 if (QCCTVCamera.readyForCapture()) {
@@ -290,7 +256,7 @@ ApplicationWindow {
             width: 54
             height: 54
             enabled: app.controlsEnabled
-            source: "qrc:/images/focus.png"
+            source: "qrc:/common/images//focus.png"
             onClicked: QCCTVCamera.focusCamera()
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -299,35 +265,15 @@ ApplicationWindow {
     //
     // Status label
     //
-    Rectangle {
+    Panel {
         id: status
-
-        //
-        // Geometry options
-        //
-        radius: 2
         height: 24
-        border.width: 1
-        width: Math.min (app.width * 0.6, sText.width * 2)
-
-        //
-        // Colors
-        //
-        color: "#444"
-        border.color: "#999"
-        
-        //
-        // Allow hiding/showing this control
-        //
         opacity: 0
-        Behavior on opacity { NumberAnimation{} }
+        width: Math.min (app.width * 0.6, sText.width * 2)
         
-        //
-        // Layout options
-        //
         anchors {
             bottom: parent.bottom
-            bottomMargin: buttons.height + 6 * borderSize
+            bottomMargin: buttons.height + 6 * spacing
             horizontalCenter: image.horizontalCenter
         }
 
@@ -338,7 +284,7 @@ ApplicationWindow {
         function display (text) {
             sTimer.restart()
             sText.text = text
-            status.opacity = 0.85
+            status.opacity = 1
         }
 
         //
@@ -353,10 +299,8 @@ ApplicationWindow {
         //
         // Dynamic status label
         //
-        Text {
+        Label {
             id: sText
-            color: "#fff"
-            font.family: app.fontFamily
             anchors.centerIn: parent
         }
     }
@@ -364,7 +308,7 @@ ApplicationWindow {
     //
     // Settings panel
     //
-    Rectangle {
+    Item {
         id: settings
         Component.onCompleted: settings.hidePanel()
 
@@ -383,7 +327,8 @@ ApplicationWindow {
         // Shows the settings dialog
         //
         function showPanel() {
-            image.opacity = 0
+            blur.radius = 64
+            settings.opacity = 1
             anchors.leftMargin = 0
             controlsEnabled = false
         }
@@ -392,21 +337,22 @@ ApplicationWindow {
         // Hides the settings dialog
         //
         function hidePanel() {
-            image.opacity = 1
+            blur.radius = 0
+            settings.opacity = 0
             controlsEnabled = true
             anchors.leftMargin = app.width
         }
 
         //
-        // Background
+        // Geometry
         //
-        color: "#000"
         anchors.fill: parent
         anchors.leftMargin: parent.width
 
         //
         // Animations
         //
+        Behavior on opacity { NumberAnimation{} }
         Behavior on anchors.leftMargin { NumberAnimation{} }
 
         //
@@ -416,6 +362,67 @@ ApplicationWindow {
             anchors.fill: parent
             enabled: anchors.leftMargin === 0
             onClicked: settings.hidePanel()
+        }
+
+        //
+        // Back button
+        //
+        Panel {
+            id: back
+            width: settingsLabel.height
+            height: settingsLabel.height
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                margins: app.spacing
+            }
+
+            Image {
+                anchors.centerIn: parent
+                sourceSize: Qt.size (18, 18)
+                source: "qrc:/common/images/back.png"
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: settings.opacity > 0
+                onClicked: settings.hidePanel()
+            }
+        }
+
+        //
+        // Settings label
+        //
+        Panel {
+            id: settingsLabel
+            height: 24 + spacing
+
+            anchors {
+                top: parent.top
+                left: back.right
+                right: parent.right
+                margins: app.spacing
+            }
+
+            Label {
+                text: qsTr ("Settings")
+
+                anchors {
+                    left: parent.left
+                    margins: spacing
+                    verticalCenter: parent.verticalCenter
+                }
+            }
+        }
+
+        //
+        // Controls
+        //
+        Panel {
+            anchors.fill: parent
+            anchors.margins: app.spacing
+            anchors.topMargin: settingsLabel.height + (2 * app.spacing)
         }
     }
 }

@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/common">
+        <file>images/settings.png</file>
+        <file>images/light.png</file>
+        <file>images/focus.png</file>
+        <file>images/back.png</file>
+        <file>Button.qml</file>
+        <file>Panel.qml</file>
+        <file>images/camera.png</file>
+        <file>Label.qml</file>
+        <file>fonts/OpenSans-Bold.ttf</file>
+        <file>fonts/OpenSans-BoldItalic.ttf</file>
+        <file>fonts/OpenSans-Italic.ttf</file>
+        <file>fonts/OpenSans-Regular.ttf</file>
+    </qresource>
+</RCC>

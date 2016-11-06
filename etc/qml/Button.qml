@@ -21,8 +21,9 @@
  */
 
 import QtQuick 2.0
+import "."
 
-Rectangle {
+Panel {
     id: button
 
     //
@@ -39,24 +40,11 @@ Rectangle {
     property alias enabled: mouse.enabled
 
     //
-    // Geometry options
+    // Properties
     //
     width: 48
     height: 48
-    border.width: 1
     radius: width / 2
-
-    //
-    // Color and opacity options
-    //
-    opacity: 0.85
-    border.color: "#999"
-    color: mouse.containsMouse ? "#666" : "#444"
-
-    //
-    // Fade between color switches
-    //
-    Behavior on color { ColorAnimation{} }
 
     //
     // Button image
@@ -64,8 +52,7 @@ Rectangle {
     Image {
         id: image
         anchors.centerIn: parent
-        sourceSize: Qt.size (button.width * 0.5,
-                             button.height * 0.5)
+        sourceSize: Qt.size (button.width * 0.5, button.height * 0.5)
     }
 
     //
@@ -84,7 +71,6 @@ Rectangle {
     //
     MouseArea {
         id: mouse
-        hoverEnabled: true
         anchors.fill: parent
         onClicked: button.clicked()
     }

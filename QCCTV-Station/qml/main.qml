@@ -27,31 +27,22 @@ import QtQuick.Controls 1.0
 import Qt.labs.settings 1.0
 
 import "."
+import "qrc:/common/"
 
 ApplicationWindow {
     id: app
+    width: 840
+    height: 520
+    color: "#000"
+    visible: true
+    x: isMobile ? 0 : 100
+    y: isMobile ? 0 : 100
+    title: AppDspName + " " + AppVersion
 
     //
     // Global variables
     //
-    property int spacing: 12
-    property int magicalNumber: 1
-    property string fontFamily: "OpenSans"
-
-    //
-    // Window geometry
-    //
-    x: isMobile ? 0 : 100
-    y: isMobile ? 0 : 100
-    width: 840
-    height: 520
-
-    //
-    // Window properties
-    //
-    color: "#000"
-    visible: true
-    title: AppDspName + " " + AppVersion
+    property int spacing: 8
 
     //
     // Resize grid cells when user resizes window
@@ -59,7 +50,7 @@ ApplicationWindow {
     onWidthChanged: grid.redraw()
     onHeightChanged: grid.redraw()
 
-    //`
+    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
@@ -211,19 +202,16 @@ ApplicationWindow {
 
         Behavior on opacity { NumberAnimation{} }
 
-        Text {
-            color: "#fff"
+        Label {
             font.bold: true
             font.pixelSize: 24
-            font.family: app.fontFamily
             text: qsTr ("No QCCTV Cameras Found")
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
-        Text {
+        Label {
             color: "#ccc"
             font.pixelSize: 16
-            font.family: app.fontFamily
             anchors.horizontalCenter: parent.horizontalCenter
             text: qsTr ("Try launching QCCTV Camera in some of your LAN devices")
         }

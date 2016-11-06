@@ -21,6 +21,7 @@
  */
 
 import QtQuick 2.0
+import "qrc:/common/"
 
 Item {
     id: cam
@@ -100,18 +101,16 @@ Item {
     Image {
         id: image
         cache: false
-        smooth: true
+        smooth: false
         anchors.fill: cam
-        asynchronous: true
         fillMode: Image.PreserveAspectCrop
 
         //
         // Status label
         //
-        Text {
+        Label {
             id: status
             color: "#888"
-            font.family: app.fontFamily
             text: QCCTVStation.statusString (camNumber)
 
             anchors {
@@ -127,10 +126,8 @@ Item {
         //
         // Alternative name label
         //
-        Text {
+        Label {
             id: altName
-            color: "#fff"
-            font.family: app.fontFamily
             text: QCCTVStation.cameraName (camNumber)
             font.pixelSize: Math.min (14, image.height / 12)
 
@@ -156,27 +153,11 @@ Item {
     //
     // Back button
     //
-    Rectangle {
+    Panel {
         id: back
-
-        //
-        // Geometry specifications
-        //
-        radius: 2
-        border.width: 1
-        width: cam.returnButtonEnabled ? 24 + app.spacing : 0
-        height: cam.returnButtonEnabled > 0 ? 24 + app.spacing : 0
-
-        //
-        // Colors
-        //
-        color: "#444"
-        border.color: "#999"
-
-        //
-        // Control visibility
-        //
-        opacity: cam.controlsEnabled ? 0.85 : 0
+        opacity: cam.controlsEnabled ? 1 : 0
+        width: cam.returnButtonEnabled ? menu.height : 0
+        height: cam.returnButtonEnabled > 0 ? menu.height : 0
 
         //
         // Animations
@@ -201,8 +182,8 @@ Item {
         Image {
             anchors.centerIn: parent
             sourceSize: Qt.size (18, 18)
-            source: "qrc:/images/back.png"
             visible: cam.returnButtonEnabled
+            source: "qrc:/common/images/back.png"
         }
 
         //
@@ -218,31 +199,11 @@ Item {
     //
     // Top status bar
     //
-    Rectangle {
+    Panel {
         id: menu
-
-        //
-        // Geometry specifications
-        //
-        radius: 2
-        border.width: 1
         height: 24 + app.spacing
+        opacity: cam.controlsEnabled ? 1 : 0
 
-        //
-        // Colors
-        //
-        color: "#444"
-        border.color: "#999"
-
-        //
-        // Control visibility
-        //
-        opacity: cam.controlsEnabled ? 0.85 : 0
-        Behavior on opacity { NumberAnimation {} }
-
-        //
-        // Layout options
-        //
         anchors {
             top: image.top
             left: back.right
@@ -250,13 +211,8 @@ Item {
             margins: app.spacing
         }
 
-        //
-        // Camera name
-        //
-        Text {
+        Label {
             id: name
-            color: "#fff"
-            font.family: app.fontFamily
             text: QCCTVStation.cameraName (camNumber)
 
             anchors {
@@ -266,13 +222,8 @@ Item {
             }
         }
 
-        //
-        // FPS indicator
-        //
-        Text {
+        Label {
             id: fps
-            color: "#fff"
-            font.family: app.fontFamily
             text: QCCTVStation.fps (camNumber) + " FPS"
 
             anchors {

@@ -79,8 +79,11 @@ SOURCES += \
     $$PWD/src/main.cpp
 
 RESOURCES += \
-    $$PWD/qml/qml.qrc
+    $$PWD/qml/qml.qrc \
+    $$PWD/../etc/qml/common.qrc
 
 OTHER_FILES += \
     $$PWD/qml/*.js \
-    $$PWD/qml/*.qml
+    $$PWD/qml/*.qml \
+    $$PWD/../etc/qml/*.js \
+    $$PWD/../etc/qml/*.qml \

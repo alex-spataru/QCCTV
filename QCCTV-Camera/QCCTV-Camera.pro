@@ -82,14 +82,17 @@ include ($$PWD/../QCCTV-Common/QCCTV-Common.pri)
 
 SOURCES += \
     $$PWD/src/main.cpp \
-    src/AndroidLockHelper.cpp
+    $$PWD/src/AndroidLockHelper.cpp
 
 RESOURCES += \
-    $$PWD/qml/qml.qrc
+    $$PWD/qml/qml.qrc \
+    $$PWD/../etc/qml/common.qrc
 
 OTHER_FILES += \
     $$PWD/qml/*.js \
-    $$PWD/qml/*.qml
+    $$PWD/qml/*.qml \
+    $$PWD/../etc/qml/*.js \
+    $$PWD/../etc/qml/*.qml \
 
 DISTFILES += \
     $$PWD/android/AndroidManifest.xml
