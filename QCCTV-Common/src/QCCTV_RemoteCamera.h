@@ -49,6 +49,7 @@ public:
     Q_INVOKABLE int id() const;
     Q_INVOKABLE int fps() const;
     Q_INVOKABLE int cameraStatus() const;
+    Q_INVOKABLE bool isConnected() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
@@ -70,6 +71,7 @@ private slots:
     void sendCommandPacket();
     void resetFocusRequest();
     void setName (const QString& name);
+    void setConnected (const bool connected);
     void changeCameraStatus (const int status);
     void readCameraPacket (const QByteArray& data);
 

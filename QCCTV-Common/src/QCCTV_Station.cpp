@@ -53,23 +53,35 @@ int QCCTV_Station::cameraCount() const
 
 /**
  * Returns the FPS reported by the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return \c -1
  */
 int QCCTV_Station::fps (const int camera)
 {
     if (getCamera (camera))
         return getCamera (camera)->fps();
 
-    return 0;
+    return -1;
 }
 
+/**
+ * Returns the camera status byte for the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return \c -1
+ */
 int QCCTV_Station::cameraStatus (const int camera)
 {
     if (getCamera (camera))
         return getCamera (camera)->cameraStatus();
 
-    return 0;
+    return -1;
 }
 
+/**
+ * Returns the name of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return an empty string
+ */
 QString QCCTV_Station::cameraName (const int camera)
 {
     if (getCamera (camera))
@@ -78,6 +90,11 @@ QString QCCTV_Station::cameraName (const int camera)
     return "";
 }
 
+/**
+ * Returns the latest image captured by the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return a generic error image
+ */
 QImage QCCTV_Station::currentImage (const int camera)
 {
     if (getCamera (camera))
@@ -86,6 +103,11 @@ QImage QCCTV_Station::currentImage (const int camera)
     return m_cameraError;
 }
 
+/**
+ * Returns the network address of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return an empty address
+ */
 QHostAddress QCCTV_Station::address (const int camera)
 {
     if (getCamera (camera))
@@ -94,6 +116,11 @@ QHostAddress QCCTV_Station::address (const int camera)
     return QHostAddress ("");
 }
 
+/**
+ * Returns the status string of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return an empty string
+ */
 QString QCCTV_Station::statusString (const int camera)
 {
     if (getCamera (camera))
@@ -102,6 +129,11 @@ QString QCCTV_Station::statusString (const int camera)
     return "";
 }
 
+/**
+ * Returns the flash light status of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return \c QCCTV_FLASHLIGHT_OFF
+ */
 QCCTV_LightStatus QCCTV_Station::lightStatus (const int camera)
 {
     if (getCamera (camera))
@@ -110,6 +142,11 @@ QCCTV_LightStatus QCCTV_Station::lightStatus (const int camera)
     return QCCTV_FLASHLIGHT_OFF;
 }
 
+/**
+ * Returns a pointer to the controller of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return a \c NULL pointer
+ */
 QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
 {
     if (camera < cameraCount())
@@ -118,18 +155,31 @@ QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
     return NULL;
 }
 
+/**
+ * Changes the \a fps value of the given \a camera
+ * \note If the \a camera parameter is invalid, then this function
+ *       shall have no effect
+ */
 void QCCTV_Station::setFPS (const int camera, const int fps)
 {
     if (camera < cameraCount())
         m_cameraList.at (camera)->setFPS (fps);
 }
 
+/**
+ * Changes the flashlight \a status for all cameras connected to the station
+ */
 void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status)
 {
     for (int i = 0; i < cameraCount(); ++i)
         setLightStatus (i, status);
 }
 
+/**
+ * Changes the flashlight \a status value of the given \a camera
+ * \note If the \a camera parameter is invalid, then this function
+ *       shall have no effect
+ */
 void QCCTV_Station::setLightStatus (const int camera,
                                     const QCCTV_LightStatus status)
 {
@@ -137,6 +187,11 @@ void QCCTV_Station::setLightStatus (const int camera,
         m_cameraList.at (camera)->changeFlashlightStatus ((int) status);
 }
 
+/**
+ * Removes the given \a camera from the registered cameras list
+ * \note Cameras that where registered after the removed camera shall
+ *       change their respective ID's after calling this function
+ */
 void QCCTV_Station::removeCamera (const int camera)
 {
     if (camera < cameraCount()) {
@@ -146,6 +201,14 @@ void QCCTV_Station::removeCamera (const int camera)
     }
 }
 
+/**
+ * Tries to establish a connection with a QCCTV camera running
+ * in a host with the given \a ip address
+ *
+ * If the remote camera does not respond after some seconds,
+ * then the new camera controller shall be automatically
+ * deleted from the camera list
+ */
 void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
     if (!ip.isNull() && !m_cameraIPs.contains (ip)) {

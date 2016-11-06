@@ -43,25 +43,14 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
 
     /* Set default image */
-    QPixmap pixmap = QPixmap (320, 240);
-    pixmap.fill (QColor ("#000").rgb());
-    QPainter painter (&pixmap);
-
-    /* Set default image text */
-    painter.setPen (Qt::white);
-    painter.setFont (QFont ("Arial"));
-    painter.drawText (QRectF (0, 0, 320, 240),
-                      Qt::AlignCenter, "NO CAMERA IMAGE");
-
-    /* Get generated image buffer */
-    m_image = pixmap.toImage();
+    m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 
     /* Start loops */
     sendCommandPacket();
 }
 
 /**
- * Close the sockets
+ * Close the TCP sockets during the destruction of the class
  */
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
@@ -90,6 +79,15 @@ int QCCTV_RemoteCamera::fps() const
 int QCCTV_RemoteCamera::cameraStatus() const
 {
     return m_cameraStatus;
+}
+
+/**
+ * Returns \c true if the station has an active connection
+ * with a QCCTV camera
+ */
+bool QCCTV_RemoteCamera::isConnected() const
+{
+    return m_connected;
 }
 
 /**
@@ -198,6 +196,19 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
 }
 
 /**
+ * Updates the connection status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::setConnected (const bool connected)
+{
+    m_connected = connected;
+
+    if (m_connected)
+        emit connected (id());
+    else
+        emit disconnected (id());
+}
+
+/**
  * Changes the camera's remote address
  */
 void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
@@ -232,11 +243,10 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::onDisconnected()
 {
+    setConnected (false);
     setAddress (address());
     m_watchdog.setExpirationTime (1000);
     changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
-
-    emit disconnected (id());
 }
 
 /**
@@ -266,7 +276,7 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
 
     /* Send the generated data */
-    if (m_socket.isWritable())
+    if (m_socket.isWritable() && isConnected())
         m_socket.write (data);
 
     /* Call this function again */
@@ -313,20 +323,14 @@ void QCCTV_RemoteCamera::changeCameraStatus (const int status)
  * - Camera FPS (1 byte)
  * - Light status (1 byte)
  * - Operation status (1 byte)
- * - Image data
+ * - Image length (3 bytes)
+ * - Compressed image data
  */
-#include <QTime>
 void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
 {
     /* Data is invalid */
     if (data.isEmpty())
         return;
-
-    /* This is the first packet, emit connected() signal */
-    if (!m_connected) {
-        m_connected = true;
-        emit connected (id());
-    }
 
     /* Get the checksum */
     quint8 a = data.at (0);
@@ -389,6 +393,10 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         m_image = img;
         emit newImage (id());
     }
+
+    /* This is the first packet, emit connected() signal */
+    if (!isConnected())
+        setConnected (true);
 
     /* Feed the watchdog */
     m_watchdog.reset();
