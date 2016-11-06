@@ -1,11 +1,11 @@
 # QCCTV
 
-![QCCTV Camera](QCCTV-Camera/linux/qcctv-camera.png)
 ![QCCTV Station](QCCTV-Station/linux/qcctv-station.png)
 
-QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) as security/CCTV cameras.
+QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) to implement a CCTV network in your LAN.
 
 Besides security, QCCTV can have many uses, such as recording a video with multiple cameras at once or tell if your cat is plotting to kill you.
+
 The QCCTV suite consists of two applications:
 
 - QCCTV Camera, which streams your camera's live images to the LAN
@@ -24,7 +24,7 @@ The QCCTV suite consists of two applications:
     - Compressed JPEG image
 - On the other hand, the QCCTV station will send *command* packets every 500 milliseconds, these packets contain the following data:
     - Desired camera FPS
-    - Flashlight status request (e.g. to remotely turn on the flashlight)
+    - Flashlight status request (e.g. to remotely turn on or off the flashlight)
     - A focus request (e.g. to force the camera to focus on an objective)
 
 If the QCCTV station does not receive a stream packet in more than 2-5 seconds, then it will asume that the camera is dead and will re-establish the connection with the camera as soon as it receives another broadcast datagram from the camera.
