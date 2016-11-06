@@ -21,6 +21,7 @@
  */
 
 #include <QtQml>
+#include <QLabel>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 

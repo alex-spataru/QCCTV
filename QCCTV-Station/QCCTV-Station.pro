@@ -29,6 +29,7 @@ TARGET = QCCTV-Station
 
 QT += core
 QT += quick
+QT += widgets
 
 #-------------------------------------------------------------------------------
 # Deploy configuration

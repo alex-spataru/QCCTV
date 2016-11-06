@@ -68,12 +68,9 @@ ApplicationWindow {
     // from (which forces the image to perform a redraw)
     //
     function reloadImage() {
-        forceReload += 1
-
-        if (forceReload > 100)
-            forceReload = 0
-
-        image.source = "image://qcctv/" + forceReload
+        image.source = "image://qcctv/reload"
+        image.source = "image://qcctv/"
+        image.sourceChanged (image.source)
     }
 
     //

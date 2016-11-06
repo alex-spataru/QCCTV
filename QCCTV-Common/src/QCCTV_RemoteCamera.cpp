@@ -38,8 +38,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
     /* Configure the socket */
-    m_watchdog.setExpirationTime (2000);
-    m_socket.setSocketOption (QTcpSocket::LowDelayOption, 1);
+    m_watchdog.setExpirationTime (1000);
     connect (&m_socket,   SIGNAL (readyRead()), this, SLOT (onDataReceived()));
     connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
 
@@ -67,7 +66,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
     m_socket.close();
-    m_socket.deleteLater();
 }
 
 /**
@@ -183,6 +181,8 @@ void QCCTV_RemoteCamera::setID (const int id)
 void QCCTV_RemoteCamera::setFPS (const int fps)
 {
     m_fps = QCCTV_GET_VALID_FPS (fps);
+    m_watchdog.setExpirationTime (qMax (1000, qMin (m_fps * 50, 5000)));
+
     emit fpsChanged (id());
 }
 
@@ -202,11 +202,15 @@ void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
  */
 void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 {
-    if (m_address != address) {
-        m_address = address;
-        m_socket.abort();
-        m_socket.connectToHost (address, QCCTV_STREAM_PORT);
-    }
+    if (m_address == address)
+        return;
+
+    m_address = address;
+    m_socket.disconnectFromHost();
+    m_socket.connectToHost (address, QCCTV_STREAM_PORT);
+    m_socket.setSocketOption (QTcpSocket::LowDelayOption, 1);
+    m_socket.setSocketOption (QTcpSocket::KeepAliveOption, 1);
+    m_socket.setSocketOption (QTcpSocket::ReceiveBufferSizeSocketOption, INT_MAX);
 }
 
 /**
@@ -215,7 +219,12 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
  */
 void QCCTV_RemoteCamera::onDataReceived()
 {
-    readCameraPacket (m_socket.read (m_socket.bytesAvailable()));
+    QByteArray data;
+
+    while (m_socket.bytesAvailable() > 0)
+        data = m_socket.readAll();
+
+    readCameraPacket (data);
 }
 
 /**
@@ -223,8 +232,8 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::onDisconnected()
 {
-    m_socket.abort();
-    m_socket.connectToHost (address(), QCCTV_STREAM_PORT);
+    setAddress (address());
+    m_watchdog.setExpirationTime (1000);
     changeFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 
     emit disconnected (id());
@@ -308,6 +317,12 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     if (data.isEmpty())
         return;
 
+    /* This is the first packet, emit connected() signal */
+    if (!m_connected) {
+        m_connected = true;
+        emit connected (id());
+    }
+
     /* Get the checksum */
     quint8 a = data.at (0);
     quint8 b = data.at (1);
@@ -316,29 +331,32 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     quint32 checksum = (a << 24) | (b << 16) | (c << 8) | (d & 0xff);
 
     /* Create byte array without checksum header */
-    QByteArray original = data;
-    original.remove (0, 4);
+    QByteArray stream = data;
+    stream.remove (0, 4);
 
     /* Compare checksums */
-    quint32 crc = m_crc32.compute (original);
+    quint32 crc = m_crc32.compute (stream);
     if (checksum != crc) {
         m_watchdog.reset();
         return;
     }
 
+    /* Uncompress stream data */
+    stream = qUncompress (stream);
+
     /* Get camera name */
     QString name;
-    int name_len = original.at (0);
+    int name_len = stream.at (0);
     for (int i = 0; i < name_len; ++i) {
         int pos = 1 + i;
-        if (pos > original.size())
-            name.append (original.at (1 + i));
+        if (pos > stream.size())
+            name.append (stream.at (1 + i));
     }
 
     /* Get camera FPS and status */
-    int fps = original.at (name_len + 1);
-    int light = original.at (name_len + 2);
-    int status = original.at (name_len + 3);
+    int fps = stream.at (name_len + 1);
+    int light = stream.at (name_len + 2);
+    int status = stream.at (name_len + 3);
 
     /* Update values */
     setFPS (fps);
@@ -346,27 +364,18 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     changeCameraStatus (status);
     changeFlashlightStatus (light);
 
-    /* This is the first packet, emit connected() signal */
-    if (!m_connected) {
-        m_connected = true;
-        emit connected (id());
-        emit newCameraName (id());
-        emit newLightStatus (id());
-        emit newCameraStatus (id());
-    }
-
     /* Get image length */
-    quint8 img_a = original.at (name_len + 4);
-    quint8 img_b = original.at (name_len + 5);
-    quint8 img_c = original.at (name_len + 6);
+    quint8 img_a = stream.at (name_len + 4);
+    quint8 img_b = stream.at (name_len + 5);
+    quint8 img_c = stream.at (name_len + 6);
     quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
 
     /* Get image bytes */
     QByteArray raw_image;
     for (quint16 i = 0; i < img_len; ++i) {
         int pos = name_len + 7 + i;
-        if (pos < original.size())
-            raw_image.append (original.at (pos));
+        if (pos < stream.size())
+            raw_image.append (stream.at (pos));
     }
 
     /* Decode image */

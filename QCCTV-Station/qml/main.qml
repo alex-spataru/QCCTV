@@ -30,7 +30,7 @@ import "."
 
 ApplicationWindow {
     id: app
-    
+
     //
     // Global variables
     //
@@ -45,7 +45,7 @@ ApplicationWindow {
     y: isMobile ? 0 : 100
     width: 840
     height: 520
-    
+
     //
     // Window properties
     //
@@ -95,7 +95,7 @@ ApplicationWindow {
     //
     GridView {
         id: grid
-        focus: true
+        focus: false
         anchors.fill: parent
 
         //
@@ -134,7 +134,7 @@ ApplicationWindow {
         // Camera view object
         //
         delegate: Camera {
-            id: camera
+            id: cam
             camNumber: index
             enabled: grid.enabled
             width: grid.cellWidth
