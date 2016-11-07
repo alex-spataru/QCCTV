@@ -88,7 +88,7 @@ void Camera::update (const int camera)
 
         /* Configure the font */
         QFont font = QFontDatabase::systemFont (QFontDatabase::FixedFont);
-        font.setPixelSize (12);
+        font.setPixelSize (qMin (12, frameGeometry().height() / 12));
 
         /* Generate texts */
         QString fmt = "dd/MMM/yyyy hh:mm:ss";

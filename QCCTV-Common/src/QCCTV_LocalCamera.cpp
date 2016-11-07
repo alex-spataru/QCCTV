@@ -25,7 +25,7 @@
 #include "QCCTV_FrameGrabber.h"
 
 #include <QBuffer>
-#include <QPainter>
+#include <QSysInfo>
 #include <QCameraInfo>
 #include <QCameraExposure>
 #include <QCameraImageCapture>
@@ -55,9 +55,18 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
 
     /* Set default values */
     setFPS (QCCTV_DEFAULT_FPS);
-    setName ("Unknown Camera");
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+
+    /* Get host name (or OS name & version) */
+    QString name = QSysInfo::machineHostName();
+    if (name.isEmpty())
+        name = QSysInfo::prettyProductName();
+    else
+        name = name + " (" + QSysInfo::prettyProductName() + ")";
+
+    /* Set default camera name */
+    setName (name);
 
     /* Set default image */
     m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");

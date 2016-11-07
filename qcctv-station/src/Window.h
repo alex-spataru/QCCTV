@@ -24,10 +24,9 @@
 #define _WINDOW_H
 
 #include <QList>
+#include <QPair>
 #include <QStatusBar>
 #include <QMainWindow>
-#include <QGridLayout>
-#include <QGridLayout>
 #include <QApplication>
 
 #ifdef Q_OS_MAC
@@ -54,15 +53,22 @@ private slots:
     void showHelp();
     void showAbout();
     void showSettings();
-    void checkForUpdates();
+    void showRecordings();
+    void toggleFullScreen();
     void configureStation();
     void addToolbarActions();
+    void updateStatusLabel();
     void configureStatusbar();
     void generateCameraGrid();
     void addCamera (const int camera);
     void removeCamera (const int camera);
 
 private:
+    QPair<int, int> calculateGridSize (const int items);
+
+private:
+    QWidget* m_widget;
+    QLabel m_cameraCount;
     QList<Camera*> m_cameras;
 
     QStatusBar m_statusBar;
