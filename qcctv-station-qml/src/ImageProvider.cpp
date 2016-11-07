@@ -20,36 +20,29 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV_Watchdog.h"
+#include "ImageProvider.h"
+#include "QCCTV_Station.h"
 
-QCCTV_Watchdog::QCCTV_Watchdog (QObject* parent) : QObject (parent)
+QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
+    QQuickImageProvider (QQuickImageProvider::Image,
+                         QQuickImageProvider::ForceAsynchronousImageLoading)
 {
-    m_timer = new QTimer (parent);
-    connect (m_timer, SIGNAL (timeout()), this, SIGNAL (expired()));
+    m_station = parent;
+    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
 }
 
-/**
- * Returns the expiration time of the watchdog in milliseconds
- */
-int QCCTV_Watchdog::expirationTime() const
+QImage QCCTV_StationImage::requestImage (const QString& id,
+                                         QSize* size,
+                                         const QSize& requestedSize)
 {
-    return m_timer->interval();
-}
+    Q_UNUSED (size);
+    Q_UNUSED (requestedSize);
 
-/**
- * Resets the watchdog and prevents it from expiring
- */
-void QCCTV_Watchdog::reset()
-{
-    m_timer->stop();
-    m_timer->start (expirationTime());
-}
+    if (m_station && !id.isEmpty()) {
+        QImage image = m_station->currentImage (id.toInt());
+        if (!image.isNull())
+            return image;
+    }
 
-/**
- * Changes the expiration time and resets the watchdog
- */
-void QCCTV_Watchdog::setExpirationTime (const int time)
-{
-    m_timer->setInterval (time);
-    reset();
+    return m_cameraError;
 }

@@ -28,7 +28,6 @@ TEMPLATE = app
 TARGET = QCCTV-Station
 
 QT += core
-QT += quick
 QT += widgets
 
 #-------------------------------------------------------------------------------
@@ -40,6 +39,7 @@ win32* {
 }
 
 macx* {
+    QT += macextras
     ICON = $$PWD/mac/icon.icns
     RC_FILE = $$PWD/mac/icon.icns
     QMAKE_INFO_PLIST = $$PWD/mac/info.plist
@@ -69,21 +69,24 @@ OBJECTS_DIR = obj
 # Import libraries
 #-------------------------------------------------------------------------------
 
-include ($$PWD/../QCCTV-Common/QCCTV-Common.pri)
+include ($$PWD/../qcctv-common/qcctv-common.pri)
 
 #-------------------------------------------------------------------------------
 # Import QML, resources and source code
 #-------------------------------------------------------------------------------
 
+HEADERS += \
+    $$PWD/src/Camera.h \
+    $$PWD/src/Settings.h \
+    $$PWD/src/Window.h
+
 SOURCES += \
-    $$PWD/src/main.cpp
+    $$PWD/src/Camera.cpp \
+    $$PWD/src/main.cpp \
+    $$PWD/src/Settings.cpp \
+    $$PWD/src/Window.cpp
 
 RESOURCES += \
-    $$PWD/qml/qml.qrc \
-    $$PWD/../etc/common/common.qrc
+    icons/icons.qrc
 
-OTHER_FILES += \
-    $$PWD/qml/*.js \
-    $$PWD/qml/*.qml \
-    $$PWD/../etc/common/*.js \
-    $$PWD/../etc/common/*.qml \
+

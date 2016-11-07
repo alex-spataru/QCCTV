@@ -163,6 +163,17 @@ QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
 }
 
 /**
+ * De-registers all the cameras from the station, this can be useful in the
+ * case that the user wants to force the station to reconnect to all cameras
+ * again.
+ */
+void QCCTV_Station::removeAllCameras()
+{
+    for (int i = 0; i < cameraCount(); ++i)
+        removeCamera (i);
+}
+
+/**
  * Changes the \a fps value of the given \a camera
  * \note If the \a camera parameter is invalid, then this function
  *       shall have no effect
@@ -220,7 +231,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
     if (!ip.isNull() && !m_cameraIPs.contains (ip)) {
         QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
-
         m_cameraIPs.append (ip);
         m_cameraList.append (camera);
         m_cameraList.last()->setID (m_cameraList.count() - 1);

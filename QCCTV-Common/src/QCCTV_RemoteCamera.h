@@ -73,7 +73,9 @@ private slots:
     void setName (const QString& name);
     void setConnected (const bool status);
     void setCameraStatus (const int status);
-    void readCameraPacket (const QByteArray& data);
+
+private:
+    void readCameraPacket();
 
 private:
     int m_id;
@@ -84,6 +86,7 @@ private:
 
     QString m_name;
     QImage m_image;
+    QByteArray m_data;
     QHostAddress m_address;
     QCCTV_LightStatus m_lightStatus;
 

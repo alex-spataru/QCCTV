@@ -35,7 +35,6 @@ HEADERS += \
     $$PWD/src/QCCTV.h \
     $$PWD/src/QCCTV_Watchdog.h \
     $$PWD/src/QCCTV_FrameGrabber.h \
-    $$PWD/src/QCCTV_ImageProvider.h \
     $$PWD/src/QCCTV_CRC32.h
 
 SOURCES += \
@@ -46,5 +45,5 @@ SOURCES += \
     $$PWD/src/QCCTV.cpp \
     $$PWD/src/QCCTV_Watchdog.cpp \
     $$PWD/src/QCCTV_FrameGrabber.cpp \
-    $$PWD/src/QCCTV_ImageProvider.cpp \
     $$PWD/src/QCCTV_CRC32.cpp
+

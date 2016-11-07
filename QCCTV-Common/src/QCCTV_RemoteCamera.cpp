@@ -23,6 +23,8 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
+#include <QApplication>
+
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
@@ -42,7 +44,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     /* Set default image */
     m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 
-    /* Start loops */
+    /* Begin sending command packets */
     sendCommandPacket();
 }
 
@@ -227,12 +229,10 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
  */
 void QCCTV_RemoteCamera::onDataReceived()
 {
-    QByteArray data;
+    m_data.append (m_socket.readAll());
 
-    while (m_socket.bytesAvailable() > 0)
-        data = m_socket.readAll();
-
-    readCameraPacket (data);
+    if (!m_data.isEmpty())
+        readCameraPacket();
 }
 
 /**
@@ -323,22 +323,34 @@ void QCCTV_RemoteCamera::setCameraStatus (const int status)
  * - Image length (3 bytes)
  * - Compressed image data
  */
-void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
+void QCCTV_RemoteCamera::readCameraPacket()
 {
     /* Data is invalid */
-    if (data.isEmpty())
+    if (m_data.isEmpty())
         return;
 
+    /* Data is too small to read checksum */
+    if (m_data.size() < 4) {
+        m_watchdog.reset();
+        return;
+    }
+
     /* Get the checksum */
-    quint8 a = data.at (0);
-    quint8 b = data.at (1);
-    quint8 c = data.at (2);
-    quint8 d = data.at (3);
+    quint8 a = m_data.at (0);
+    quint8 b = m_data.at (1);
+    quint8 c = m_data.at (2);
+    quint8 d = m_data.at (3);
     quint32 checksum = (a << 24) | (b << 16) | (c << 8) | (d & 0xff);
 
     /* Create byte array without checksum header */
-    QByteArray stream = data;
+    QByteArray stream = m_data;
     stream.remove (0, 4);
+
+    /* Stream is too small */
+    if (stream.isEmpty()) {
+        m_watchdog.reset();
+        return;
+    }
 
     /* Compare checksums */
     quint32 crc = m_crc32.compute (stream);
@@ -350,13 +362,28 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     /* Uncompress the stream data */
     stream = qUncompress (stream);
 
+    /* This is the first packet, emit connected() signal */
+    if (!isConnected())
+        setConnected (true);
+
     /* Get camera name */
     QString name;
     int name_len = stream.at (0);
     for (int i = 0; i < name_len; ++i) {
         int pos = 1 + i;
-        if (pos > stream.size())
+        if (pos < stream.size())
             name.append (stream.at (1 + i));
+
+        else {
+            m_watchdog.reset();
+            return;
+        }
+    }
+
+    /* Stream is to small to get camera status */
+    if (stream.size() < name_len + 4) {
+        m_watchdog.reset();
+        return;
     }
 
     /* Get camera FPS and status */
@@ -370,6 +397,12 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
     setCameraStatus (status);
     setFlashlightStatus (light);
 
+    /* Stream is too small to get image length */
+    if (stream.size() < name_len + 7) {
+        m_watchdog.reset();
+        return;
+    }
+
     /* Get image length */
     quint8 img_a = stream.at (name_len + 4);
     quint8 img_b = stream.at (name_len + 5);
@@ -382,19 +415,24 @@ void QCCTV_RemoteCamera::readCameraPacket (const QByteArray& data)
         int pos = name_len + 7 + i;
         if (pos < stream.size())
             raw_image.append (stream.at (pos));
+
+        else {
+            m_watchdog.reset();
+            return;
+        }
     }
 
     /* Decode image */
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
+        m_data.clear();
+        m_watchdog.reset();
+
         emit newImage (id());
     }
 
-    /* This is the first packet, emit connected() signal */
-    if (!isConnected())
-        setConnected (true);
-
-    /* Feed the watchdog */
-    m_watchdog.reset();
+    /* Data is too large (> 200 KB) */
+    if (m_data.size() >= 200 * 1024 * 1024)
+        m_data.clear();
 }

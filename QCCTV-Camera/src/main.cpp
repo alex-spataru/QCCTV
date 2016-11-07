@@ -27,9 +27,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include "ImageProvider.h"
 #include "AndroidLockHelper.h"
 #include "QCCTV_LocalCamera.h"
-#include "QCCTV_ImageProvider.h"
 
 const QString APP_VERSION = "1.0";
 const QString APP_COMPANY = "Alex Spataru";

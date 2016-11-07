@@ -34,7 +34,7 @@ signals:
     void expired();
 
 public:
-    QCCTV_Watchdog();
+    explicit QCCTV_Watchdog (QObject* parent = Q_NULLPTR);
     int expirationTime() const;
 
 public slots:
@@ -42,7 +42,7 @@ public slots:
     void setExpirationTime (const int time);
 
 private:
-    QTimer m_timer;
+    QTimer* m_timer;
 };
 
 #endif

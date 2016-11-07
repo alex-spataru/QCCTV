@@ -23,5 +23,6 @@
 TEMPLATE = subdirs
 
 SUBDIRS += \
-    $$PWD/QCCTV-Camera/QCCTV-Camera.pro \
-    $$PWD/QCCTV-Station/QCCTV-Station.pro
+    $$PWD/qcctv-camera/qcctv-camera.pro \
+    $$PWD/qcctv-station-qml/qcctv-station-qml.pro \
+    $$PWD/qcctv-station-widgets/qcctv-station-widgets.pro

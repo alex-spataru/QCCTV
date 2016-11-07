@@ -25,26 +25,15 @@
 #-------------------------------------------------------------------------------
 
 TEMPLATE = app
-TARGET = QCCTV-Camera
+TARGET = QCCTV-Station
 
 QT += core
 QT += quick
 QT += widgets
 
 #-------------------------------------------------------------------------------
-# Make options
+# Deploy configuration
 #-------------------------------------------------------------------------------
-
-UI_DIR = uic
-MOC_DIR = moc
-RCC_DIR = qrc
-OBJECTS_DIR = obj
-
-#-------------------------------------------------------------------------------
-# Deploy configurations
-#-------------------------------------------------------------------------------
-
-ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 win32* {
     RC_FILE = $$PWD/windows/info.rc
@@ -60,16 +49,21 @@ linux:!android {
     target.path = /usr/bin
     icon.path = /usr/share/pixmaps
     desktop.path = /usr/share/applications
-    icon.files += $$PWD/linux/qcctv-camera.png
-    desktop.files += $$PWD/linux/qcctv-camera.desktop
+    icon.files += $$PWD/linux/qcctv-station.png
+    desktop.files += $$PWD/linux/qcctv-station.desktop
 
-    TARGET = qcctv-camera
+    TARGET = qcctv-station
     INSTALLS += target desktop icon
 }
 
-android {
-    QT += androidextras
-}
+#-------------------------------------------------------------------------------
+# Make options
+#-------------------------------------------------------------------------------
+
+UI_DIR = uic
+MOC_DIR = moc
+RCC_DIR = qrc
+OBJECTS_DIR = obj
 
 #-------------------------------------------------------------------------------
 # Import libraries
@@ -83,7 +77,6 @@ include ($$PWD/../qcctv-common/qcctv-common.pri)
 
 SOURCES += \
     $$PWD/src/main.cpp \
-    $$PWD/src/AndroidLockHelper.cpp \
     $$PWD/src/ImageProvider.cpp
 
 RESOURCES += \
@@ -96,9 +89,5 @@ OTHER_FILES += \
     $$PWD/../etc/common/*.js \
     $$PWD/../etc/common/*.qml \
 
-DISTFILES += \
-    $$PWD/android/AndroidManifest.xml
-
 HEADERS += \
-    $$PWD/src/AndroidLockHelper.h \
     $$PWD/src/ImageProvider.h

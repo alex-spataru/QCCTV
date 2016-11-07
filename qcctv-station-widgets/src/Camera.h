@@ -20,44 +20,36 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_STATION_IMAGE_PROVIDERS_H
-#define _QCCTV_STATION_IMAGE_PROVIDERS_H
+#ifndef _CAMERA_H
+#define _CAMERA_H
 
-#include <QQuickImageProvider>
+#include <QLabel>
+#include <QGraphicsView>
+#include <QGraphicsScene>
 
 class QCCTV_Station;
-class QCCTV_LocalCamera;
 
-//------------------------------------------------------------------------------
-// QCCTV_Station Image Provider
-//------------------------------------------------------------------------------
-
-class QCCTV_StationImage : public QQuickImageProvider
+class Camera : public QGraphicsView
 {
+    Q_OBJECT
+
 public:
-    QCCTV_StationImage (QCCTV_Station* parent);
-    QImage requestImage (const QString& id, QSize* size,
-                         const QSize& requestedSize);
+    Camera (QWidget* parent = Q_NULLPTR);
+    ~Camera();
+
+    int id() const;
+    QCCTV_Station* station() const;
+
+public slots:
+    void update (const int camera);
+    void setCameraID (const int camera);
+    void setStation (QCCTV_Station* station);
 
 private:
-    QImage m_cameraError;
+    int m_id;
+    QLabel m_status;
+    QGraphicsScene m_scene;
     QCCTV_Station* m_station;
-};
-
-//------------------------------------------------------------------------------
-// QCCTV_LocalCamera Image Provider
-//------------------------------------------------------------------------------
-
-class QCCTV_LocalCameraImage : public QQuickImageProvider
-{
-public:
-    QCCTV_LocalCameraImage (QCCTV_LocalCamera* parent);
-    QImage requestImage (const QString& id, QSize* size,
-                         const QSize& requestedSize);
-
-private:
-    QImage m_cameraError;
-    QCCTV_LocalCamera* m_localCamera;
 };
 
 #endif

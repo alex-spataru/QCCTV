@@ -55,6 +55,7 @@ public:
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 public slots:
+    void removeAllCameras();
     void setFPS (const int camera, const int fps);
     void setLightStatusAll (const QCCTV_LightStatus status);
     void setLightStatus (const int camera, const QCCTV_LightStatus status);

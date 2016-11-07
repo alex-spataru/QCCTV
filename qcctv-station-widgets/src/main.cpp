@@ -20,36 +20,16 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV_Watchdog.h"
+#include "Window.h"
 
-QCCTV_Watchdog::QCCTV_Watchdog (QObject* parent) : QObject (parent)
+int main (int argc, char** argv)
 {
-    m_timer = new QTimer (parent);
-    connect (m_timer, SIGNAL (timeout()), this, SIGNAL (expired()));
-}
+    QApplication app (argc, argv);
+    app.setApplicationVersion ("1.0");
+    app.setApplicationName ("QCCTV Station");
 
-/**
- * Returns the expiration time of the watchdog in milliseconds
- */
-int QCCTV_Watchdog::expirationTime() const
-{
-    return m_timer->interval();
-}
+    Window window;
+    window.show();
 
-/**
- * Resets the watchdog and prevents it from expiring
- */
-void QCCTV_Watchdog::reset()
-{
-    m_timer->stop();
-    m_timer->start (expirationTime());
-}
-
-/**
- * Changes the expiration time and resets the watchdog
- */
-void QCCTV_Watchdog::setExpirationTime (const int time)
-{
-    m_timer->setInterval (time);
-    reset();
+    return app.exec();
 }

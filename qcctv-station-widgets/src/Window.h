@@ -20,36 +20,54 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV_Watchdog.h"
+#ifndef _WINDOW_H
+#define _WINDOW_H
 
-QCCTV_Watchdog::QCCTV_Watchdog (QObject* parent) : QObject (parent)
-{
-    m_timer = new QTimer (parent);
-    connect (m_timer, SIGNAL (timeout()), this, SIGNAL (expired()));
-}
+#include <QList>
+#include <QStatusBar>
+#include <QMainWindow>
+#include <QGridLayout>
+#include <QGridLayout>
+#include <QApplication>
 
-/**
- * Returns the expiration time of the watchdog in milliseconds
- */
-int QCCTV_Watchdog::expirationTime() const
-{
-    return m_timer->interval();
-}
+#ifdef Q_OS_MAC
+    #include <QMacToolBar>
+    #define QCCTV_Toolbar QMacToolBar
+#else
+    #include <QToolBar>
+    #define QCCTV_Toolbar QToolBar
+#endif
 
-/**
- * Resets the watchdog and prevents it from expiring
- */
-void QCCTV_Watchdog::reset()
-{
-    m_timer->stop();
-    m_timer->start (expirationTime());
-}
+#include "Camera.h"
+#include "QCCTV_Station.h"
 
-/**
- * Changes the expiration time and resets the watchdog
- */
-void QCCTV_Watchdog::setExpirationTime (const int time)
+class Window : public QMainWindow
 {
-    m_timer->setInterval (time);
-    reset();
-}
+    Q_OBJECT
+
+public:
+    Window();
+    ~Window();
+
+private slots:
+    void rescan();
+    void showHelp();
+    void showAbout();
+    void showSettings();
+    void checkForUpdates();
+    void configureStation();
+    void addToolbarActions();
+    void configureStatusbar();
+    void generateCameraGrid();
+    void addCamera (const int camera);
+    void removeCamera (const int camera);
+
+private:
+    QList<Camera*> m_cameras;
+
+    QStatusBar m_statusBar;
+    QCCTV_Station m_station;
+    QCCTV_Toolbar m_toolbar;
+};
+
+#endif
