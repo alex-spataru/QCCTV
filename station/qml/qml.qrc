@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>Camera.qml</file>
+        <file>LoadingScreen.qml</file>
+        <file>FullscreenCamera.qml</file>
     </qresource>
 </RCC>

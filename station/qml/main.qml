@@ -76,7 +76,7 @@ ApplicationWindow {
         onCameraCountChanged: {
             grid.model = 0
             grid.model = QCCTVStation.cameraCount()
-            noCameras.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
+            loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
             grid.redraw()
         }
     }
@@ -136,84 +136,20 @@ ApplicationWindow {
     }
 
     //
-    // Fullscreen camera
+    // Fullscreen camera (shown when user clicks on a camera)
     //
-    Camera {
+    FullscreenCamera {
         id: fullscreenCamera
-
-        Connections {
-            target: QCCTVStation
-            onDisconnected: {
-                if (camera === fullscreenCamera.camNumber)
-                    fullscreenCamera.hideCamera()
-
-                if (QCCTVStation.cameraCount() === 1)
-                    fullscreenCamera.showCamera (0)
-            }
-
-            onCameraCountChanged: {
-                fullscreenCamera.returnButtonEnabled = QCCTVStation.cameraCount() > 1
-
-                if (QCCTVStation.cameraCount() === 1)
-                    fullscreenCamera.showCamera (0)
-            }
-        }
-
-        function hideCamera() {
-            grid.enabled = 1
-            fullscreenCamera.opacity = 0
-            fullscreenCamera.enabled = 0
-        }
-
-        function showCamera (camera) {
-            if (QCCTVStation.cameraCount() > 1) {
-                grid.enabled = 0
-
-                fullscreenCamera.opacity = 1
-                fullscreenCamera.enabled = 1
-                fullscreenCamera.camNumber = camera
-                fullscreenCamera.controlsEnabled = 1
-
-                fullscreenCamera.reloadData()
-            }
-
-            else
-                hideCamera()
-        }
-
-        opacity: 0
-        enabled: false
-        anchors.fill: parent
-        controlsEnabled: true
-
-        onBack: hideCamera()
-
-        Behavior on opacity {NumberAnimation {}}
     }
 
     //
-    // No Cameras Labels
+    // QCCTV loading screen (shown when there are no cameras)
     //
-    Column {
-        id: noCameras
-        spacing: app.spacing
-        anchors.centerIn: parent
+    LoadingScreen {
+        id: loadingScreen
+        anchors.fill: parent
         opacity: QCCTVStation.cameraCount() > 0 ? 0 : 1
 
         Behavior on opacity { NumberAnimation{} }
-
-        Label {
-            font.bold: true
-            font.pixelSize: 24
-            text: qsTr ("No QCCTV Cameras Found")
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
-
-        Label {
-            color: "#ccc"
-            font.pixelSize: 16
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr ("Try launching QCCTV Camera in some of your LAN devices")
-        }
     }
 }
