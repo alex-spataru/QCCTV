@@ -138,8 +138,8 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
         height = 960;
         break;
     default:
-        width = 704;
-        height = 480;
+        width = 352;
+        height = 240;
         break;
     }
 
