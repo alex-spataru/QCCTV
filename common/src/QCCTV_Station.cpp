@@ -213,6 +213,7 @@ void QCCTV_Station::setLightStatus (const int camera,
 void QCCTV_Station::removeCamera (const int camera)
 {
     if (camera < cameraCount()) {
+        m_cameraList.at (camera)->deleteLater();
         m_cameraIPs.removeAt (camera);
         m_cameraList.removeAt (camera);
         emit cameraCountChanged();

@@ -32,6 +32,8 @@
  */
 Window::Window()
 {
+    m_widget = NULL;
+
     configureStation();
     addToolbarActions();
     updateStatusLabel();

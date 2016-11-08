@@ -463,7 +463,7 @@ void QCCTV_LocalCamera::onDisconnected()
 void QCCTV_LocalCamera::onWatchdogTimeout()
 {
     /* Lower the image resolution */
-    setShrinkRatio (shrinkRatio() + 0.2);
+    setShrinkRatio (shrinkRatio() + 0.5);
 
     /* Reset shrink ratio to 1 */
     if (shrinkRatio() >= 4.5)
@@ -529,8 +529,6 @@ void QCCTV_LocalCamera::readCommandPacket()
         if (socket->peerAddress() == address)
             m_watchdogs.at (m_sockets.indexOf (socket))->reset();
     }
-
-    qDebug() << "RECV";
 }
 
 /**

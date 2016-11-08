@@ -91,7 +91,8 @@ void Camera::update (const int camera)
         /* Get the scaled camera pixmap */
         QPixmap image = QPixmap::fromImage (cam->currentImage());
         image = image.scaled (view()->frameGeometry().size(),
-                              Qt::KeepAspectRatioByExpanding);
+                              Qt::KeepAspectRatioByExpanding,
+                              Qt::SmoothTransformation);
 
         /* Reset the scene */
         m_scene.clear();

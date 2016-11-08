@@ -70,8 +70,12 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     if (shrinkRatio() > 1) {
         image = image.scaled (image.width() / shrinkRatio(),
                               image.height() / shrinkRatio(),
-                              Qt::KeepAspectRatio, Qt::FastTransformation);
+                              Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
+
+    /* Do not let the image be larger than 720p */
+    if (image.width() > 720)
+        image = image.scaledToWidth (720, Qt::SmoothTransformation);
 
     /* Make the image grayscale */
     if (isGrayscale())
