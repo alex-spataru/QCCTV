@@ -27,6 +27,9 @@
 #include <QApplication>
 #include <QDesktopServices>
 
+/**
+ * Configures the toolbar, the status bar and the QCCTV station
+ */
 Window::Window()
 {
     configureStation();
@@ -38,11 +41,10 @@ Window::Window()
     setMinimumSize (640, 420);
 }
 
-Window::~Window()
-{
-
-}
-
+/**
+ * Removes all the registered cameras, which will allow the station to
+ * re-establish the connections every camera in the LAN
+ */
 void Window::rescan()
 {
     m_station.removeAllCameras();
@@ -53,37 +55,63 @@ void Window::showHelp()
     QDesktopServices::openUrl (QUrl ("mailto:alex_spataru@outlook.com"));
 }
 
+/**
+ * Shows the about dialog
+ */
 void Window::showAbout()
 {
 
 }
 
+/**
+ * Shows the settings dialog
+ */
 void Window::showSettings()
 {
 
 }
 
+/**
+ * Opens the file manager and directs it to the QCCTV recordings directory
+ */
 void Window::showRecordings()
 {
 
 }
 
+/**
+ * Toggles between full-screen and normal window, called when the 'fullscreen'
+ * icon on the toolbar is clicked
+ */
 void Window::toggleFullScreen()
 {
     if (isFullScreen())
         showNormal();
     else
         showFullScreen();
+
+#ifdef Q_OS_MAC
+    ac_full->nativeToolBarItem();
+#else
+    ac_full->setChecked (isFullScreen());
+#endif
 }
 
+/**
+ * Connects the signals/slots of the QCCTV station and the Window
+ */
 void Window::configureStation()
 {
-    connect (&m_station, SIGNAL (connected (int)),
-             this,         SLOT (addCamera (int)));
-    connect (&m_station, SIGNAL (disconnected (int)),
-             this,         SLOT (removeCamera (int)));
+    connect (&m_station, SIGNAL (cameraCountChanged()),
+             this,         SLOT (generateCameraGrid()));
+    connect (&m_station, SIGNAL (cameraCountChanged()),
+             this,         SLOT (updateStatusLabel()));
 }
 
+/**
+ * Generates the toolbar actions and binds them to the
+ * respective functions of the \c Window
+ */
 void Window::addToolbarActions()
 {
     /* Set action strings */
@@ -106,25 +134,25 @@ void Window::addToolbarActions()
 
     /* Create OS X toolbar */
 #ifdef Q_OS_MAC
-    QMacToolBarItem* i_exit = m_toolbar.addItem (ic_exit,       str_exit);
-    QMacToolBarItem* i_pref = m_toolbar.addItem (ic_settings,   str_settings);
-    QMacToolBarItem* i_rcrd = m_toolbar.addItem (ic_recordings, str_recordings);
-    QMacToolBarItem* i_full = m_toolbar.addItem (ic_fullscreen, str_fullscreen);
-    QMacToolBarItem* i_help = m_toolbar.addItem (ic_help,       str_help);
-    QMacToolBarItem* i_info = m_toolbar.addItem (ic_about,      str_about);
-    QMacToolBarItem* i_rscn = m_toolbar.addItem (ic_rescan,     str_rescan);
+    ac_exit = m_toolbar.addItem (ic_exit,       str_exit);
+    ac_pref = m_toolbar.addItem (ic_settings,   str_settings);
+    ac_rcrd = m_toolbar.addItem (ic_recordings, str_recordings);
+    ac_full = m_toolbar.addItem (ic_fullscreen, str_fullscreen);
+    ac_help = m_toolbar.addItem (ic_help,       str_help);
+    ac_info = m_toolbar.addItem (ic_about,      str_about);
+    ac_rscn = m_toolbar.addItem (ic_rescan,     str_rescan);
 
     /* Connect signals/slots */
-    connect (i_exit, SIGNAL (activated()), this, SLOT (close()));
-    connect (i_rscn, SIGNAL (activated()), this, SLOT (rescan()));
-    connect (i_help, SIGNAL (activated()), this, SLOT (showHelp()));
-    connect (i_info, SIGNAL (activated()), this, SLOT (showAbout()));
-    connect (i_pref, SIGNAL (activated()), this, SLOT (showSettings()));
-    connect (i_rcrd, SIGNAL (activated()), this, SLOT (showRecordings()));
-    connect (i_full, SIGNAL (activated()), this, SLOT (toggleFullScreen()));
+    connect (ac_exit, SIGNAL (activated()), this, SLOT (close()));
+    connect (ac_rscn, SIGNAL (activated()), this, SLOT (rescan()));
+    connect (ac_help, SIGNAL (activated()), this, SLOT (showHelp()));
+    connect (ac_info, SIGNAL (activated()), this, SLOT (showAbout()));
+    connect (ac_pref, SIGNAL (activated()), this, SLOT (showSettings()));
+    connect (ac_rcrd, SIGNAL (activated()), this, SLOT (showRecordings()));
+    connect (ac_full, SIGNAL (activated()), this, SLOT (toggleFullScreen()));
 
     /* Make fullscreen button checkable */
-    i_full->setSelectable (true);
+    ac_full->setSelectable (true);
 
     /* Attach the toolbar to the window */
     window()->winId();
@@ -133,13 +161,13 @@ void Window::addToolbarActions()
 
     /* Create normal QToolbar */
 #ifndef Q_OS_MAC
-    QAction* ac_exit = m_toolbar.addAction (ic_exit,       str_exit);
-    QAction* ac_pref = m_toolbar.addAction (ic_settings,   str_settings);
-    QAction* ac_rcrd = m_toolbar.addAction (ic_recordings, str_recordings);
-    QAction* ac_full = m_toolbar.addAction (ic_fullscreen, str_fullscreen);
-    QAction* ac_help = m_toolbar.addAction (ic_help,       str_help);
-    QAction* ac_info = m_toolbar.addAction (ic_about,      str_about);
-    QAction* ac_rscn = m_toolbar.addAction (ic_rescan,     str_rescan);
+    ac_exit = m_toolbar.addAction (ic_exit,       str_exit);
+    ac_pref = m_toolbar.addAction (ic_settings,   str_settings);
+    ac_rcrd = m_toolbar.addAction (ic_recordings, str_recordings);
+    ac_full = m_toolbar.addAction (ic_fullscreen, str_fullscreen);
+    ac_help = m_toolbar.addAction (ic_help,       str_help);
+    ac_info = m_toolbar.addAction (ic_about,      str_about);
+    ac_rscn = m_toolbar.addAction (ic_rescan,     str_rescan);
 
     /* Connect signals/slots */
     connect (ac_exit, SIGNAL (triggered()), this, SLOT (close()));
@@ -163,34 +191,57 @@ void Window::addToolbarActions()
 #endif
 }
 
+/**
+ * Updates the text of the label that indicates the number of connected
+ * QCCTV Cameras
+ */
 void Window::updateStatusLabel()
 {
     m_cameraCount.setText (tr ("Connected Cameras: %1")
-                           .arg (QString::number (m_cameras.count())));
+                           .arg (QString::number (m_station.cameraCount())));
 }
 
+/**
+ * Registers the statusbar with the window and adds the camera count label
+ * to the statusbar
+ */
 void Window::configureStatusbar()
 {
     setStatusBar (&m_statusBar);
     m_statusBar.addWidget (&m_cameraCount);
 }
 
+/**
+ * Generates the layout that arranges the camera display widgets in a
+ * dynamically generated grid
+ */
 void Window::generateCameraGrid()
 {
+    /* Delete camera widgets */
+    for (int i = 0; i < m_cameras.count(); ++i)
+        m_cameras.at (i)->deleteLater();
+
+    /* Generate the camera widgets */
+    m_cameras.clear();
+    for (int i = 0; i < m_station.cameraCount(); ++i) {
+        Camera* camera = new Camera (this);
+        camera->setCameraID (i);
+        camera->setStation (&m_station);
+        m_cameras.append (camera);
+    }
+
     /* Calculate ideal size of the grid */
     QPair<int, int> table = calculateGridSize (m_cameras.count());
     int rows = table.first;
     int cols = table.second;
 
-    /* Delete central widget */
-    if (centralWidget()) {
-        QWidget* widget = centralWidget();
-        delete widget;
-    }
+    /* Delete the central widget */
+    if (m_widget)
+        m_widget->deleteLater();
 
     /* Create new central widget and layout */
-    QWidget* widget = new QWidget (this);
-    QGridLayout* layout = new QGridLayout (widget);
+    m_widget = new QWidget (this);
+    QGridLayout* layout = new QGridLayout (m_widget);
     layout->setContentsMargins (0, 0, 0, 0);
 
     /* Add each camera to the grid */
@@ -205,34 +256,18 @@ void Window::generateCameraGrid()
             col = 0;
         }
 
-        layout->addWidget (camera, row, col);
+        layout->addWidget (camera->view(), row, col);
     }
 
-    /* Change the central widget */
-    widget->setLayout (layout);
-    setCentralWidget (widget);
+    /* Replace the layout of the central widget */
+    setCentralWidget (m_widget);
+    centralWidget()->setLayout (layout);
 }
 
-void Window::addCamera (const int camera)
-{
-    Camera* cam = new Camera (this);
-    cam->setCameraID (camera);
-    cam->setStation (&m_station);
-    m_cameras.append (cam);
-
-    updateStatusLabel();
-    generateCameraGrid();
-}
-
-void Window::removeCamera (const int camera)
-{
-    if (m_cameras.count() > camera)
-        m_cameras.removeAt (camera);
-
-    updateStatusLabel();
-    generateCameraGrid();
-}
-
+/**
+ * Calculates the ideal number of rows and columns to use to generate a
+ * widget table/grid with the given number of \a items
+ */
 QPair<int, int> Window::calculateGridSize (const int items)
 {
     int rows = 0;
@@ -248,5 +283,5 @@ QPair<int, int> Window::calculateGridSize (const int items)
         toggled = !toggled;
     }
 
-    return qMakePair (rows, columns);
+    return qMakePair (rows, qMax (columns, 1));
 }

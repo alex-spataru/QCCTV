@@ -41,6 +41,15 @@ static QString append_str (const QString a, QString b)
 }
 
 /**
+ * Returns a valid watchdog timeout value
+ */
+int QCCTV_WATCHDOG_TIME (const int fps)
+{
+    return qMax (QCCTV_MIN_WATCHDOG_TIME,
+                 qMin (fps * 50, QCCTV_MAX_WATCHDOG_TIME));
+}
+
+/**
  * Returns a valid FPS value
  */
 int QCCTV_GET_VALID_FPS (const int fps)

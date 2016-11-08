@@ -24,6 +24,7 @@
 #define _QCCTV_CAMERA_H
 
 #include <QTcpSocket>
+#include <QUdpSocket>
 
 #include "QCCTV.h"
 #include "QCCTV_CRC32.h"
@@ -76,6 +77,7 @@ private slots:
 
 private:
     void readCameraPacket();
+    void acknowledgeReception();
 
 private:
     int m_id;
@@ -91,6 +93,7 @@ private:
     QCCTV_LightStatus m_lightStatus;
 
     QTcpSocket m_socket;
+    QUdpSocket m_commandSocket;
 
     QCCTV_CRC32 m_crc32;
     QCCTV_Watchdog m_watchdog;

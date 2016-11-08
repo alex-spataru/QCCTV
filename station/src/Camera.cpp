@@ -30,65 +30,76 @@
 #include <QGraphicsTextItem>
 #include <QGraphicsPixmapItem>
 
-Camera::Camera (QWidget* parent) : QGraphicsView (parent)
+Camera::Camera (QObject* parent) : QObject (parent)
 {
     m_id = -1;
     m_station = NULL;
+    m_view = new QGraphicsView;
 
-    /* Configure the graphics view */
-    setScene (&m_scene);
-    setInteractive (false);
-    setFrameShape (QFrame::NoFrame);
-    setDragMode (QGraphicsView::NoDrag);
-    setCacheMode (QGraphicsView::CacheNone);
-    setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    setViewportUpdateMode (QGraphicsView::SmartViewportUpdate);
+    view()->setScene (&m_scene);
+    view()->setFrameShape (QFrame::NoFrame);
+    view()->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+    view()->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
 }
 
+/**
+ * Deletes the graphics view object
+ */
 Camera::~Camera()
 {
-
+    if (view())
+        view()->deleteLater();
 }
 
+/**
+ * Returns the camera that the widget obtains information from
+ */
 int Camera::id() const
 {
     return m_id;
 }
 
+/**
+ * Returns a pointer to the graphics view object
+ */
+QGraphicsView* Camera::view()
+{
+    return m_view;
+}
+
+/**
+ * Returns a pointer to the \c QCCTV_Station that the widget uses to
+ * obtain camera data from
+ */
 QCCTV_Station* Camera::station() const
 {
     return m_station;
 }
 
+/**
+ * Regenerates the information and image displayed by the widget
+ */
 void Camera::update (const int camera)
 {
-    /* Camera ID is different */
+    /* The signal is not for us */
     if (camera != id())
         return;
 
-    /* QCCTV Station is not assigned */
-    if (!station())
-        return;
-
-    /* Get camera object */
-    QCCTV_RemoteCamera* cam = station()->getCamera (id());
-
     /* Update camera information */
+    QCCTV_RemoteCamera* cam = station()->getCamera (id());
     if (cam) {
         /* Get the scaled camera pixmap */
         QPixmap image = QPixmap::fromImage (cam->currentImage());
-        image = image.scaled (frameGeometry().size(),
-                              Qt::KeepAspectRatioByExpanding,
-                              Qt::SmoothTransformation);
+        image = image.scaled (view()->frameGeometry().size(),
+                              Qt::KeepAspectRatioByExpanding);
 
         /* Reset the scene */
         m_scene.clear();
-        m_scene.setSceneRect (frameGeometry());
+        m_scene.setSceneRect (view()->frameGeometry());
 
         /* Configure the font */
         QFont font = QFontDatabase::systemFont (QFontDatabase::FixedFont);
-        font.setPixelSize (qMin (12, frameGeometry().height() / 12));
+        font.setPixelSize (qMin (12, view()->frameGeometry().height() / 12));
 
         /* Generate texts */
         QString fmt = "dd/MMM/yyyy hh:mm:ss";
@@ -114,18 +125,20 @@ void Camera::update (const int camera)
     }
 }
 
+/**
+ * Changes the camera ID from which the widget shall obtain new data
+ */
 void Camera::setCameraID (const int camera)
 {
     m_id = camera;
 }
 
+/**
+ * Changes the \c QCCTV_Station from which the widget obtains new camera
+ * information
+ */
 void Camera::setStation (QCCTV_Station* station)
 {
-    if (m_station) {
-        disconnect (m_station, SIGNAL (newCameraImage (int)),
-                    this,        SLOT (update         (int)));
-    }
-
     if (station) {
         m_station = station;
         connect (m_station, SIGNAL (newCameraImage (int)),

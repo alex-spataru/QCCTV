@@ -37,15 +37,14 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
     /* Configure the socket */
-    m_watchdog.setExpirationTime (1000);
-    connect (&m_socket,   SIGNAL (readyRead()), this, SLOT (onDataReceived()));
-    connect (&m_watchdog, SIGNAL (expired()),   this, SLOT (onDisconnected()));
+    connect (&m_watchdog, SIGNAL (expired()),
+             this,          SLOT (onDisconnected()));
+    connect (&m_socket,   SIGNAL (readyRead()),
+             this,          SLOT (onDataReceived()));
 
-    /* Set default image */
+    /* Set default image & configure watchdog */
+    m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
     m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
-
-    /* Begin sending command packets */
-    sendCommandPacket();
 }
 
 /**
@@ -178,7 +177,7 @@ void QCCTV_RemoteCamera::setID (const int id)
 void QCCTV_RemoteCamera::setFPS (const int fps)
 {
     m_fps = QCCTV_GET_VALID_FPS (fps);
-    m_watchdog.setExpirationTime (qMax (1000, qMin (m_fps * 50, 5000)));
+    m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_fps));
 
     emit fpsChanged (id());
 }
@@ -240,9 +239,11 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::onDisconnected()
 {
+    m_data.clear();
+    m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
+
     setConnected (false);
     setAddress (address());
-    m_watchdog.setExpirationTime (1000);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 }
 
@@ -261,8 +262,6 @@ void QCCTV_RemoteCamera::resetFocusRequest()
  * - Change its FPS
  * - Change its light status
  * - Focus the camera device (if required)
- *
- * These packets are sent every 500 milliseconds
  */
 void QCCTV_RemoteCamera::sendCommandPacket()
 {
@@ -273,12 +272,7 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
 
     /* Send the generated data */
-    if (m_socket.isWritable() && isConnected())
-        m_socket.write (data);
-
-    /* Call this function again */
-    QTimer::singleShot (500, Qt::PreciseTimer,
-                        this, SLOT (sendCommandPacket()));
+    m_commandSocket.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
 }
 
 /**
@@ -330,10 +324,8 @@ void QCCTV_RemoteCamera::readCameraPacket()
         return;
 
     /* Data is too small to read checksum */
-    if (m_data.size() < 4) {
-        m_watchdog.reset();
+    if (m_data.size() < 4)
         return;
-    }
 
     /* Get the checksum */
     quint8 a = m_data.at (0);
@@ -347,44 +339,35 @@ void QCCTV_RemoteCamera::readCameraPacket()
     stream.remove (0, 4);
 
     /* Stream is too small */
-    if (stream.isEmpty()) {
-        m_watchdog.reset();
+    if (stream.isEmpty())
         return;
-    }
 
     /* Compare checksums */
     quint32 crc = m_crc32.compute (stream);
-    if (checksum != crc) {
-        m_watchdog.reset();
+    if (checksum != crc)
         return;
-    }
+
+    /* Let the camera know that we received data */
+    acknowledgeReception();
 
     /* Uncompress the stream data */
     stream = qUncompress (stream);
-
-    /* This is the first packet, emit connected() signal */
-    if (!isConnected())
-        setConnected (true);
 
     /* Get camera name */
     QString name;
     int name_len = stream.at (0);
     for (int i = 0; i < name_len; ++i) {
         int pos = 1 + i;
-        if (pos < stream.size())
+        if (stream.size() > pos)
             name.append (stream.at (1 + i));
 
-        else {
-            m_watchdog.reset();
+        else
             return;
-        }
     }
 
     /* Stream is to small to get camera status */
-    if (stream.size() < name_len + 4) {
-        m_watchdog.reset();
+    if (stream.size() < name_len + 4)
         return;
-    }
 
     /* Get camera FPS and status */
     int fps = stream.at (name_len + 1);
@@ -397,11 +380,12 @@ void QCCTV_RemoteCamera::readCameraPacket()
     setCameraStatus (status);
     setFlashlightStatus (light);
 
+    /* Let camera know that we received part of the data */
+    acknowledgeReception();
+
     /* Stream is too small to get image length */
-    if (stream.size() < name_len + 7) {
-        m_watchdog.reset();
+    if (stream.size() < name_len + 7)
         return;
-    }
 
     /* Get image length */
     quint8 img_a = stream.at (name_len + 4);
@@ -411,28 +395,38 @@ void QCCTV_RemoteCamera::readCameraPacket()
 
     /* Get image bytes */
     QByteArray raw_image;
-    for (quint16 i = 0; i < img_len; ++i) {
+    for (quint32 i = 0; i < img_len; ++i) {
         int pos = name_len + 7 + i;
-        if (pos < stream.size())
-            raw_image.append (stream.at (pos));
-
-        else {
-            m_watchdog.reset();
+        if (stream.size() > pos)
+            raw_image.append (stream [pos]);
+        else
             return;
-        }
     }
 
     /* Decode image */
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
-        m_data.clear();
-        m_watchdog.reset();
-
         emit newImage (id());
     }
 
-    /* Data is too large (> 200 KB) */
-    if (m_data.size() >= 200 * 1024 * 1024)
-        m_data.clear();
+    /* Reset data buffer */
+    m_data.clear();
+    acknowledgeReception();
+}
+
+/**
+ * Resets the watchdog and sends a command packet to the camera, which allows
+ * it to know if we are doing OK.
+ *
+ * If the camera does not receive a command packet after some time, it will
+ * try to reduce its image size automatically
+ */
+void QCCTV_RemoteCamera::acknowledgeReception()
+{
+    m_watchdog.reset();
+    sendCommandPacket();
+
+    if (!isConnected())
+        setConnected (true);
 }

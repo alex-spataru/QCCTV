@@ -44,10 +44,15 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     m_camera = NULL;
     m_capture = NULL;
 
-    /* Configure TCP listener socket */
-    connect (&m_server, SIGNAL (newConnection()),
-             this,        SLOT (acceptConnection()));
+    /* Configure sockets */
+    connect (&m_server,    SIGNAL (newConnection()),
+             this,           SLOT (acceptConnection()));
+    connect (&m_cmdSocket, SIGNAL (readyRead()),
+             this,           SLOT (readCommandPacket()));
+
+    /* Configure listener sockets */
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
+    m_cmdSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ShareAddress);
 
     /* Setup the frame grabber */
     connect (&m_frameGrabber, SIGNAL (newFrame (QImage)),
@@ -250,6 +255,10 @@ void QCCTV_LocalCamera::setFPS (const int fps)
 {
     if (m_fps != QCCTV_GET_VALID_FPS (fps)) {
         m_fps = QCCTV_GET_VALID_FPS (fps);
+
+        foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
+            watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_fps));
+
         emit fpsChanged();
     }
 }
@@ -429,11 +438,36 @@ void QCCTV_LocalCamera::broadcastInfo()
 void QCCTV_LocalCamera::onDisconnected()
 {
     QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
+    int index = m_sockets.indexOf (socket);
 
-    if (socket) {
-        socket->disconnectFromHost();
-        m_sockets.removeAt (m_sockets.indexOf (socket));
-    }
+    /* Abort connection */
+    socket->abort();
+    socket->deleteLater();
+
+    /* Delete objects */
+    m_sockets.at (index)->deleteLater();
+    m_watchdogs.at (index)->deleteLater();
+
+    /* Unregister watchdog and socket */
+    m_sockets.removeAt (index);
+    m_watchdogs.removeAt (index);
+
+    /* Set image quality to 1 if no other stations are connected */
+    if (m_sockets.count() < 1)
+        setShrinkRatio (1);
+}
+
+/**
+ * Gradually lowers the image quality when the station fails to reply on time
+ */
+void QCCTV_LocalCamera::onWatchdogTimeout()
+{
+    /* Lower the image resolution */
+    setShrinkRatio (shrinkRatio() + 0.2);
+
+    /* Reset shrink ratio to 1 */
+    if (shrinkRatio() >= 4.5)
+        setShrinkRatio (1);
 }
 
 /**
@@ -444,15 +478,20 @@ void QCCTV_LocalCamera::onDisconnected()
 void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
+        QCCTV_Watchdog* watchdog = new QCCTV_Watchdog (this);
+        watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (fps()));
+
+        m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());
+
         m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, 1);
         m_sockets.last()->setSocketOption (QTcpSocket::KeepAliveOption, 1);
         m_sockets.last()->setSocketOption (QTcpSocket::SendBufferSizeSocketOption, INT_MAX);
 
-        connect (m_sockets.last(), SIGNAL (disconnected()),
-                 this,               SLOT (onDisconnected()));
-        connect (m_sockets.last(), SIGNAL (readyRead()),
-                 this,               SLOT (readCommandPacket()));
+        connect (m_watchdogs.last(), SIGNAL (expired()),
+                 this,                 SLOT (onWatchdogTimeout()));
+        connect (m_sockets.last(),   SIGNAL (disconnected()),
+                 this,                 SLOT (onDisconnected()));
     }
 }
 
@@ -467,18 +506,31 @@ void QCCTV_LocalCamera::acceptConnection()
  */
 void QCCTV_LocalCamera::readCommandPacket()
 {
-    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
+    /* Get data and address */
+    QByteArray data;
+    QHostAddress address;
+    data.resize (m_cmdSocket.pendingDatagramSize());
+    m_cmdSocket.readDatagram (data.data(), data.length(), &address);
 
-    if (socket) {
-        QByteArray data = socket->readAll();
-        if (data.size() != 3)
-            return;
+    /* Datagram is too small */
+    if (data.size() != 3)
+        return;
 
-        setFPS ((quint8) data.at (0));
-        setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
-        if (data.at (2) == QCCTV_FORCE_FOCUS)
-            focusCamera();
+    /* Set FPS and flashlight status */
+    setFPS ((quint8) data.at (0));
+    setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
+
+    /* Focus the camera */
+    if (data.at (2) == QCCTV_FORCE_FOCUS)
+        focusCamera();
+
+    /* Feed the watchdog for this connection */
+    foreach (QTcpSocket* socket, m_sockets) {
+        if (socket->peerAddress() == address)
+            m_watchdogs.at (m_sockets.indexOf (socket))->reset();
     }
+
+    qDebug() << "RECV";
 }
 
 /**

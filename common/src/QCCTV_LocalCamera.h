@@ -85,6 +85,7 @@ private slots:
     void broadcastInfo();
     void sendCameraData();
     void onDisconnected();
+    void onWatchdogTimeout();
     void acceptConnection();
     void readCommandPacket();
     void changeImage (const QImage& image);
@@ -108,9 +109,12 @@ private:
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;
 
+    QUdpSocket m_cmdSocket;
+
     QTcpServer m_server;
     QUdpSocket m_broadcastSocket;
     QList<QTcpSocket*> m_sockets;
+    QList<QCCTV_Watchdog*> m_watchdogs;
 };
 
 

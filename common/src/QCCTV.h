@@ -40,6 +40,7 @@ enum QCCTV_CameraStatus {
     QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b1000,
 };
 
+extern int QCCTV_WATCHDOG_TIME (const int fps);
 extern int QCCTV_GET_VALID_FPS (const int fps);
 extern QString QCCTV_STATUS_STRING (const int status);
 
@@ -70,6 +71,10 @@ extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
 #define QCCTV_MIN_FPS      5
 #define QCCTV_MAX_FPS      60
 #define QCCTV_IMAGE_FORMAT "JPG"
+
+/* Watchdog timings */
+#define QCCTV_MIN_WATCHDOG_TIME 3000
+#define QCCTV_MAX_WATCHDOG_TIME 10000
 
 #endif
 

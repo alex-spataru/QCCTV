@@ -31,10 +31,8 @@
 
 #ifdef Q_OS_MAC
     #include <QMacToolBar>
-    #define QCCTV_Toolbar QMacToolBar
 #else
     #include <QToolBar>
-    #define QCCTV_Toolbar QToolBar
 #endif
 
 #include "Camera.h"
@@ -46,7 +44,6 @@ class Window : public QMainWindow
 
 public:
     Window();
-    ~Window();
 
 private slots:
     void rescan();
@@ -60,8 +57,6 @@ private slots:
     void updateStatusLabel();
     void configureStatusbar();
     void generateCameraGrid();
-    void addCamera (const int camera);
-    void removeCamera (const int camera);
 
 private:
     QPair<int, int> calculateGridSize (const int items);
@@ -73,7 +68,26 @@ private:
 
     QStatusBar m_statusBar;
     QCCTV_Station m_station;
-    QCCTV_Toolbar m_toolbar;
+
+#ifdef Q_OS_MAC
+    QMacToolBar m_toolbar;
+    QMacToolBarItem* ac_exit;
+    QMacToolBarItem* ac_pref;
+    QMacToolBarItem* ac_rcrd;
+    QMacToolBarItem* ac_full;
+    QMacToolBarItem* ac_help;
+    QMacToolBarItem* ac_info;
+    QMacToolBarItem* ac_rscn;
+#else
+    QAction* ac_exit;
+    QAction* ac_pref;
+    QAction* ac_rcrd;
+    QAction* ac_full;
+    QAction* ac_help;
+    QAction* ac_info;
+    QAction* ac_rscn;
+    QToolBar m_toolbar;
+#endif
 };
 
 #endif

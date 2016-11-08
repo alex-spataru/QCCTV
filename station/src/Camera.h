@@ -27,17 +27,19 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 
+class QResizeEvent;
 class QCCTV_Station;
 
-class Camera : public QGraphicsView
+class Camera : public QObject
 {
     Q_OBJECT
 
 public:
-    Camera (QWidget* parent = Q_NULLPTR);
+    Camera (QObject* parent = Q_NULLPTR);
     ~Camera();
 
     int id() const;
+    QGraphicsView* view();
     QCCTV_Station* station() const;
 
 public slots:
@@ -48,6 +50,7 @@ public slots:
 private:
     int m_id;
     QLabel m_status;
+    QGraphicsView* m_view;
     QGraphicsScene m_scene;
     QCCTV_Station* m_station;
 };
