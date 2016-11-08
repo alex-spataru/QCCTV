@@ -26,16 +26,7 @@ Text {
     smooth: true
     color: "#fff"
     font.pixelSize: 14
-    font.family: {
-        if (font.bold && font.italic)
-            return "Open Sans Bold Italic"
-        else if (font.bold)
-            return "Open Sans Bold"
-        else if (font.italic)
-            return "Open Sans Italic"
-        else
-            return "Open Sans Regular"
-    }
+    font.family: "Open Sans Regular"
 
     FontLoader {
         source: "qrc:/common/fonts/OpenSans-Bold.ttf"

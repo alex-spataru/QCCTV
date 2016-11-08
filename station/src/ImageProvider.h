@@ -19,3 +19,23 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE
  */
+
+#ifndef _QCCTV_STATION_IMAGE_PROVIDER_H
+#define _QCCTV_STATION_IMAGE_PROVIDER_H
+
+#include <QQuickImageProvider>
+
+class QCCTV_Station;
+class QCCTV_StationImage : public QQuickImageProvider
+{
+public:
+    QCCTV_StationImage (QCCTV_Station* parent);
+    QImage requestImage (const QString& id, QSize* size,
+                         const QSize& requestedSize);
+
+private:
+    QImage m_cameraError;
+    QCCTV_Station* m_station;
+};
+
+#endif

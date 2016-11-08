@@ -19,3 +19,30 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE
  */
+
+#include "ImageProvider.h"
+#include "QCCTV_Station.h"
+
+QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
+    QQuickImageProvider (QQuickImageProvider::Image,
+                         QQuickImageProvider::ForceAsynchronousImageLoading)
+{
+    m_station = parent;
+    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
+}
+
+QImage QCCTV_StationImage::requestImage (const QString& id,
+                                         QSize* size,
+                                         const QSize& requestedSize)
+{
+    Q_UNUSED (size);
+    Q_UNUSED (requestedSize);
+
+    if (m_station && !id.isEmpty()) {
+        QImage image = m_station->currentImage (id.toInt());
+        if (!image.isNull())
+            return image;
+    }
+
+    return m_cameraError;
+}

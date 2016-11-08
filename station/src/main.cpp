@@ -20,16 +20,60 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "Window.h"
+#include <QtQml>
+#include <QLabel>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
 
-int main (int argc, char** argv)
+#include "ImageProvider.h"
+#include "QCCTV_Station.h"
+
+const QString APP_VERSION = "1.0";
+const QString APP_COMPANY = "Alex Spataru";
+const QString APP_DSPNAME = "QCCTV Station";
+const QString APP_WEBSITE = "http://github.com/alex-spataru";
+
+int main (int argc, char* argv[])
 {
-    QApplication app (argc, argv);
-    app.setApplicationVersion ("1.0");
-    app.setApplicationName ("QCCTV Station");
+    /* Set application information */
+    QGuiApplication::setApplicationName (APP_DSPNAME);
+    QGuiApplication::setOrganizationName (APP_COMPANY);
+    QGuiApplication::setApplicationVersion (APP_VERSION);
+    QGuiApplication::setOrganizationDomain (APP_WEBSITE);
 
-    Window window;
-    window.show();
+    /* Set application attributes */
+    QGuiApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
+    QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
+    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
+    /* Initialize application */
+    QGuiApplication app (argc, argv);
+
+    /* Initialize QCCTV station */
+    QCCTV_Station station;
+    QCCTV_StationImage provider (&station);
+
+    /* Know if we are running on mobile or not */
+#if defined Q_OS_ANDROID || defined Q_OS_IOS
+    bool mobile = true;
+#else
+    bool mobile = false;
+#endif
+
+    /* Load QML interface */
+    QQmlApplicationEngine engine;
+    engine.addImageProvider ("qcctv", &provider);
+    engine.rootContext()->setContextProperty ("isMobile", mobile);
+    engine.rootContext()->setContextProperty ("QCCTVStation", &station);
+    engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
+    engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
+    engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
+
+    /* Exit if QML fails to load */
+    if (engine.rootObjects().isEmpty())
+        return EXIT_FAILURE;
+
+    /* Enter application loop */
     return app.exec();
 }
+
