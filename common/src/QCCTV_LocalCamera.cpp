@@ -266,10 +266,6 @@ void QCCTV_LocalCamera::setFPS (const int fps)
 {
     if (m_fps != QCCTV_GET_VALID_FPS (fps)) {
         m_fps = QCCTV_GET_VALID_FPS (fps);
-
-        foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
-            watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_fps));
-
         emit fpsChanged();
     }
 }
@@ -371,19 +367,18 @@ void QCCTV_LocalCamera::onDisconnected()
  */
 void QCCTV_LocalCamera::onWatchdogTimeout()
 {
-    setResolution ((QCCTV_Resolution) qMax (0, resolution() - 1));
+    setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
 }
 
 /**
- * Called when a CCTV station wants to receive images from this camera
- * This function shall configure the TCP socket used for streaming the
- * images and receiving commands from the station
+ * Called when a QCCTV station wants to receive images from this camera
+ * This function shall configure the TCP socket used for streaming data
  */
 void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
         QCCTV_Watchdog* watchdog = new QCCTV_Watchdog (this);
-        watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (fps()));
+        watchdog->setExpirationTime (500);
 
         m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());

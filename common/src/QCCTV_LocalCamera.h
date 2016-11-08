@@ -104,15 +104,15 @@ private:
     QByteArray m_data;
     QByteArray m_imageData;
 
-    QCCTV_CRC32 m_crc32;
     QCamera* m_camera;
-    QCCTV_Resolution m_resolution;
     QCameraImageCapture* m_capture;
+
+    QCCTV_CRC32 m_crc32;
+    QCCTV_Resolution m_resolution;
     QCCTV_FrameGrabber m_frameGrabber;
 
-    QUdpSocket m_cmdSocket;
-
     QTcpServer m_server;
+    QUdpSocket m_cmdSocket;
     QUdpSocket m_broadcastSocket;
     QList<QTcpSocket*> m_sockets;
     QList<QCCTV_Watchdog*> m_watchdogs;

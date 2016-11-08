@@ -96,7 +96,6 @@ extern QStringList QCCTV_AVAILABLE_RESOLUTIONS()
     list.append ("D1 (720x480)");
     list.append ("720p (1280x720)");
     list.append ("960p (1280x960)");
-    list.append ("1080p (1920x1080)");
 
     return list;
 }
@@ -137,10 +136,6 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
     case QCCTV_960p:
         width = 1280;
         height = 960;
-        break;
-    case QCCTV_1080p:
-        width = 1920;
-        height = 1080;
         break;
     default:
         width = 704;
