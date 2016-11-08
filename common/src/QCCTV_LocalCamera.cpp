@@ -59,6 +59,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
              this,              SLOT (changeImage (QImage)));
 
     /* Set default values */
+    setResolution (QCCTV_CIF);
     setFPS (QCCTV_DEFAULT_FPS);
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
@@ -91,8 +92,18 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
         socket->deleteLater();
     }
 
+    foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
+        watchdog->deleteLater();
+
+    if (m_camera)
+        delete m_camera;
+
+    if (m_capture)
+        delete m_capture;
+
     m_server.close();
     m_sockets.clear();
+    m_watchdogs.clear();
     m_broadcastSocket.close();
 }
 
@@ -105,6 +116,14 @@ int QCCTV_LocalCamera::fps() const
 }
 
 /**
+ * Returns the resolution of the image that the camera streams
+ */
+QCCTV_Resolution QCCTV_LocalCamera::resolution() const
+{
+    return m_resolution;
+}
+
+/**
  * Returns the current status of the flashlight (on or off)
  */
 QCCTV_LightStatus QCCTV_LocalCamera::lightStatus() const
@@ -113,20 +132,12 @@ QCCTV_LightStatus QCCTV_LocalCamera::lightStatus() const
 }
 
 /**
- * Returns \c true if we should send a grayscale image to the QCCTV Station
+ * Returns an ordered list with the available image resolutions, this function
+ * can be used to populate a combobox or a QML model
  */
-bool QCCTV_LocalCamera::isGrayscale() const
+QStringList QCCTV_LocalCamera::availableResolutions() const
 {
-    return m_frameGrabber.isGrayscale();
-}
-
-/**
- * Returns the shrink ratio used to resize the image to send it to the
- * local network
- */
-qreal QCCTV_LocalCamera::shrinkRatio() const
-{
-    return m_frameGrabber.shrinkRatio();
+    return QCCTV_AVAILABLE_RESOLUTIONS();
 }
 
 /**
@@ -271,7 +282,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
     if (camera) {
         m_camera = camera;
         m_camera->setViewfinder (&m_frameGrabber);
-        m_camera->setCaptureMode (QCamera::CaptureStillImage);
+        m_camera->setCaptureMode (QCamera::CaptureViewfinder);
         m_camera->start();
 
         if (m_capture)
@@ -293,21 +304,11 @@ void QCCTV_LocalCamera::setName (const QString& name)
 }
 
 /**
- * Enables or disables sending a grayscale image to the QCCTV Stations
- * in the local network
+ * Changes the resolution of the image that the camera sends to the station
  */
-void QCCTV_LocalCamera::setGrayscale (const bool gray)
+void QCCTV_LocalCamera::setResolution (const QCCTV_Resolution resolution)
 {
-    m_frameGrabber.setGrayscale (gray);
-}
-
-/**
- * Changes the shrink factor used to resize the image before sending it to
- * the QCCTV Stations in the local network
- */
-void QCCTV_LocalCamera::setShrinkRatio (const qreal ratio)
-{
-    m_frameGrabber.setShrinkRatio (ratio);
+    m_resolution = resolution;
 }
 
 /**
@@ -330,93 +331,6 @@ void QCCTV_LocalCamera::update()
 }
 
 /**
- * Generates a byte array with the following information:
- *
- * - CRC32 bytes
- * - The camera name
- * - The FPS of the camera
- * - The light status of the camera
- * - The camera status
- * - The latest camera image
- *
- * This byte array will be sent to all connected QCCTV Stations in the LAN
- */
-void QCCTV_LocalCamera::generateData()
-{
-    /* Only generate the data stream if the previous one has been sent */
-    if (m_data.isEmpty()) {
-        /* Add camera name */
-        m_data.append (cameraName().length());
-        m_data.append (cameraName());
-
-        /* Add FPS, light status and camera status */
-        m_data.append (fps());
-        m_data.append (lightStatus());
-        m_data.append (cameraStatus());
-
-        /* Add raw image bytes */
-        if (!m_imageData.isEmpty()) {
-            m_data.append ((m_imageData.length() & 0xff0000) >> 16);
-            m_data.append ((m_imageData.length() & 0xff00) >> 8);
-            m_data.append ((m_imageData.length() & 0xff));
-            m_data.append (m_imageData);
-        }
-
-        /* Compress packet */
-        m_data = qCompress (m_data, 9);
-
-        /* Add the cheksum at the start of the data */
-        quint32 crc = m_crc32.compute (m_data);
-        m_data.prepend ((crc & 0xff));
-        m_data.prepend ((crc & 0xff00) >> 8);
-        m_data.prepend ((crc & 0xff0000) >> 16);
-        m_data.prepend ((crc & 0xff000000) >> 24);
-    }
-}
-
-/**
- * Updates the status code of the camera
- */
-void QCCTV_LocalCamera::updateStatus()
-{
-    /* No camera present */
-    if (!m_camera)
-        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
-
-    /* Check if camera is available */
-    else if (m_camera->status() != QCamera::ActiveStatus)
-        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
-
-    /* Video is OK, ensure that VIDEO_FAILURE is removed */
-    else
-        removeStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
-
-    /* Check if flash light is available */
-    if (!flashlightAvailable())
-        addStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
-    else
-        removeStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
-}
-
-/**
- * Sends the generated data packet to all connected QCCTV Stations.
- * The data is sent 'chunk by chunk' to avoid errors and ensure that the
- * generated data is interpreted correctly by the station(s).
- */
-void QCCTV_LocalCamera::sendCameraData()
-{
-    if (m_data.isEmpty())
-        return;
-
-    foreach (QTcpSocket* socket, m_sockets) {
-        if (socket->isWritable())
-            socket->write (m_data);
-    }
-
-    m_data.clear();
-}
-
-/**
  * Creates and sends a new packet that announces the existence of this
  * camera to the local network
  */
@@ -428,8 +342,7 @@ void QCCTV_LocalCamera::broadcastInfo()
                                      QHostAddress::Broadcast,
                                      QCCTV_DISCOVERY_PORT);
 
-    QTimer::singleShot (QCCTV_DISCVRY_PKT_TIMING, Qt::PreciseTimer,
-                        this, SLOT (broadcastInfo()));
+    QTimer::singleShot (1000, this, SLOT (broadcastInfo()));
 }
 
 /**
@@ -451,10 +364,6 @@ void QCCTV_LocalCamera::onDisconnected()
     /* Unregister watchdog and socket */
     m_sockets.removeAt (index);
     m_watchdogs.removeAt (index);
-
-    /* Set image quality to 1 if no other stations are connected */
-    if (m_sockets.count() < 1)
-        setShrinkRatio (1);
 }
 
 /**
@@ -462,12 +371,7 @@ void QCCTV_LocalCamera::onDisconnected()
  */
 void QCCTV_LocalCamera::onWatchdogTimeout()
 {
-    /* Lower the image resolution */
-    setShrinkRatio (shrinkRatio() + 0.5);
-
-    /* Reset shrink ratio to 1 */
-    if (shrinkRatio() >= 4.5)
-        setShrinkRatio (1);
+    setResolution ((QCCTV_Resolution) qMax (0, resolution() - 1));
 }
 
 /**
@@ -539,10 +443,97 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
     m_frameGrabber.setEnabled (false);
 
     if (!image.isNull()) {
-        m_imageData = QCCTV_ENCODE_IMAGE (image);
+        m_imageData = QCCTV_ENCODE_IMAGE (image, resolution());
         m_image = QCCTV_DECODE_IMAGE (m_imageData);
         emit imageChanged();
     }
+}
+
+/**
+ * Updates the status code of the camera
+ */
+void QCCTV_LocalCamera::updateStatus()
+{
+    /* No camera present */
+    if (!m_camera)
+        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
+
+    /* Check if camera is available */
+    else if (m_camera->status() != QCamera::ActiveStatus)
+        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
+
+    /* Video is OK, ensure that VIDEO_FAILURE is removed */
+    else
+        removeStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
+
+    /* Check if flash light is available */
+    if (!flashlightAvailable())
+        addStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
+    else
+        removeStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
+}
+
+/**
+ * Generates a byte array with the following information:
+ *
+ * - CRC32 bytes
+ * - The camera name
+ * - The FPS of the camera
+ * - The light status of the camera
+ * - The camera status
+ * - The latest camera image
+ *
+ * This byte array will be sent to all connected QCCTV Stations in the LAN
+ */
+void QCCTV_LocalCamera::generateData()
+{
+    /* Only generate the data stream if the previous one has been sent */
+    if (m_data.isEmpty()) {
+        /* Add camera name */
+        m_data.append (cameraName().length());
+        m_data.append (cameraName());
+
+        /* Add FPS, light status and camera status */
+        m_data.append (fps());
+        m_data.append (lightStatus());
+        m_data.append (cameraStatus());
+
+        /* Add raw image bytes */
+        if (!m_imageData.isEmpty()) {
+            m_data.append ((m_imageData.length() & 0xff0000) >> 16);
+            m_data.append ((m_imageData.length() & 0xff00) >> 8);
+            m_data.append ((m_imageData.length() & 0xff));
+            m_data.append (m_imageData);
+        }
+
+        /* Compress packet */
+        m_data = qCompress (m_data, 9);
+
+        /* Add the cheksum at the start of the data */
+        quint32 crc = m_crc32.compute (m_data);
+        m_data.prepend ((crc & 0xff));
+        m_data.prepend ((crc & 0xff00) >> 8);
+        m_data.prepend ((crc & 0xff0000) >> 16);
+        m_data.prepend ((crc & 0xff000000) >> 24);
+    }
+}
+
+/**
+ * Sends the generated data packet to all connected QCCTV Stations.
+ * The data is sent 'chunk by chunk' to avoid errors and ensure that the
+ * generated data is interpreted correctly by the station(s).
+ */
+void QCCTV_LocalCamera::sendCameraData()
+{
+    if (m_data.isEmpty())
+        return;
+
+    foreach (QTcpSocket* socket, m_sockets) {
+        if (socket->isWritable())
+            socket->write (m_data);
+    }
+
+    m_data.clear();
 }
 
 /**
@@ -581,23 +572,24 @@ void QCCTV_LocalCamera::removeStatusFlag (const QCCTV_CameraStatus status)
  */
 void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
 {
-    if (m_flashlightStatus != status) {
-        m_flashlightStatus = status;
+    if (m_flashlightStatus == status)
+        return;
 
-        if (!m_camera)
-            return;
+    if (!m_camera)
+        return;
 
-        if (!flashlightAvailable())
-            return;
+    if (!flashlightAvailable())
+        return;
 
-        if (flashlightOn()) {
-            m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
-            focusCamera();
-        }
+    m_flashlightStatus = status;
 
-        else
-            m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
-
-        emit lightStatusChanged();
+    if (flashlightOn()) {
+        m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
+        focusCamera();
     }
+
+    else
+        m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
+
+    emit lightStatusChanged();
 }

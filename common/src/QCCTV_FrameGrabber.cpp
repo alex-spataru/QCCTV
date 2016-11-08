@@ -22,28 +22,27 @@
 
 #include "QCCTV_FrameGrabber.h"
 
+/**
+ * Initializes the default variables
+ */
 QCCTV_FrameGrabber::QCCTV_FrameGrabber (QObject* parent) : QAbstractVideoSurface (parent)
 {
-    m_ratio = 1.0;
     m_enabled = false;
-    m_grayscale = false;
 }
 
+/**
+ * Returns \c true if the frame grabber is enabled
+ */
 bool QCCTV_FrameGrabber::isEnabled() const
 {
     return m_enabled;
 }
 
-bool QCCTV_FrameGrabber::isGrayscale() const
-{
-    return m_grayscale;
-}
-
-qreal QCCTV_FrameGrabber::shrinkRatio() const
-{
-    return m_ratio;
-}
-
+/**
+ * Obtains an image from the \a frame and processes it as a \c QImage
+ *
+ * This function only runs if the grabber is enabled (to save some CPU usage)
+ */
 bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
 {
     /* Grabber is disabled, abort */
@@ -66,21 +65,6 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     if (image.isNull())
         return false;
 
-    /* Resize the image */
-    if (shrinkRatio() > 1) {
-        image = image.scaled (image.width() / shrinkRatio(),
-                              image.height() / shrinkRatio(),
-                              Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
-
-    /* Do not let the image be larger than 720p */
-    if (image.width() > 720)
-        image = image.scaledToWidth (720, Qt::SmoothTransformation);
-
-    /* Make the image grayscale */
-    if (isGrayscale())
-        image = makeGrayscale (image);
-
     /* Fix mirrored image issue on Windows */
 #if defined Q_OS_WIN
     image = image.mirrored (false, true);
@@ -92,6 +76,10 @@ bool QCCTV_FrameGrabber::present (const QVideoFrame& frame)
     return true;
 }
 
+/**
+ * Returns the supported pixel formats of the frame grabber, we just return
+ * all available pixel formats to avoid issues...
+ */
 QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
 (QAbstractVideoBuffer::HandleType handleType) const
 {
@@ -132,38 +120,10 @@ QList<QVideoFrame::PixelFormat> QCCTV_FrameGrabber::supportedPixelFormats
            << QVideoFrame::Format_AdobeDng;
 }
 
+/**
+ * Changes the \a enabled state of the grabber
+ */
 void QCCTV_FrameGrabber::setEnabled (const bool enabled)
 {
     m_enabled = enabled;
-}
-
-void QCCTV_FrameGrabber::setShrinkRatio (const qreal ratio)
-{
-    if (ratio != 0) {
-        if (ratio < 0)
-            m_ratio = ratio * -1;
-        else
-            m_ratio = ratio;
-    }
-}
-
-void QCCTV_FrameGrabber::setGrayscale (const bool grayscale)
-{
-    m_grayscale = grayscale;
-}
-
-QImage QCCTV_FrameGrabber::makeGrayscale (QImage& image)
-{
-    for (int i = 0; i < image.height(); i++) {
-        int depth = 4;
-        uchar* scan = image.scanLine (i);
-
-        for (int j = 0; j < image.width(); j++) {
-            QRgb* rgbpixel = reinterpret_cast<QRgb*> (scan + j * depth);
-            int gray = qGray (*rgbpixel);
-            *rgbpixel = QColor (gray, gray, gray).rgba();
-        }
-    }
-
-    return image;
 }

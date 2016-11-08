@@ -62,10 +62,9 @@ public:
     Q_INVOKABLE bool readyForCapture() const;
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
+    Q_INVOKABLE QCCTV_Resolution resolution() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
-
-    Q_INVOKABLE bool isGrayscale() const;
-    Q_INVOKABLE qreal shrinkRatio() const;
+    Q_INVOKABLE QStringList availableResolutions() const;
 
 public slots:
     void takePhoto();
@@ -75,20 +74,21 @@ public slots:
     void setFPS (const int fps);
     void setCamera (QCamera* camera);
     void setName (const QString& name);
-    void setGrayscale (const bool gray);
-    void setShrinkRatio (const qreal ratio);
+    void setResolution (const QCCTV_Resolution resolution);
 
 private slots:
     void update();
-    void generateData();
-    void updateStatus();
     void broadcastInfo();
-    void sendCameraData();
     void onDisconnected();
     void onWatchdogTimeout();
     void acceptConnection();
     void readCommandPacket();
     void changeImage (const QImage& image);
+
+private:
+    void updateStatus();
+    void generateData();
+    void sendCameraData();
     void addStatusFlag (const QCCTV_CameraStatus status);
     void setCameraStatus (const QCCTV_CameraStatus status);
     void removeStatusFlag (const QCCTV_CameraStatus status);
@@ -106,6 +106,7 @@ private:
 
     QCCTV_CRC32 m_crc32;
     QCamera* m_camera;
+    QCCTV_Resolution m_resolution;
     QCameraImageCapture* m_capture;
     QCCTV_FrameGrabber m_frameGrabber;
 
