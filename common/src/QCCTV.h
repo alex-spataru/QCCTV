@@ -98,7 +98,7 @@ extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
 #define QCCTV_MAX_FPS      60
 #define QCCTV_DEFAULT_FPS  18
 #define QCCTV_IMAGE_FORMAT "JPG"
-#define QCCTV_DEFAULT_RES  QCCTV_D1
+#define QCCTV_DEFAULT_RES  QCCTV_CIF
 #define QCCTV_MAX_BUFFER_SIZE 200 * 1024
 
 /*

@@ -391,10 +391,8 @@ void QCCTV_RemoteCamera::readCameraPacket()
 
     /* Compare checksums */
     quint32 crc = m_crc32.compute (stream);
-    if (checksum != crc) {
-        acknowledgeReception();
+    if (checksum != crc)
         return;
-    }
 
     /* Uncompress the stream data */
     stream = qUncompress (stream);
@@ -411,10 +409,6 @@ void QCCTV_RemoteCamera::readCameraPacket()
             return;
     }
 
-    /* Stream is to small to get camera status */
-    if (stream.size() < name_len + 4)
-        return;
-
     /* Get camera FPS and status */
     quint8 fps = stream.at (name_len + 1);
     quint8 light = stream.at (name_len + 2);
@@ -427,10 +421,6 @@ void QCCTV_RemoteCamera::readCameraPacket()
     updateStatus (status);
     setFlashlightStatus (light);
     updateResolution (resolution);
-
-    /* Stream is too small to get image length */
-    if (stream.size() < name_len + 8)
-        return;
 
     /* Get image length */
     quint8 img_a = stream.at (name_len + 5);
