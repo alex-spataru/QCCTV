@@ -51,11 +51,38 @@ QCCTV_Station::~QCCTV_Station()
 }
 
 /**
+ * Returns the minimum FPS value allowed by QCCTV, this function can be used
+ * to set control/widget limits of QML or classic interfaces
+ */
+int QCCTV_Station::minimumFPS() const
+{
+    return QCCTV_MIN_FPS;
+}
+
+/**
+ * Returns the maximum FPS value allowed by QCCTV, this function can be used
+ * to set control/widget limits of QML or classic interfaces
+ */
+int QCCTV_Station::maximumFPS() const
+{
+    return QCCTV_MAX_FPS;
+}
+
+/**
  * Returns the number of cameras that the station is connected to
  */
 int QCCTV_Station::cameraCount() const
 {
     return m_cameraList.count();
+}
+
+/**
+ * Returns an ordered list with the available image resolutions, this function
+ * can be used to populate a combobox or a QML model
+ */
+QStringList QCCTV_Station::availableResolutions() const
+{
+    return QCCTV_AVAILABLE_RESOLUTIONS();
 }
 
 /**
@@ -69,6 +96,17 @@ int QCCTV_Station::fps (const int camera)
         return getCamera (camera)->fps();
 
     return -1;
+}
+
+/**
+ * Returns the current resolution used by the camera
+ */
+int QCCTV_Station::resolution (const int camera)
+{
+    if (getCamera (camera))
+        return (int) getCamera (camera)->resolution();
+
+    return (int) QCCTV_QCIF;
 }
 
 /**
@@ -141,12 +179,12 @@ QString QCCTV_Station::statusString (const int camera)
  * \note If an invalid camera ID is given to this function,
  *       then this function shall return \c QCCTV_FLASHLIGHT_OFF
  */
-QCCTV_LightStatus QCCTV_Station::lightStatus (const int camera)
+bool QCCTV_Station::flashlightEnabled (const int camera)
 {
     if (getCamera (camera))
-        return getCamera (camera)->lightStatus();
+        return (getCamera (camera)->lightStatus() == QCCTV_FLASHLIGHT_ON);
 
-    return QCCTV_FLASHLIGHT_OFF;
+    return false;
 }
 
 /**
@@ -178,19 +216,30 @@ void QCCTV_Station::removeAllCameras()
  * \note If the \a camera parameter is invalid, then this function
  *       shall have no effect
  */
-void QCCTV_Station::setFPS (const int camera, const int fps)
+void QCCTV_Station::changeFPS (const int camera, const int fps)
 {
-    if (camera < cameraCount())
-        m_cameraList.at (camera)->setFPS (fps);
+    if (getCamera (camera))
+        getCamera (camera)->changeFPS (fps);
 }
 
 /**
  * Changes the flashlight \a status for all cameras connected to the station
  */
-void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status)
+void QCCTV_Station::setFlashlightEnabledAll (const bool enabled)
 {
     for (int i = 0; i < cameraCount(); ++i)
-        setLightStatus (i, status);
+        setFlashlightEnabled (i, enabled);
+}
+
+/**
+ * Changes the \a resoltion for the given \a camera
+ * \note If the \a camera parameter is invalid, then this function
+ *       shall have no effect
+ */
+void QCCTV_Station::changeResolution (const int camera, const int resolution)
+{
+    if (getCamera (camera))
+        getCamera (camera)->changeResolution (resolution);
 }
 
 /**
@@ -198,11 +247,10 @@ void QCCTV_Station::setLightStatusAll (const QCCTV_LightStatus status)
  * \note If the \a camera parameter is invalid, then this function
  *       shall have no effect
  */
-void QCCTV_Station::setLightStatus (const int camera,
-                                    const QCCTV_LightStatus status)
+void QCCTV_Station::setFlashlightEnabled (const int camera, const bool enabled)
 {
-    if (camera < cameraCount())
-        m_cameraList.at (camera)->setFlashlightStatus ((int) status);
+    if (getCamera (camera))
+        getCamera (camera)->setFlashlightStatus ((int) enabled);
 }
 
 /**
@@ -212,10 +260,12 @@ void QCCTV_Station::setLightStatus (const int camera,
  */
 void QCCTV_Station::removeCamera (const int camera)
 {
-    if (camera < cameraCount()) {
-        m_cameraList.at (camera)->deleteLater();
+    if (getCamera (camera)) {
+        getCamera (camera)->deleteLater();
+
         m_cameraIPs.removeAt (camera);
         m_cameraList.removeAt (camera);
+
         emit cameraCountChanged();
     }
 }
@@ -234,7 +284,7 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
         m_cameraIPs.append (ip);
         m_cameraList.append (camera);
-        m_cameraList.last()->setID (m_cameraList.count() - 1);
+        m_cameraList.last()->changeID (m_cameraList.count() - 1);
 
         connect (camera, SIGNAL (connected (int)),
                  this,   SIGNAL (connected (int)));
@@ -248,6 +298,8 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (cameraStatusChanged (int)));
         connect (camera, SIGNAL (newImage (int)),
                  this,   SIGNAL (newCameraImage (int)));
+        connect (camera, SIGNAL (resolutionChanged (int)),
+                 this,   SIGNAL (resolutionChanged (int)));
 
         camera->setAddress (ip);
     }

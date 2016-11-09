@@ -42,6 +42,7 @@ signals:
     void newCameraName (const int id);
     void newLightStatus (const int id);
     void newCameraStatus (const int id);
+    void resolutionChanged (const int id);
 
 public:
     QCCTV_RemoteCamera();
@@ -55,15 +56,17 @@ public:
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
+    Q_INVOKABLE QCCTV_Resolution resolution() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
 
 public slots:
     void requestFocus();
     void turnOnFlashlight();
     void turnOffFlashlight();
-    void setID (const int id);
-    void setFPS (const int fps);
+    void changeID (const int id);
+    void changeFPS (const int fps);
     void setFlashlightStatus (const int status);
+    void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
 
 private slots:
@@ -71,9 +74,11 @@ private slots:
     void onDisconnected();
     void sendCommandPacket();
     void resetFocusRequest();
-    void setName (const QString& name);
-    void setConnected (const bool status);
-    void setCameraStatus (const int status);
+    void updateFPS (const int fps);
+    void updateStatus (const int status);
+    void updateName (const QString& name);
+    void updateConnected (const bool status);
+    void updateResolution (const int resolution);
 
 private:
     void readCameraPacket();
@@ -81,10 +86,15 @@ private:
 
 private:
     int m_id;
-    int m_fps;
     bool m_focus;
     bool m_connected;
     int m_cameraStatus;
+
+    int m_oldFPS;
+    int m_newFPS;
+
+    int m_oldResolution;
+    int m_newResolution;
 
     QString m_name;
     QImage m_image;

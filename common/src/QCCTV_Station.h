@@ -36,6 +36,7 @@ signals:
     void disconnected (const int camera);
     void newCameraImage (const int camera);
     void cameraNameChanged (const int camera);
+    void resolutionChanged (const int camera);
     void lightStatusChanged (const int camera);
     void cameraStatusChanged (const int camera);
 
@@ -43,22 +44,28 @@ public:
     QCCTV_Station();
     ~QCCTV_Station();
 
+    Q_INVOKABLE int minimumFPS() const;
+    Q_INVOKABLE int maximumFPS() const;
     Q_INVOKABLE int cameraCount() const;
+    Q_INVOKABLE QStringList availableResolutions() const;
+
     Q_INVOKABLE int fps (const int camera);
+    Q_INVOKABLE int resolution (const int camera);
     Q_INVOKABLE int cameraStatus (const int camera);
     Q_INVOKABLE QString cameraName (const int camera);
     Q_INVOKABLE QImage currentImage (const int camera);
     Q_INVOKABLE QHostAddress address (const int camera);
     Q_INVOKABLE QString statusString (const int camera);
-    Q_INVOKABLE QCCTV_LightStatus lightStatus (const int camera);
+    Q_INVOKABLE bool flashlightEnabled (const int camera);
 
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 public slots:
     void removeAllCameras();
-    void setFPS (const int camera, const int fps);
-    void setLightStatusAll (const QCCTV_LightStatus status);
-    void setLightStatus (const int camera, const QCCTV_LightStatus status);
+    void changeFPS (const int camera, const int fps);
+    void setFlashlightEnabledAll (const bool enabled);
+    void changeResolution (const int camera, const int resolution);
+    void setFlashlightEnabled (const int camera, const bool enabled);
 
 private slots:
     void removeCamera (const int camera);

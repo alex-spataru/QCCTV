@@ -22,6 +22,7 @@
 
 #include <QtQml>
 #include <QCamera>
+#include <QQuickStyle>
 #include <QCameraInfo>
 #include <QMediaObject>
 #include <QGuiApplication>
@@ -62,6 +63,9 @@ int main (int argc, char* argv[])
     /* Initialize QCCTV */
     QCCTV_LocalCamera localCamera;
     QCCTV_LocalCameraImage provider (&localCamera);
+
+    /* Set application style */
+    QQuickStyle::setStyle ("Universal");
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS

@@ -27,6 +27,7 @@ Text {
     color: "#fff"
     font.pixelSize: 14
     font.family: "Open Sans Regular"
+    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
 
     FontLoader {
         source: "qrc:/common/fonts/OpenSans-Bold.ttf"

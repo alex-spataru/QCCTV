@@ -22,7 +22,8 @@
 
 import QtQuick 2.0
 import QtMultimedia 5.4
-import QtQuick.Controls 1.0
+import QtQuick.Layouts 1.0
+import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
 import QtGraphicalEffects 1.0
 
@@ -61,16 +62,9 @@ ApplicationWindow {
         property alias y: app.y
         property alias width: app.width
         property alias height: app.height
-    }
-
-    //
-    // Reloads the displayed image by changing the URL to load the images
-    // from (which forces the image to perform a redraw)
-    //
-    function reloadImage() {
-        image.source = "image://qcctv/reload"
-        image.source = "image://qcctv/"
-        image.sourceChanged (image.source)
+        property alias fps: fpsSpinbox.value
+        property alias name: nameTextfield.text
+        property alias resolution: resolutions.currentIndex
     }
 
     //
@@ -87,10 +81,25 @@ ApplicationWindow {
     Connections {
         target: QCCTVCamera
 
-        onImageChanged: reloadImage()
-        onFpsChanged: fps.text = QCCTVCamera.fps() + " FPS"
-        onCameraNameChanged: camName.text = QCCTVCamera.cameraName()
-        onFocusStatusChanged: status.display (qsTr ("Focusing Camera") + "...")
+        onImageChanged: {
+            image.source = "image://qcctv/reload"
+            image.source = "image://qcctv/"
+            image.sourceChanged (image.source)
+        }
+
+        onFpsChanged: {
+            fps.text = QCCTVCamera.fps() + " FPS"
+            fpsSpinbox.value = QCCTVCamera.fps()
+        }
+
+        onCameraNameChanged: {
+            camName.text = QCCTVCamera.cameraName()
+            nameTextfield.text = QCCTVCamera.cameraName()
+        }
+
+        onFocusStatusChanged: {
+            status.display (qsTr ("Focusing Camera") + "...")
+        }
 
         onLightStatusChanged: {
             if (QCCTVCamera.flashlightOn())
@@ -106,7 +115,7 @@ ApplicationWindow {
     Image {
         id: image
         cache: false
-        smooth: true  
+        smooth: true
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
 
@@ -356,12 +365,11 @@ ApplicationWindow {
         Behavior on anchors.leftMargin { NumberAnimation{} }
 
         //
-        // Hide the panel when clicking on it
+        // Disable all other mouse areas
         //
         MouseArea {
             anchors.fill: parent
-            enabled: anchors.leftMargin === 0
-            onClicked: settings.hidePanel()
+            enabled: settings.opacity > 0
         }
 
         //
@@ -423,6 +431,64 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: app.spacing
             anchors.topMargin: settingsLabel.height + (2 * app.spacing)
+
+            ColumnLayout {
+                spacing: app.spacing
+                anchors.fill: parent
+                anchors.margins: app.spacing
+
+                Label {
+                    text: qsTr ("Camera Name") + ":"
+                }
+
+                TextField {
+                    id: nameTextfield
+                    Layout.fillWidth: true
+                    text: QCCTVCamera.cameraName()
+                    onTextChanged: {
+                        if (text.length > 0)
+                            QCCTVCamera.setName (text)
+                    }
+                }
+
+                Label {
+                    text: qsTr ("FPS") + ":"
+                }
+
+                SpinBox {
+                    id: fpsSpinbox
+                    Layout.fillWidth: true
+                    value: QCCTVCamera.fps()
+                    to: QCCTVCamera.maximumFPS()
+                    from: QCCTVCamera.minimumFPS()
+                    onValueChanged: QCCTVCamera.setFPS (value)
+                }
+
+                Label {
+                    text: qsTr ("Preferred Resolution") + ":"
+                }
+
+                ComboBox {
+                    id: resolutions
+                    Layout.fillWidth: true
+                    model: QCCTVCamera.availableResolutions()
+                    currentIndex: QCCTVCamera.currentResolution()
+                    onCurrentIndexChanged: QCCTVCamera.setResolution (currentIndex)
+                }
+
+                Label {
+                    color: "#ccc"
+                    font.pixelSize: 10
+                    Layout.fillWidth: true
+                    text: "* " + qsTr ("The resolution may be downsized " +
+                                       "automatically while streaming data " +
+                                       "to a QCCTV Station")
+                }
+
+                Item {
+                    Layout.fillHeight: true
+                }
+            }
         }
     }
 }

@@ -32,7 +32,10 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_focus = false;
     m_connected = false;
     m_name = "Unknown Camera";
-    m_fps = QCCTV_DEFAULT_FPS;
+    m_oldFPS = QCCTV_DEFAULT_FPS;
+    m_newFPS = QCCTV_DEFAULT_FPS;
+    m_oldResolution = QCCTV_DEFAULT_RES;
+    m_newResolution = QCCTV_DEFAULT_RES;
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
@@ -68,7 +71,7 @@ int QCCTV_RemoteCamera::id() const
  */
 int QCCTV_RemoteCamera::fps() const
 {
-    return m_fps;
+    return m_oldFPS;
 }
 
 /**
@@ -121,6 +124,14 @@ QHostAddress QCCTV_RemoteCamera::address() const
 }
 
 /**
+ * Returns the current resolution used by the camera
+ */
+QCCTV_Resolution QCCTV_RemoteCamera::resolution() const
+{
+    return (QCCTV_Resolution) m_oldResolution;
+}
+
+/**
  * Returns the light status used by the camera
  */
 QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
@@ -166,7 +177,7 @@ void QCCTV_RemoteCamera::turnOffFlashlight()
 /**
  * Changes the ID of the camera
  */
-void QCCTV_RemoteCamera::setID (const int id)
+void QCCTV_RemoteCamera::changeID (const int id)
 {
     m_id = id;
 }
@@ -174,12 +185,10 @@ void QCCTV_RemoteCamera::setID (const int id)
 /**
  * Updates the FPS value reported (or assigned) by the camera
  */
-void QCCTV_RemoteCamera::setFPS (const int fps)
+void QCCTV_RemoteCamera::changeFPS (const int fps)
 {
-    m_fps = QCCTV_GET_VALID_FPS (fps);
-    m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_fps));
-
-    emit fpsChanged (id());
+    m_newFPS = QCCTV_GET_VALID_FPS (fps);
+    m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
 }
 
 /**
@@ -194,16 +203,11 @@ void QCCTV_RemoteCamera::setFlashlightStatus (const int status)
 }
 
 /**
- * Updates the connection status of the camera and emits the appropiate signals
+ * Changes the resoltion of the camera
  */
-void QCCTV_RemoteCamera::setConnected (const bool status)
+void QCCTV_RemoteCamera::changeResolution (const int resolution)
 {
-    m_connected = status;
-
-    if (m_connected)
-        emit connected (id());
-    else
-        emit disconnected (id());
+    m_newResolution = resolution;
 }
 
 /**
@@ -232,6 +236,9 @@ void QCCTV_RemoteCamera::onDataReceived()
 
     if (!m_data.isEmpty())
         readCameraPacket();
+
+    if (m_data.size() >= QCCTV_MAX_BUFFER_SIZE)
+        m_data.clear();
 }
 
 /**
@@ -242,7 +249,7 @@ void QCCTV_RemoteCamera::onDisconnected()
     m_data.clear();
     m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
 
-    setConnected (false);
+    updateConnected (false);
     setAddress (address());
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 }
@@ -267,8 +274,11 @@ void QCCTV_RemoteCamera::sendCommandPacket()
 {
     /* Generate the data */
     QByteArray data;
-    data.append (fps());
-    data.append (lightStatus());
+    data.append (m_oldFPS);
+    data.append (m_newFPS);
+    data.append (m_oldResolution);
+    data.append (m_newResolution);
+    data.append (m_lightStatus);
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
 
     /* Send the generated data */
@@ -276,9 +286,32 @@ void QCCTV_RemoteCamera::sendCommandPacket()
 }
 
 /**
+ * Updates the \a fps reported by the camera
+ */
+void QCCTV_RemoteCamera::updateFPS (const int fps)
+{
+    if (m_oldFPS != fps) {
+        m_oldFPS = fps;
+        m_newFPS = fps;
+        emit fpsChanged (id());
+    }
+}
+
+/**
+ * Updates the operation status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::updateStatus (const int status)
+{
+    if (m_cameraStatus != status) {
+        m_cameraStatus = status;
+        emit newCameraStatus (id());
+    }
+}
+
+/**
  * Updates the \a name reported by the camera
  */
-void QCCTV_RemoteCamera::setName (const QString& name)
+void QCCTV_RemoteCamera::updateName (const QString& name)
 {
     if (m_name != name) {
         m_name = name;
@@ -291,13 +324,27 @@ void QCCTV_RemoteCamera::setName (const QString& name)
 }
 
 /**
- * Changes the operation status of the camera and emits the appropiate signals
+ * Updates the connection status of the camera and emits the appropiate signals
  */
-void QCCTV_RemoteCamera::setCameraStatus (const int status)
+void QCCTV_RemoteCamera::updateConnected (const bool status)
 {
-    if (m_cameraStatus != status) {
-        m_cameraStatus = status;
-        emit newCameraStatus (id());
+    m_connected = status;
+
+    if (m_connected)
+        emit connected (id());
+    else
+        emit disconnected (id());
+}
+
+/**
+ * Updates the image resolution status of the camera
+ */
+void QCCTV_RemoteCamera::updateResolution (const int resolution)
+{
+    if (m_oldResolution != resolution) {
+        m_newResolution = resolution;
+        m_oldResolution = resolution;
+        emit resolutionChanged (id());
     }
 }
 
@@ -344,11 +391,10 @@ void QCCTV_RemoteCamera::readCameraPacket()
 
     /* Compare checksums */
     quint32 crc = m_crc32.compute (stream);
-    if (checksum != crc)
+    if (checksum != crc) {
+        acknowledgeReception();
         return;
-
-    /* Let the camera know that we received data */
-    acknowledgeReception();
+    }
 
     /* Uncompress the stream data */
     stream = qUncompress (stream);
@@ -370,33 +416,32 @@ void QCCTV_RemoteCamera::readCameraPacket()
         return;
 
     /* Get camera FPS and status */
-    int fps = stream.at (name_len + 1);
-    int light = stream.at (name_len + 2);
-    int status = stream.at (name_len + 3);
+    quint8 fps = stream.at (name_len + 1);
+    quint8 light = stream.at (name_len + 2);
+    quint8 status = stream.at (name_len + 3);
+    quint8 resolution = stream.at (name_len + 4);
 
     /* Update values */
-    setFPS (fps);
-    setName (name);
-    setCameraStatus (status);
+    updateFPS (fps);
+    updateName (name);
+    updateStatus (status);
     setFlashlightStatus (light);
-
-    /* Let camera know that we received part of the data */
-    acknowledgeReception();
+    updateResolution (resolution);
 
     /* Stream is too small to get image length */
-    if (stream.size() < name_len + 7)
+    if (stream.size() < name_len + 8)
         return;
 
     /* Get image length */
-    quint8 img_a = stream.at (name_len + 4);
-    quint8 img_b = stream.at (name_len + 5);
-    quint8 img_c = stream.at (name_len + 6);
+    quint8 img_a = stream.at (name_len + 5);
+    quint8 img_b = stream.at (name_len + 6);
+    quint8 img_c = stream.at (name_len + 7);
     quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
 
     /* Get image bytes */
     QByteArray raw_image;
     for (quint32 i = 0; i < img_len; ++i) {
-        int pos = name_len + 7 + i;
+        int pos = name_len + 8 + i;
         if (stream.size() > pos)
             raw_image.append (stream [pos]);
         else
@@ -428,5 +473,5 @@ void QCCTV_RemoteCamera::acknowledgeReception()
     sendCommandPacket();
 
     if (!isConnected())
-        setConnected (true);
+        updateConnected (true);
 }

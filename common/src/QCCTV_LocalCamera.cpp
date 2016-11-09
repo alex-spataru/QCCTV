@@ -59,23 +59,12 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
              this,              SLOT (changeImage (QImage)));
 
     /* Set default values */
-    setResolution (QCCTV_CIF);
+    setName ("");
     setFPS (QCCTV_DEFAULT_FPS);
+    changeImage (QImage (0, 0));
+    setResolution (QCCTV_DEFAULT_RES);
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
-
-    /* Get host name (or OS name & version) */
-    QString name = QSysInfo::machineHostName();
-    if (name.isEmpty())
-        name = QSysInfo::prettyProductName();
-    else
-        name = name + " (" + QSysInfo::prettyProductName() + ")";
-
-    /* Set default camera name */
-    setName (name);
-
-    /* Set default image */
-    m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -95,12 +84,6 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
     foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
         watchdog->deleteLater();
 
-    if (m_camera)
-        delete m_camera;
-
-    if (m_capture)
-        delete m_capture;
-
     m_server.close();
     m_sockets.clear();
     m_watchdogs.clear();
@@ -113,6 +96,24 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
 int QCCTV_LocalCamera::fps() const
 {
     return m_fps;
+}
+
+/**
+ * Returns the minimum FPS value allowed by QCCTV, this function can be used
+ * to set control/widget limits of QML or classic interfaces
+ */
+int QCCTV_LocalCamera::minimumFPS() const
+{
+    return QCCTV_MIN_FPS;
+}
+
+/**
+ * Returns the maximum FPS value allowed by QCCTV, this function can be used
+ * to set control/widget limits of QML or classic interfaces
+ */
+int QCCTV_LocalCamera::maximumFPS() const
+{
+    return QCCTV_MAX_FPS;
 }
 
 /**
@@ -189,6 +190,15 @@ bool QCCTV_LocalCamera::readyForCapture() const
         return m_capture->isReadyForCapture();
 
     return false;
+}
+
+/**
+ * Returns the current resolution as an \c int, which can be used by QML
+ * interfaces directly
+ */
+int QCCTV_LocalCamera::currentResolution() const
+{
+    return (int) resolution();
 }
 
 /**
@@ -293,7 +303,21 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
  */
 void QCCTV_LocalCamera::setName (const QString& name)
 {
-    if (m_name != name) {
+    QString no_spaces = name;
+    no_spaces = no_spaces.replace (" ", "");
+
+    if (no_spaces.isEmpty()) {
+        QString host = QSysInfo::machineHostName();
+        if (host.isEmpty())
+            host = QSysInfo::prettyProductName();
+        else
+            host = host + " (" + QSysInfo::prettyProductName() + ")";
+
+        m_name = host;
+        emit cameraNameChanged();
+    }
+
+    else if (m_name != name) {
         m_name = name;
         emit cameraNameChanged();
     }
@@ -301,10 +325,22 @@ void QCCTV_LocalCamera::setName (const QString& name)
 
 /**
  * Changes the resolution of the image that the camera sends to the station
+ * \note This is an overloaded function
+ */
+void QCCTV_LocalCamera::setResolution (const int resolution)
+{
+    setResolution ((QCCTV_Resolution) resolution);
+}
+
+/**
+ * Changes the resolution of the image that the camera sends to the station
  */
 void QCCTV_LocalCamera::setResolution (const QCCTV_Resolution resolution)
 {
-    m_resolution = resolution;
+    if (m_resolution != resolution) {
+        m_resolution = resolution;
+        emit resolutionChanged();
+    }
 }
 
 /**
@@ -363,14 +399,6 @@ void QCCTV_LocalCamera::onDisconnected()
 }
 
 /**
- * Gradually lowers the image quality when the station fails to reply on time
- */
-void QCCTV_LocalCamera::onWatchdogTimeout()
-{
-    setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
-}
-
-/**
  * Called when a QCCTV station wants to receive images from this camera
  * This function shall configure the TCP socket used for streaming data
  */
@@ -412,15 +440,30 @@ void QCCTV_LocalCamera::readCommandPacket()
     m_cmdSocket.readDatagram (data.data(), data.length(), &address);
 
     /* Datagram is too small */
-    if (data.size() != 3)
+    if (data.size() < 6)
         return;
 
-    /* Set FPS and flashlight status */
-    setFPS ((quint8) data.at (0));
-    setFlashlightStatus ((QCCTV_LightStatus) data.at (1));
+    /* Obtain data */
+    quint8 old_fps = data.at (0);
+    quint8 new_fps = data.at (1);
+    quint8 old_res = data.at (2);
+    quint8 new_res = data.at (3);
+    quint8 s_flash = data.at (4);
+    quint8 s_focus = data.at (5);
+
+    /* Change FPS */
+    if (old_fps != new_fps && old_fps == fps())
+        setFPS (new_fps);
+
+    /* Set resolution */
+    if (old_res != new_res && old_res == currentResolution())
+        setResolution (new_res);
+
+    /* Set flashlight status */
+    setFlashlightStatus ((QCCTV_LightStatus) s_flash);
 
     /* Focus the camera */
-    if (data.at (2) == QCCTV_FORCE_FOCUS)
+    if (s_focus == QCCTV_FORCE_FOCUS)
         focusCamera();
 
     /* Feed the watchdog for this connection */
@@ -431,17 +474,32 @@ void QCCTV_LocalCamera::readCommandPacket()
 }
 
 /**
+ * Gradually lowers the image quality when the station fails to reply on time
+ */
+void QCCTV_LocalCamera::onWatchdogTimeout()
+{
+    setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
+}
+
+/**
  * Replaces the current image and notifies the application
  */
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_frameGrabber.setEnabled (false);
 
-    if (!image.isNull()) {
+    if (image.width() == 0 || image.height() == 0) {
+        m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
+        m_imageData = QCCTV_ENCODE_IMAGE (m_image, resolution());
+    }
+
+    else {
         m_imageData = QCCTV_ENCODE_IMAGE (image, resolution());
         m_image = QCCTV_DECODE_IMAGE (m_imageData);
-        emit imageChanged();
     }
+
+    if (!m_image.isNull())
+        emit imageChanged();
 }
 
 /**
@@ -492,6 +550,7 @@ void QCCTV_LocalCamera::generateData()
         m_data.append (fps());
         m_data.append (lightStatus());
         m_data.append (cameraStatus());
+        m_data.append (currentResolution());
 
         /* Add raw image bytes */
         if (!m_imageData.isEmpty()) {
