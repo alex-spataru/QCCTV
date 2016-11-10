@@ -166,16 +166,16 @@ ApplicationWindow {
             }
 
             /* Get available size */
-            var appWidth = app.width
-            var appHeight = app.height - toolbar.height
+            var w = app.width
+            var h = app.height
 
             /* Set initial size */
-            cellWidth = appWidth / Math.max (rows, 1)
-            cellHeight = appHeight / Math.max (cols, 1)
+            cellWidth = w / Math.max (rows, 1)
+            cellHeight = h / Math.max (cols, 1)
 
             /* Ensure that cells are not too small */
-            cellWidth = Math.max (cellWidth, Math.max (appWidth / 12, 140))
-            cellHeight = Math.max (cellHeight, Math.max (appHeight / 9, 100))
+            cellWidth = Math.max (cellWidth, Math.max (w / 12, 140))
+            cellHeight = Math.max (cellHeight, Math.max (h / 9, 100))
         }
 
         //

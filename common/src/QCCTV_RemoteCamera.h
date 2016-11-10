@@ -70,8 +70,9 @@ public slots:
     void setAddress (const QHostAddress& address);
 
 private slots:
+    void clearBuffer();
+    void endConnection();
     void onDataReceived();
-    void onDisconnected();
     void sendCommandPacket();
     void resetFocusRequest();
     void saveVideoRecording();
@@ -94,19 +95,17 @@ private:
 
     int m_oldFPS;
     int m_newFPS;
-
     int m_oldResolution;
     int m_newResolution;
 
     QString m_name;
     QImage m_image;
-    QByteArray m_data;
-    QHostAddress m_address;
+    QList<QImage> m_images;
     QCCTV_LightStatus m_lightStatus;
 
-    QList<QImage> m_images;
-
+    QByteArray m_data;
     QTcpSocket m_socket;
+    QHostAddress m_address;
     QUdpSocket m_commandSocket;
 
     QCCTV_CRC32 m_crc32;

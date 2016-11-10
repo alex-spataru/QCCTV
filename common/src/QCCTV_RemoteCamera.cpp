@@ -46,9 +46,11 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 
     /* Configure the socket */
     connect (&m_watchdog, SIGNAL (expired()),
-             this,          SLOT (onDisconnected()));
+             this,          SLOT (clearBuffer()));
     connect (&m_socket,   SIGNAL (readyRead()),
              this,          SLOT (onDataReceived()));
+    connect (&m_socket,   SIGNAL (disconnected()),
+             this,          SLOT (endConnection()));
 
     /* Start saving video to hard disk */
     saveVideoRecording();
@@ -235,6 +237,32 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 }
 
 /**
+ * Called when we stop receiving constant packets from the camera, this
+ * function deletes the temporary data buffer to avoid storing too much
+ * information that we cannot use directly
+ */
+void QCCTV_RemoteCamera::clearBuffer()
+{
+    m_data.clear();
+}
+
+/**
+ * Called when the TCP connection with the camera is closed. This function
+ * clears the temporary buffers and notifies the station that the
+ * connection with the camera has ended, which is sort like commiting suicide
+ * for this class...
+ */
+void QCCTV_RemoteCamera::endConnection()
+{
+    m_data.clear();
+    m_socket.abort();
+
+    updateConnected (false);
+    emit disconnected (id());
+}
+
+
+/**
  * Obtains the information received by the TCP socket and calls the functions
  * neccessary to interpret the received data
  */
@@ -247,19 +275,6 @@ void QCCTV_RemoteCamera::onDataReceived()
 
     if (m_data.size() >= QCCTV_MAX_BUFFER_SIZE)
         m_data.clear();
-}
-
-/**
- * Called when the TCP connection between the camera and the station is aborted
- */
-void QCCTV_RemoteCamera::onDisconnected()
-{
-    m_data.clear();
-    m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
-
-    updateConnected (false);
-    setAddress (address());
-    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 }
 
 /**
@@ -356,9 +371,6 @@ void QCCTV_RemoteCamera::updateConnected (const bool status)
         emit fpsChanged (id());
         emit resolutionChanged (id());
     }
-
-    else
-        emit disconnected (id());
 }
 
 /**

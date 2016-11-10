@@ -478,6 +478,9 @@ void QCCTV_LocalCamera::readCommandPacket()
  */
 void QCCTV_LocalCamera::onWatchdogTimeout()
 {
+    if (resolution() == QCCTV_QCIF)
+        return;
+
     setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
 }
 
