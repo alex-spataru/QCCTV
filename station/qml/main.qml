@@ -59,6 +59,8 @@ ApplicationWindow {
 
         Material.theme = Material.Dark
         Universal.theme = Universal.Dark
+
+        Material.accent = Material.Teal
     }
 
     //

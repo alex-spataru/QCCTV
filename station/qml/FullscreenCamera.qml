@@ -146,6 +146,8 @@ Item {
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
 
+        Material.theme: Material.Light
+
         ColumnLayout {
             spacing: app.spacing
             anchors.centerIn: parent
@@ -235,7 +237,7 @@ Item {
         Button {
             contentItem: Image {
                 fillMode: Image.Pad
-                source: "qrc:/images/tune.svg"
+                source: "qrc:/images/settings.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
             }

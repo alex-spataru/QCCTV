@@ -2,17 +2,12 @@
     <qresource prefix="/images">
         <file>back.svg</file>
         <file>camera.svg</file>
-        <file>more.svg</file>
         <file>qcctv.png</file>
-        <file>recordings.svg</file>
         <file>settings.svg</file>
-        <file>tune.svg</file>
         <file>volume-off.svg</file>
         <file>volume-on.svg</file>
         <file>flash-off.svg</file>
         <file>flash-on.svg</file>
-        <file>aspect-ratio.svg</file>
-        <file>update.svg</file>
         <file>warning.svg</file>
     </qresource>
 </RCC>

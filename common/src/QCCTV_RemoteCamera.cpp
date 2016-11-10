@@ -30,6 +30,14 @@
 #include <QApplication>
 #include <QFontDatabase>
 
+#if defined Q_OS_MAC
+    #define MONOSPACE_FONT "Menlo"
+#elif defined Q_OS_WIN
+    #define MONOSPACE_FONT "Consolas"
+#else
+    #define MONOSPACE_FONT "Monospace"
+#endif
+
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
     /* Initialize default variables */
@@ -516,7 +524,7 @@ QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
 
     /* Get font */
     QFont font;
-    font.setFamily ("Courier");
+    font.setFamily (MONOSPACE_FONT);
     font.setPixelSize (qMax (image.height() / 24, 9));
     QFontMetrics fm (font);
 
@@ -527,7 +535,7 @@ QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
     /* Paint text over image */
     QPainter painter (&image);
     painter.setFont (font);
-    painter.setPen (QPen (Qt::green));
+    painter.setPen (QPen (Qt::white));
     painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
 
     /* Return final image */
