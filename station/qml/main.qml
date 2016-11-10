@@ -21,13 +21,13 @@
  */
 
 import QtQuick 2.0
-import QtMultimedia 5.4
 import QtQuick.Layouts 1.0
-import QtQuick.Controls 1.0
 import Qt.labs.settings 1.0
 
+import QtQuick.Controls 2.0
+import QtQuick.Controls.Universal 2.0
+
 import "."
-import "qrc:/common/"
 
 ApplicationWindow {
     id: app
@@ -56,6 +56,8 @@ ApplicationWindow {
     Component.onCompleted: {
         if (isMobile)
             showMaximized()
+
+        Universal.theme = Universal.Dark
     }
 
     //
@@ -74,45 +76,106 @@ ApplicationWindow {
     Connections {
         target: QCCTVStation
         onCameraCountChanged: {
-            grid.model = 0
-            grid.model = QCCTVStation.cameraCount()
-            loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
             grid.redraw()
+            loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
         }
     }
+
+    //
+    // Toolbar (only visible during fullscreen camera)
+    //
+    header: ToolBar {
+        id: toolbar
+        height: opacity > 0 ? 48 : 0
+        opacity: grid.model > 0 ? (fullscreenCamera.enabled ? 1 : 0) : 0
+
+        Behavior on height { NumberAnimation{} }
+        Behavior on opacity { NumberAnimation{} }
+
+        RowLayout {
+            anchors.fill: parent
+            spacing: backBt.enabled ? app.spacing : 0
+
+            ToolButton {
+                id: backBt
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    source: "qrc:/images/back.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+
+                visible: opacity > 0
+                opacity: enabled ? 1 : 0
+                onClicked: fullscreenCamera.hideCamera()
+                enabled: !grid.enabled && grid.model > 1
+
+                Behavior on width { NumberAnimation{} }
+                Behavior on opacity { NumberAnimation{} }
+            }
+
+            Label {
+                id: title
+                font.pixelSize: 17
+                Layout.fillWidth: true
+                elide: Label.ElideRight
+                text: fullscreenCamera.cameraName
+                verticalAlignment: Qt.AlignVCenter
+                horizontalAlignment: Qt.AlignHCenter
+            }
+        }
+    }
+
 
     //
     // Camera grid
     //
     GridView {
         id: grid
-        focus: false
         anchors.fill: parent
 
         //
         // Re-sizes the cells to fit the application window size
         //
         function redraw() {
-            var h = 1
-            var w = 1
-            var bool = false
+            /* Reset the model */
+            model = 0
+            model = QCCTVStation.cameraCount()
 
-            while (h * w < model) {
-                if (bool)
-                    w += 1
-                else
-                    h += 1
-
-                bool = !bool
+            /* There is only one camera, show full screen controller */
+            if (model === 1) {
+                enabled = false
+                fullscreenCamera.showCamera (0)
+            } else if (fullscreenCamera.enabled) {
+                fullscreenCamera.hideCamera()
             }
 
+            /* Initialize variables */
+            var cols = 1
+            var rows = 1
+            var toggler = false
+
+            /* Calculate ideal rows and columns size */
+            while (cols * rows < model) {
+                if (toggler)
+                    rows += 1
+                else
+                    cols += 1
+
+                toggler = !toggler
+            }
+
+            /* Get available size */
+            var appWidth = app.width
+            var appHeight = app.height - toolbar.height
+
             /* Set initial size */
-            cellWidth = app.width / Math.max (w, 1)
-            cellHeight = app.height / Math.max (h, 1)
+            cellWidth = appWidth / Math.max (rows, 1)
+            cellHeight = appHeight / Math.max (cols, 1)
 
             /* Ensure that cells are not too small */
-            cellWidth = Math.max (cellWidth, Math.max (app.width / 12, 140))
-            cellHeight = Math.max (cellHeight, Math.max (app.height / 9, 100))
+            cellWidth = Math.max (cellWidth, Math.max (appWidth / 12, 140))
+            cellHeight = Math.max (cellHeight, Math.max (appHeight / 9, 100))
         }
 
         //
@@ -129,8 +192,8 @@ ApplicationWindow {
             camNumber: index
             enabled: grid.enabled
             width: grid.cellWidth
+            controlsEnabled: false
             height: grid.cellHeight
-            controlsEnabled: grid.model === 1
             onClicked: fullscreenCamera.showCamera (camNumber)
         }
     }
@@ -140,6 +203,8 @@ ApplicationWindow {
     //
     FullscreenCamera {
         id: fullscreenCamera
+        anchors.fill: parent
+        onCameraNameChanged: title.text = cameraName
     }
 
     //

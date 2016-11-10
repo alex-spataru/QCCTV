@@ -288,7 +288,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
     if (camera) {
         m_camera = camera;
         m_camera->setViewfinder (&m_frameGrabber);
-        m_camera->setCaptureMode (QCamera::CaptureViewfinder);
+        m_camera->setCaptureMode (QCamera::CaptureStillImage);
         m_camera->start();
 
         if (m_capture)

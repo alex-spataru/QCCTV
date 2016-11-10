@@ -23,36 +23,27 @@
 import QtQuick 2.0
 
 import "."
-import "qrc:/common/"
 
 Camera {
     id: cam
     opacity: 0
     enabled: false
-    onBack: hideCamera()
-    anchors.fill: parent
     controlsEnabled: true
 
     function hideCamera() {
-        grid.enabled = 1
         cam.opacity = 0
         cam.enabled = 0
+        grid.enabled = 1
     }
 
     function showCamera (camera) {
-        if (QCCTVStation.cameraCount() > 1) {
-            grid.enabled = 0
+        grid.enabled = 0
 
-            cam.opacity = 1
-            cam.enabled = 1
-            cam.camNumber = camera
-            cam.controlsEnabled = 1
+        cam.opacity = 1
+        cam.enabled = 1
+        cam.camNumber = camera
 
-            cam.reloadData()
-        }
-
-        else
-            hideCamera()
+        cam.reloadData()
     }
 
     Connections {

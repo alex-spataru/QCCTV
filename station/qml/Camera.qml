@@ -21,7 +21,8 @@
  */
 
 import QtQuick 2.0
-import "qrc:/common/"
+import QtQuick.Layouts 1.0
+import QtQuick.Controls 2.0
 
 Item {
     id: cam
@@ -29,39 +30,34 @@ Item {
     //
     // Signals
     //
-    signal back
     signal clicked
 
     //
     // Properties
     //
     property int camNumber: 0
+    property string cameraName: ""
     property bool controlsEnabled: !returnButtonEnabled
     property bool returnButtonEnabled: QCCTVStation.cameraCount() > 1
 
     //
-    // Loads the same image ID by changing URL (to trick the image element
-    // and force it to perform a redraw)
+    // Obtains latest camera data from QCCTV
     //
-    function reloadImage() {
+    function reloadData() {
+        fpsSpinbox.value = QCCTVStation.fps (camNumber)
+        cameraName = QCCTVStation.cameraName (camNumber)
+        resolutions.currentIndex = QCCTVStation.resolution (camNumber)
+        lightButton.flashOn = QCCTVStation.flashlightEnabled (camNumber)
+
         image.source = "image://qcctv/reload/" + camNumber
         image.source = "image://qcctv/" + camNumber
         image.sourceChanged (image.source)
+
+        minimalTitle.text = cameraName
     }
 
     //
-    // Reloads the information displayed by the camera object
-    //
-    function reloadData() {
-        reloadImage()
-        fps.text = QCCTVStation.fps (camNumber) + " FPS"
-        name.text = QCCTVStation.cameraName (camNumber)
-        altName.text = QCCTVStation.cameraName (camNumber)
-        status.text = QCCTVStation.statusString (camNumber)
-    }
-
-    //
-    // Load data during initialization
+    // Load initial camera data during creation
     //
     Component.onCompleted: reloadData()
 
@@ -72,26 +68,34 @@ Item {
         enabled: true
         target: QCCTVStation
 
-        onCameraStatusChanged: {
-            if (camera === camNumber)
-                status.text = QCCTVStation.statusString (camNumber)
-        }
-
         onNewCameraImage: {
-            if (camera === camNumber)
-                reloadImage()
-        }
-
-        onCameraNameChanged: {
             if (camera === camNumber) {
-                name.text = QCCTVStation.cameraName (camNumber)
-                altName.text = QCCTVStation.cameraName (camNumber)
+                image.source = "image://qcctv/reload/" + camNumber
+                image.source = "image://qcctv/" + camNumber
+                image.sourceChanged (image.source)
             }
         }
 
         onFpsChanged: {
             if (camera === camNumber)
-                fps.text = QCCTVStation.fps (camNumber) + " FPS"
+                fpsSpinbox.value = QCCTVStation.fps (camNumber)
+        }
+
+        onLightStatusChanged: {
+            if (camera === camNumber)
+                lightButton.flashOn = QCCTVStation.flashlightEnabled (camNumber)
+        }
+
+        onCameraNameChanged: {
+            if (camera === camNumber) {
+                cameraName = QCCTVStation.cameraName (camNumber)
+                minimalTitle.text = QCCTVStation.cameraName (camNumber)
+            }
+        }
+
+        onResolutionChanged: {
+            if (camera === camNumber)
+                resolutions.currentIndex = QCCTVStation.resolution (camNumber)
         }
     }
 
@@ -101,135 +105,210 @@ Item {
     Image {
         id: image
         cache: false
-        anchors.fill: cam
-        asynchronous: false
+        asynchronous: true
+        anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-
-        //
-        // Status label
-        //
-        Label {
-            id: status
-            color: "#888"
-            text: QCCTVStation.statusString (camNumber)
-
-            anchors {
-                right: parent.right
-                bottom: parent.bottom
-                margins: app.spacing
-            }
-
-            opacity: cam.controlsEnabled ? 1 : 0
-            Behavior on opacity { NumberAnimation {} }
-        }
-
-        //
-        // Alternative name label
-        //
-        Label {
-            id: altName
-            text: QCCTVStation.cameraName (camNumber)
-            font.pixelSize: Math.min (14, image.height / 12)
-
-            anchors {
-                top: parent.top
-                left: parent.left
-                margins: app.spacing
-            }
-
-            opacity: cam.controlsEnabled ? 0 : 1
-            Behavior on opacity { NumberAnimation {} }
-        }
-
-        //
-        // Allow user to enlarge camera image to fill app screen
-        //
-        MouseArea {
-            anchors.fill: parent
-            onClicked: cam.enabled ? cam.clicked() : undefined
-        }
     }
 
     //
-    // Back button
+    // Minimal title label (shown in the grid layout)
     //
-    Panel {
-        id: back
-        opacity: cam.controlsEnabled ? 1 : 0
-        width: cam.returnButtonEnabled ? menu.height : 0
-        height: cam.returnButtonEnabled > 0 ? menu.height : 0
-
-        //
-        // Animations
-        //
-        Behavior on width { NumberAnimation {} }
-        Behavior on height { NumberAnimation {} }
-        Behavior on opacity { NumberAnimation {} }
-        Behavior on anchors.margins { NumberAnimation {} }
-
-        //
-        // Layout options
-        //
-        anchors {
-            top: image.top
-            left: image.left
-            margins: cam.returnButtonEnabled ? app.spacing : 0
-        }
-
-        //
-        // Icon
-        //
-        Image {
-            anchors.centerIn: parent
-            sourceSize: Qt.size (18, 18)
-            visible: cam.returnButtonEnabled
-            source: "qrc:/common/images/back.png"
-        }
-
-        //
-        // Mouse area
-        //
-        MouseArea {
-            anchors.fill: parent
-            onClicked: cam.back()
-            enabled: cam.returnButtonEnabled && cam.enabled
-        }
-    }
-
-    //
-    // Top status bar
-    //
-    Panel {
-        id: menu
-        height: 24 + app.spacing
-        opacity: cam.controlsEnabled ? 1 : 0
+    Label {
+        id: minimalTitle
+        text: cameraName
+        font.pixelSize: Math.min (14, image.height / 12)
 
         anchors {
-            top: image.top
-            left: back.right
-            right: image.right
+            top: parent.top
+            left: parent.left
             margins: app.spacing
         }
 
-        Label {
-            id: name
-            text: QCCTVStation.cameraName (camNumber)
+        opacity: controlsEnabled ? 0 : 1
+    }
 
-            anchors {
-                left: parent.left
-                margins: app.spacing
-                verticalCenter: parent.verticalCenter
+    //
+    // Allow user to enlarge camera image to fill app screen
+    //
+    MouseArea {
+        anchors.fill: parent
+        onClicked: cam.enabled ? cam.clicked() : undefined
+    }
+
+    //
+    // FPS setter dialog
+    //
+    Popup {
+        id: fpsDialog
+
+        modal: true
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        Connections {
+            target: QCCTVStation
+            onCameraCountChanged: {
+                if (QCCTVStation.cameraCount() < 1 && visible)
+                    fpsDialog.close()
             }
         }
 
-        Label {
-            id: fps
-            text: QCCTVStation.fps (camNumber) + " FPS"
+        ColumnLayout {
+            spacing: app.spacing
+            anchors.centerIn: parent
+            anchors.margins: app.spacing
 
-            anchors {
-                right: parent.right
-                margins: app.spacing
-                verticalCenter: parent.verticalCenter
+            RowLayout {
+                spacing: app.spacing
+                Layout.fillHeight: true
+
+                Image {
+                    sourceSize: Qt.size (64, 64)
+                    source: "qrc:/images/update.svg"
+                }
+
+                ColumnLayout {
+                    spacing: app.spacing
+                    Layout.fillWidth: true
+
+                    Label {
+                        text: qsTr ("Set target FPS") + ":"
+                    }
+
+                    SpinBox {
+                        id: fpsSpinbox
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 180
+                        to: QCCTVStation.maximumFPS()
+                        from: QCCTVStation.minimumFPS()
+                        onValueChanged: QCCTVStation.changeFPS (camNumber, value)
+                    }
+                }
+            }
+
+            Button {
+                text: qsTr ("Close")
+                Layout.fillWidth: true
+                onClicked: fpsDialog.close()
+            }
+        }
+    }
+
+    //
+    // Camera Controls
+    //
+    RowLayout {
+        spacing: app.spacing
+        visible: controlsEnabled
+        enabled: controlsEnabled
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+            margins: app.spacing
+        }
+
+        //
+        // FPS button
+        //
+        Button {
+            enabled: controlsEnabled
+            contentItem: Image {
+                fillMode: Image.Pad
+                source: "qrc:/images/tune.svg"
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+            }
+
+            onClicked: fpsDialog.open()
+        }
+
+        //
+        // Light button
+        //
+        Button {
+            id: lightButton
+            enabled: controlsEnabled
+            property bool flashOn: false
+
+            contentItem: Image {
+                fillMode: Image.Pad
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+                source: parent.flashOn ? "qrc:/images/flash-on.svg" :
+                                         "qrc:/images/flash-off.svg"
+            }
+
+            onClicked: {
+                flashOn = !flashOn
+                QCCTVStation.setFlashlightEnabled (camNumber, flashOn)
+            }
+        }
+
+        //
+        // Sound button
+        //
+        Button {
+            id: soundButton
+            enabled: controlsEnabled
+            property bool soundOn: true
+
+            contentItem: Image {
+                fillMode: Image.Pad
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+                source: parent.soundOn ? "qrc:/images/volume-on.svg" :
+                                         "qrc:/images/volume-off.svg"
+            }
+
+            onClicked: {
+                soundOn = !soundOn
+            }
+        }
+
+        //
+        // Spacer
+        //
+        Item {
+            Layout.fillWidth: true
+        }
+
+        //
+        // Resolutions ComboBox
+        //
+        ComboBox {
+            id: resolutions
+            enabled: controlsEnabled
+            model: QCCTVStation.availableResolutions()
+
+            property bool firstIndexChange: true
+
+            contentItem: RowLayout {
+                spacing: app.spacing
+
+                Image {
+                    fillMode: Image.Pad
+                    source: "qrc:/images/aspect-ratio.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr ("Video Resolution")
+                }
+
+                Item {
+                    Layout.minimumWidth: app.spacing
+                }
+            }
+
+            onCurrentIndexChanged: {
+                if (!firstIndexChange)
+                    QCCTVStation.changeResolution (camNumber, currentIndex)
+                else
+                    firstIndexChange = false
             }
         }
     }

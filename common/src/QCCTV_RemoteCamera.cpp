@@ -23,7 +23,12 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
+#include <QPen>
+#include <QFont>
+#include <QPainter>
+#include <QDateTime>
 #include <QApplication>
+#include <QFontDatabase>
 
 QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 {
@@ -32,10 +37,10 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_focus = false;
     m_connected = false;
     m_name = "Unknown Camera";
-    m_oldFPS = QCCTV_DEFAULT_FPS;
     m_newFPS = QCCTV_DEFAULT_FPS;
-    m_oldResolution = QCCTV_DEFAULT_RES;
+    m_oldFPS = QCCTV_DEFAULT_FPS;
     m_newResolution = QCCTV_DEFAULT_RES;
+    m_oldResolution = QCCTV_DEFAULT_RES;
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
 
@@ -44,6 +49,9 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
              this,          SLOT (onDisconnected()));
     connect (&m_socket,   SIGNAL (readyRead()),
              this,          SLOT (onDataReceived()));
+
+    /* Start saving video to hard disk */
+    saveVideoRecording();
 
     /* Set default image & configure watchdog */
     m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
@@ -286,6 +294,19 @@ void QCCTV_RemoteCamera::sendCommandPacket()
 }
 
 /**
+ * Saves a video recording of the camera every 1 second
+ * \todo everything
+ */
+void QCCTV_RemoteCamera::saveVideoRecording()
+{
+    if (!m_images.isEmpty())
+        m_images.clear();
+
+    QTimer::singleShot (1000, Qt::PreciseTimer,
+                        this, SLOT (saveVideoRecording()));
+}
+
+/**
  * Updates the \a fps reported by the camera
  */
 void QCCTV_RemoteCamera::updateFPS (const int fps)
@@ -330,8 +351,12 @@ void QCCTV_RemoteCamera::updateConnected (const bool status)
 {
     m_connected = status;
 
-    if (m_connected)
+    if (m_connected) {
         emit connected (id());
+        emit fpsChanged (id());
+        emit resolutionChanged (id());
+    }
+
     else
         emit disconnected (id());
 }
@@ -442,6 +467,7 @@ void QCCTV_RemoteCamera::readCameraPacket()
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
+        m_images.append (addCurrentDateTime (img));
         emit newImage (id());
     }
 
@@ -464,4 +490,29 @@ void QCCTV_RemoteCamera::acknowledgeReception()
 
     if (!isConnected())
         updateConnected (true);
+}
+
+/**
+ * Writes the current date and time on the top-left corner of the given image
+ */
+QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
+{
+    QDateTime date = QDateTime::currentDateTime();
+    QString time = date.toString ("dd/MMM/yyyy hh:mm:ss");
+
+    QFont font;
+    font.setFamily ("Courier");
+    font.setPixelSize (qMax (image.height() / 18, 10));
+    QFontMetrics fm (font);
+
+    QRect rect (fm.height() / 2, fm.height() / 2,
+                image.width(), image.height());
+
+    QPainter painter (&image);
+    painter.setFont (font);
+    painter.setPen (QPen (Qt::green));
+    painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft,
+                      cameraName() + "\n" + time);
+
+    return image;
 }

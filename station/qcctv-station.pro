@@ -30,6 +30,7 @@ TARGET = QCCTV-Station
 QT += core
 QT += quick
 QT += widgets
+QT += quickcontrols2
 
 #-------------------------------------------------------------------------------
 # Deploy configuration
@@ -81,13 +82,11 @@ SOURCES += \
 
 RESOURCES += \
     $$PWD/qml/qml.qrc \
-    $$PWD/../etc/common/common.qrc
+    $$PWD/images/images.qrc
 
 OTHER_FILES += \
     $$PWD/qml/*.js \
-    $$PWD/qml/*.qml \
-    $$PWD/../etc/common/*.js \
-    $$PWD/../etc/common/*.qml \
+    $$PWD/qml/*.qml
 
 HEADERS += \
     $$PWD/src/ImageProvider.h

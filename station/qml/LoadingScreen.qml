@@ -21,12 +21,20 @@
  */
 
 import QtQuick 2.0
-import "qrc:/common/"
+import QtQuick.Layouts 1.0
+import QtQuick.Controls 2.0
 
 Item {
+    id: screen
+
+    Rectangle {
+        color: "#000"
+        anchors.fill: parent
+    }
+
     Image {
         anchors.centerIn: parent
-        source: "qrc:/common/images/qcctv_inverted.png"
+        source: "qrc:/images/qcctv.png"
         anchors.horizontalCenter: parent.horizontalCenter
     }
 

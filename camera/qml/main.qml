@@ -27,6 +27,8 @@ import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
 import QtGraphicalEffects 1.0
 
+import QtQuick.Controls.Universal 2.0
+
 import "qrc:/common/"
 
 ApplicationWindow {
@@ -73,6 +75,8 @@ ApplicationWindow {
     Component.onCompleted: {
         if (isMobile)
             showMaximized()
+
+        Universal.theme = Universal.Dark
     }
 
     //
@@ -206,7 +210,7 @@ ApplicationWindow {
             width: 54
             height: 54
             enabled: app.controlsEnabled
-            source: "qrc:/common/images//light.png"
+            source: "qrc:/common/images/light.png"
             anchors.verticalCenter: parent.verticalCenter
 
             onClicked: {
@@ -232,9 +236,9 @@ ApplicationWindow {
         Button {
             width: 64
             height: 64
-            onClicked: settings.showPanel()
             enabled: app.controlsEnabled
-            source: "qrc:/common/images//settings.png"
+            onClicked: settings.showPanel()
+            source: "qrc:/common/images/settings.png"
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -245,7 +249,7 @@ ApplicationWindow {
             width: 64
             height: 64
             enabled: app.controlsEnabled
-            source: "qrc:/common/images//camera.png"
+            source: "qrc:/common/images/camera.png"
             anchors.verticalCenter: parent.verticalCenter
             onClicked: {
                 if (QCCTVCamera.readyForCapture()) {
@@ -265,8 +269,8 @@ ApplicationWindow {
             width: 54
             height: 54
             enabled: app.controlsEnabled
-            source: "qrc:/common/images//focus.png"
             onClicked: QCCTVCamera.focusCamera()
+            source: "qrc:/common/images/focus.png"
             anchors.verticalCenter: parent.verticalCenter
         }
     }

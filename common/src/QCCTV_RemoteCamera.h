@@ -74,6 +74,7 @@ private slots:
     void onDisconnected();
     void sendCommandPacket();
     void resetFocusRequest();
+    void saveVideoRecording();
     void updateFPS (const int fps);
     void updateStatus (const int status);
     void updateName (const QString& name);
@@ -83,6 +84,7 @@ private slots:
 private:
     void readCameraPacket();
     void acknowledgeReception();
+    QImage addCurrentDateTime (QImage& image);
 
 private:
     int m_id;
@@ -101,6 +103,8 @@ private:
     QByteArray m_data;
     QHostAddress m_address;
     QCCTV_LightStatus m_lightStatus;
+
+    QList<QImage> m_images;
 
     QTcpSocket m_socket;
     QUdpSocket m_commandSocket;
