@@ -23,8 +23,8 @@
 import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
-
 import QtQuick.Controls 2.0
+import QtQuick.Controls.Material 2.0
 import QtQuick.Controls.Universal 2.0
 
 import "."
@@ -57,6 +57,7 @@ ApplicationWindow {
         if (isMobile)
             showMaximized()
 
+        Material.theme = Material.Dark
         Universal.theme = Universal.Dark
     }
 
@@ -80,52 +81,6 @@ ApplicationWindow {
             loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
         }
     }
-
-    //
-    // Toolbar (only visible during fullscreen camera)
-    //
-    header: ToolBar {
-        id: toolbar
-        height: opacity > 0 ? 48 : 0
-        opacity: grid.model > 0 ? (fullscreenCamera.enabled ? 1 : 0) : 0
-
-        Behavior on height { NumberAnimation{} }
-        Behavior on opacity { NumberAnimation{} }
-
-        RowLayout {
-            anchors.fill: parent
-            spacing: backBt.enabled ? app.spacing : 0
-
-            ToolButton {
-                id: backBt
-                contentItem: Image {
-                    fillMode: Image.Pad
-                    source: "qrc:/images/back.svg"
-                    verticalAlignment: Image.AlignVCenter
-                    horizontalAlignment: Image.AlignHCenter
-                }
-
-                visible: opacity > 0
-                opacity: enabled ? 1 : 0
-                onClicked: fullscreenCamera.hideCamera()
-                enabled: !grid.enabled && grid.model > 1
-
-                Behavior on width { NumberAnimation{} }
-                Behavior on opacity { NumberAnimation{} }
-            }
-
-            Label {
-                id: title
-                font.pixelSize: 17
-                Layout.fillWidth: true
-                elide: Label.ElideRight
-                text: fullscreenCamera.cameraName
-                verticalAlignment: Qt.AlignVCenter
-                horizontalAlignment: Qt.AlignHCenter
-            }
-        }
-    }
-
 
     //
     // Camera grid
@@ -192,7 +147,6 @@ ApplicationWindow {
             camNumber: index
             enabled: grid.enabled
             width: grid.cellWidth
-            controlsEnabled: false
             height: grid.cellHeight
             onClicked: fullscreenCamera.showCamera (camNumber)
         }
@@ -204,7 +158,6 @@ ApplicationWindow {
     FullscreenCamera {
         id: fullscreenCamera
         anchors.fill: parent
-        onCameraNameChanged: title.text = cameraName
     }
 
     //

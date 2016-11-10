@@ -89,13 +89,14 @@ extern QStringList QCCTV_AVAILABLE_RESOLUTIONS()
 {
     QStringList list;
 
-    list.append ("QCIF (176x120)");
-    list.append ("CIF (352x240)");
-    list.append ("2CIF (704x240)");
-    list.append ("4CIF (704x480)");
-    list.append ("D1 (720x480)");
-    list.append ("720p (1280x720)");
-    list.append ("960p (1280x960)");
+    list.append (QObject::tr ("QCIF (176x120)"));
+    list.append (QObject::tr ("CIF (352x240)"));
+    list.append (QObject::tr ("2CIF (704x240)"));
+    list.append (QObject::tr ("4CIF (704x480)"));
+    list.append (QObject::tr ("D1 (720x480)"));
+    list.append (QObject::tr ("720p (1280x720)"));
+    list.append (QObject::tr ("960p (1280x960)"));
+    list.append (QObject::tr ("Original Resolution"));
 
     return list;
 }
@@ -137,15 +138,18 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
         width = 1280;
         height = 960;
         break;
+    case QCCTV_Original:
+        width = image.width();
+        height = image.height();
     default:
-        width = 352;
-        height = 240;
+        width = image.width();
+        height = image.height();
         break;
     }
 
     /* Scale image */
-    QImage final = image.scaled (height, width,
-                                 Qt::KeepAspectRatioByExpanding,
+    QImage final = image.scaled (width, height,
+                                 Qt::KeepAspectRatio,
                                  Qt::SmoothTransformation);
 
     /* Save image to byte array */

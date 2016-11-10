@@ -50,13 +50,14 @@ enum QCCTV_CameraStatus {
  * Image resolutions
  */
 enum QCCTV_Resolution {
-    QCCTV_QCIF  = 0x00,
-    QCCTV_CIF   = 0x01,
-    QCCTV_2CIF  = 0x02,
-    QCCTV_4CIF  = 0x03,
-    QCCTV_D1    = 0x04,
-    QCCTV_720p  = 0x05,
-    QCCTV_960p  = 0x06,
+    QCCTV_QCIF     = 0x00,
+    QCCTV_CIF      = 0x01,
+    QCCTV_2CIF     = 0x02,
+    QCCTV_4CIF     = 0x03,
+    QCCTV_D1       = 0x04,
+    QCCTV_720p     = 0x05,
+    QCCTV_960p     = 0x06,
+    QCCTV_Original = 0x07,
 };
 
 /*

@@ -478,8 +478,8 @@ void QCCTV_RemoteCamera::readCameraPacket()
     /* Decode image */
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
-        m_image = img;
         m_images.append (addCurrentDateTime (img));
+        m_image = m_images.last();
         emit newImage (id());
     }
 
@@ -509,22 +509,27 @@ void QCCTV_RemoteCamera::acknowledgeReception()
  */
 QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
 {
-    QDateTime date = QDateTime::currentDateTime();
-    QString time = date.toString ("dd/MMM/yyyy hh:mm:ss");
+    /* Construct strings */
+    QDateTime current = QDateTime::currentDateTimeUtc();
+    QString utc = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz UTC");
+    QString str = utc + "\n" + cameraName() + "\n" + statusString();
 
+    /* Get font */
     QFont font;
     font.setFamily ("Courier");
-    font.setPixelSize (qMax (image.height() / 18, 10));
+    font.setPixelSize (qMax (image.height() / 24, 9));
     QFontMetrics fm (font);
 
+    /* Get text location */
     QRect rect (fm.height() / 2, fm.height() / 2,
                 image.width(), image.height());
 
+    /* Paint text over image */
     QPainter painter (&image);
     painter.setFont (font);
     painter.setPen (QPen (Qt::green));
-    painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft,
-                      cameraName() + "\n" + time);
+    painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
 
+    /* Return final image */
     return image;
 }
