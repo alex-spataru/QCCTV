@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2016 Alex Spataru
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -48,7 +48,6 @@ Item {
         fpsSpinbox.value = fps
         fpsText.text = fps + " FPS"
     }
-
     onResolutionChanged: resolutions.currentIndex = resolution
     onAutoRegulateChanged: {
         autoRegulateCheck.checked = autoRegulate
@@ -243,6 +242,7 @@ Item {
 
             ComboBox {
                 id: resolutions
+                Layout.fillWidth: true
                 Layout.minimumWidth: 220
                 model: QCCTVStation.availableResolutions()
 
