@@ -60,12 +60,11 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
 
     /* Set default values */
     setName ("");
-    setFPS (QCCTV_DEFAULT_FPS);
-    changeImage (QImage (0, 0));
-    setAutoRegulateResolution (true);
-    setResolution (QCCTV_DEFAULT_RES);
-    setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
-    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
+    m_fps = QCCTV_DEFAULT_FPS;
+    m_autoRegulateResolution = true;
+    m_resolution = QCCTV_DEFAULT_RES;
+    m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
+    m_flashlightStatus = QCCTV_FLASHLIGHT_OFF;
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));

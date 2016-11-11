@@ -29,10 +29,12 @@ Item {
 
     signal clicked
     property int camNumber: 0
+    property string fps: ""
     property string cameraName: ""
     property string cameraStatus: ""
 
     Component.onCompleted: {
+        fps = QCCTVStation.fps (camNumber) + " FPS"
         cameraName = QCCTVStation.cameraName (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
 
@@ -51,6 +53,11 @@ Item {
                 image.source = "image://qcctv/" + camNumber
                 image.sourceChanged (image.source)
             }
+        }
+
+        onFpsChanged: {
+            if (camera === camNumber)
+                fps = QCCTVStation.fps (camNumber) + " FPS"
         }
 
         onCameraNameChanged: {
@@ -89,6 +96,11 @@ Item {
         Label {
             color: "#ccc"
             text: cameraStatus
+        }
+
+        Label {
+            color: "#ccc"
+            text: fps
         }
     }
 

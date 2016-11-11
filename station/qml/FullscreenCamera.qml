@@ -39,11 +39,16 @@ Item {
     property string cameraName: ""
     property string cameraStatus: ""
     property bool autoRegulate: true
+    property size buttonSize: Qt.size (48, 48)
 
     //
     // Update items automatically
     //
-    onFpsChanged: fpsSpinbox.value = fps
+    onFpsChanged: {
+        fpsSpinbox.value = fps
+        fpsText.text = fps + " FPS"
+    }
+
     onResolutionChanged: resolutions.currentIndex = resolution
     onAutoRegulateChanged: {
         autoRegulateCheck.checked = autoRegulate
@@ -60,6 +65,8 @@ Item {
         flashOn = QCCTVStation.flashlightEnabled (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
         autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
+
+        fpsText.text = fps + " FPS"
 
         image.source = "image://qcctv/reload/" + camNumber
         image.source = "image://qcctv/" + camNumber
@@ -191,6 +198,11 @@ Item {
             color: "#ccc"
             text: cameraStatus
         }
+
+        Label {
+            id: fpsText
+            color: "#ccc"
+        }
     }
 
     //
@@ -300,7 +312,7 @@ Item {
 
             contentItem: Image {
                 fillMode: Image.Pad
-                sourceSize: Qt.size (36, 36)
+                sourceSize: cam.buttonSize
                 source: "qrc:/images/back.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
@@ -315,7 +327,7 @@ Item {
         Button {
             contentItem: Image {
                 fillMode: Image.Pad
-                sourceSize: Qt.size (36, 36)
+                sourceSize: cam.buttonSize
                 source: "qrc:/images/settings.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
@@ -328,11 +340,9 @@ Item {
         // Light button
         //
         Button {
-            id: lightButton
-
             contentItem: Image {
                 fillMode: Image.Pad
-                sourceSize: Qt.size (36, 36)
+                sourceSize: cam.buttonSize
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
                 source: flashOn ? "qrc:/images/flash-on.svg" :
@@ -354,23 +364,21 @@ Item {
         }
 
         //
-        // Sound button
+        // Focus button
         //
         Button {
-            id: soundButton
-            property bool soundOn: true
-
             contentItem: Image {
                 fillMode: Image.Pad
-                sourceSize: Qt.size (36, 36)
+                sourceSize: cam.buttonSize
+                source: "qrc:/images/focus.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
-                source: parent.soundOn ? "qrc:/images/volume-on.svg" :
-                                         "qrc:/images/volume-off.svg"
             }
 
             onClicked: {
-                soundOn = !soundOn
+                QCCTVStation.focusCamera (camNumber)
+                tooltip.text = qsTr ("Focusing Camera") + "..."
+                tooltip.visible = true
             }
         }
 

@@ -65,6 +65,7 @@ public:
 
 public slots:
     void removeAllCameras();
+    void focusCamera (const int camera);
     void changeFPS (const int camera, const int fps);
     void setFlashlightEnabledAll (const bool enabled);
     void changeResolution (const int camera, const int resolution);

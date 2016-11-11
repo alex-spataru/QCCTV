@@ -240,6 +240,17 @@ void QCCTV_Station::removeAllCameras()
 }
 
 /**
+ * Instructs the remote \a camera to perform a focus
+ * \note If the \a camera parameter is invalid, then this function
+ *       shall have no effect
+ */
+void QCCTV_Station::focusCamera (const int camera)
+{
+    if (getCamera (camera))
+        getCamera (camera)->requestFocus();
+}
+
+/**
  * Changes the \a fps value of the given \a camera
  * \note If the \a camera parameter is invalid, then this function
  *       shall have no effect

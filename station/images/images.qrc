@@ -4,10 +4,8 @@
         <file>camera.svg</file>
         <file>qcctv.png</file>
         <file>settings.svg</file>
-        <file>volume-off.svg</file>
-        <file>volume-on.svg</file>
         <file>flash-off.svg</file>
         <file>flash-on.svg</file>
-        <file>warning.svg</file>
+        <file>focus.svg</file>
     </qresource>
 </RCC>
