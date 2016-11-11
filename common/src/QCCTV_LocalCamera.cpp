@@ -391,7 +391,7 @@ void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
         QCCTV_Watchdog* watchdog = new QCCTV_Watchdog (this);
-        watchdog->setExpirationTime (1000);
+        watchdog->setExpirationTime (500);
 
         m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());
