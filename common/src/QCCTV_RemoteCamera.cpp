@@ -44,11 +44,11 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_id = 0;
     m_focus = false;
     m_connected = false;
+    m_oldAutoRegulate = true;
+    m_newAutoRegulate = true;
     m_name = "Unknown Camera";
     m_newFPS = QCCTV_DEFAULT_FPS;
     m_oldFPS = QCCTV_DEFAULT_FPS;
-    m_oldAutoRegulate = true;
-    m_newAutoRegulate = true;
     m_newResolution = QCCTV_DEFAULT_RES;
     m_oldResolution = QCCTV_DEFAULT_RES;
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
@@ -420,6 +420,7 @@ void QCCTV_RemoteCamera::updateResolution (const int resolution)
 void QCCTV_RemoteCamera::updateAutoRegulate (const bool regulate)
 {
     if (m_oldAutoRegulate != regulate) {
+        m_newAutoRegulate = regulate;
         m_oldAutoRegulate = regulate;
         emit autoRegulateResolutionChanged (id());
     }
