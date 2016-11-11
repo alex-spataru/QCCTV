@@ -47,6 +47,8 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_name = "Unknown Camera";
     m_newFPS = QCCTV_DEFAULT_FPS;
     m_oldFPS = QCCTV_DEFAULT_FPS;
+    m_oldAutoRegulate = true;
+    m_newAutoRegulate = true;
     m_newResolution = QCCTV_DEFAULT_RES;
     m_oldResolution = QCCTV_DEFAULT_RES;
     m_lightStatus = QCCTV_FLASHLIGHT_OFF;
@@ -139,6 +141,14 @@ QString QCCTV_RemoteCamera::statusString() const
 QHostAddress QCCTV_RemoteCamera::address() const
 {
     return m_address;
+}
+
+/**
+ * Returns \c true if the camera is allowed to autoregulate its resolution
+ */
+bool QCCTV_RemoteCamera::autoRegulateResolution() const
+{
+    return m_oldAutoRegulate;
 }
 
 /**
@@ -245,6 +255,14 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 }
 
 /**
+ * Allows or disallows the camera from autoregulating its resolution
+ */
+void QCCTV_RemoteCamera::changeAutoRegulate (const bool regulate)
+{
+    m_newAutoRegulate = regulate;
+}
+
+/**
  * Called when we stop receiving constant packets from the camera, this
  * function deletes the temporary data buffer to avoid storing too much
  * information that we cannot use directly
@@ -311,6 +329,8 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     data.append (m_newResolution);
     data.append (m_lightStatus);
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
+    data.append (m_oldAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
+    data.append (m_newAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
 
     /* Send the generated data */
     m_commandSocket.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
@@ -378,6 +398,7 @@ void QCCTV_RemoteCamera::updateConnected (const bool status)
         emit connected (id());
         emit fpsChanged (id());
         emit resolutionChanged (id());
+        emit autoRegulateResolutionChanged (id());
     }
 }
 
@@ -390,6 +411,17 @@ void QCCTV_RemoteCamera::updateResolution (const int resolution)
         m_newResolution = resolution;
         m_oldResolution = resolution;
         emit resolutionChanged (id());
+    }
+}
+
+/**
+ * Updates the auto-regulate status flag of the camera
+ */
+void QCCTV_RemoteCamera::updateAutoRegulate (const bool regulate)
+{
+    if (m_oldAutoRegulate != regulate) {
+        m_oldAutoRegulate = regulate;
+        emit autoRegulateResolutionChanged (id());
     }
 }
 
@@ -454,11 +486,12 @@ void QCCTV_RemoteCamera::readCameraPacket()
             return;
     }
 
-    /* Get camera FPS and status */
+    /* Get camera information  */
     quint8 fps = stream.at (name_len + 1);
     quint8 light = stream.at (name_len + 2);
     quint8 status = stream.at (name_len + 3);
     quint8 resolution = stream.at (name_len + 4);
+    quint8 autoregulate = stream.at (name_len + 5);
 
     /* Update values */
     updateFPS (fps);
@@ -467,16 +500,22 @@ void QCCTV_RemoteCamera::readCameraPacket()
     setFlashlightStatus (light);
     updateResolution (resolution);
 
+    /* Update auto-regulate option */
+    if (autoregulate == QCCTV_AUTOREGULATE_RES)
+        updateAutoRegulate (true);
+    else
+        updateAutoRegulate (false);
+
     /* Get image length */
-    quint8 img_a = stream.at (name_len + 5);
-    quint8 img_b = stream.at (name_len + 6);
-    quint8 img_c = stream.at (name_len + 7);
+    quint8 img_a = stream.at (name_len + 6);
+    quint8 img_b = stream.at (name_len + 7);
+    quint8 img_c = stream.at (name_len + 8);
     quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
 
     /* Get image bytes */
     QByteArray raw_image;
     for (quint32 i = 0; i < img_len; ++i) {
-        int pos = name_len + 8 + i;
+        int pos = name_len + 9 + i;
         if (stream.size() > pos)
             raw_image.append (stream [pos]);
         else

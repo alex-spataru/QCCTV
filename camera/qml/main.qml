@@ -49,6 +49,7 @@ ApplicationWindow {
     property bool flashOn: false
     property string cameraName: ""
     property string cameraStatus: ""
+    property bool autoRegulate: true
 
     //
     // Settings
@@ -61,6 +62,7 @@ ApplicationWindow {
         property alias height: app.height
         property alias cameraName: app.cameraName
         property alias resolution: app.resolution
+        property alias autoRegulate: app.autoRegulate
     }
 
     //
@@ -78,6 +80,11 @@ ApplicationWindow {
         fpsSpin.value = fps
         fpsLabel.text = fps + " " + qsTr ("FPS")
     }
+
+    //
+    // Update the UI when the auto regulate variable changes
+    //
+    onAutoRegulateChanged: autoRegulateCheck.checked = autoRegulate
 
     //
     // Update the UI when the status changes
@@ -127,6 +134,7 @@ ApplicationWindow {
         onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
         onLightStatusChanged: flashOn = QCCTVCamera.flashlightEnabled()
         onCameraStatusChanged: cameraStatus = QCCTVCamera.statusString()
+        onAutoRegulateResolutionChanged: autoRegulate = QCCTVCamera.autoRegulateResolution()
     }
 
     //
@@ -194,7 +202,7 @@ ApplicationWindow {
             TextField {
                 id: nameInput
                 Layout.fillWidth: true
-                Layout.minimumWidth: 240
+                Layout.minimumWidth: 280
                 onTextChanged: QCCTVCamera.setName (text)
             }
 
@@ -225,6 +233,16 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 model: QCCTVCamera.availableResolutions()
                 onCurrentIndexChanged: QCCTVCamera.setResolution (currentIndex)
+            }
+
+            //
+            // Auto-regulate switch
+            //
+            Switch {
+                id: autoRegulateCheck
+                checked: QCCTVCamera.autoRegulateResolution()
+                text: qsTr ("Auto-regulate video resolution")
+                onCheckedChanged: QCCTVCamera.setAutoRegulateResolution (checked)
             }
 
             Item {

@@ -39,6 +39,7 @@ signals:
     void resolutionChanged (const int camera);
     void lightStatusChanged (const int camera);
     void cameraStatusChanged (const int camera);
+    void autoRegulateResolutionChanged (const int camera);
 
 public:
     QCCTV_Station();
@@ -58,6 +59,7 @@ public:
     Q_INVOKABLE QString statusString (const int camera);
     Q_INVOKABLE bool flashlightEnabled (const int camera);
     Q_INVOKABLE bool flashlightAvailable (const int camera);
+    Q_INVOKABLE bool autoRegulateResolution (const int camera);
 
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
@@ -67,6 +69,7 @@ public slots:
     void setFlashlightEnabledAll (const bool enabled);
     void changeResolution (const int camera, const int resolution);
     void setFlashlightEnabled (const int camera, const bool enabled);
+    void setAutoRegulateResolution (const int camera, const bool regulate);
 
 private slots:
     void removeCamera (const int camera);

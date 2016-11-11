@@ -62,6 +62,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     setName ("");
     setFPS (QCCTV_DEFAULT_FPS);
     changeImage (QImage (0, 0));
+    setAutoRegulateResolution (true);
     setResolution (QCCTV_DEFAULT_RES);
     setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
     setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
@@ -202,6 +203,15 @@ QStringList QCCTV_LocalCamera::connectedHosts() const
 }
 
 /**
+ * Returns \c true if the camera is allows to auto-regulate its image
+ * resolution to improve communication times
+ */
+bool QCCTV_LocalCamera::autoRegulateResolution() const
+{
+    return m_autoRegulateResolution;
+}
+
+/**
  * Returns the current status of the camera itself
  */
 int QCCTV_LocalCamera::cameraStatus() const
@@ -304,6 +314,18 @@ void QCCTV_LocalCamera::setFlashlightEnabled (const bool enabled)
 }
 
 /**
+ * Allows or disallows the camera from auto-regulating the image resolution
+ * to improve the communication times.
+ */
+void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
+{
+    if (m_autoRegulateResolution != regulate) {
+        m_autoRegulateResolution = regulate;
+        emit autoRegulateResolutionChanged();
+    }
+}
+
+/**
  * Obtains a new image from the camera and updates the camera status
  */
 void QCCTV_LocalCamera::update()
@@ -356,6 +378,9 @@ void QCCTV_LocalCamera::onDisconnected()
     /* Unregister watchdog and socket */
     m_sockets.removeAt (index);
     m_watchdogs.removeAt (index);
+
+    /* Notify application */
+    emit hostCountChanged();
 }
 
 /**
@@ -379,6 +404,8 @@ void QCCTV_LocalCamera::acceptConnection()
                  this,                 SLOT (onWatchdogTimeout()));
         connect (m_sockets.last(),   SIGNAL (disconnected()),
                  this,                 SLOT (onDisconnected()));
+
+        emit hostCountChanged();
     }
 }
 
@@ -400,7 +427,7 @@ void QCCTV_LocalCamera::readCommandPacket()
     m_cmdSocket.readDatagram (data.data(), data.length(), &address);
 
     /* Datagram is too small */
-    if (data.size() < 6)
+    if (data.size() < 8)
         return;
 
     /* Obtain data */
@@ -409,7 +436,9 @@ void QCCTV_LocalCamera::readCommandPacket()
     quint8 old_res = data.at (2);
     quint8 new_res = data.at (3);
     quint8 s_flash = data.at (4);
-    quint8 s_focus = data.at (5);
+    bool s_focus = (data.at (5) == QCCTV_FORCE_FOCUS);
+    bool old_reg = (data.at (6) == QCCTV_AUTOREGULATE_RES);
+    bool new_reg = (data.at (7) == QCCTV_AUTOREGULATE_RES);
 
     /* Change FPS */
     if (old_fps != new_fps && old_fps == fps())
@@ -423,8 +452,12 @@ void QCCTV_LocalCamera::readCommandPacket()
     setFlashlightStatus ((QCCTV_LightStatus) s_flash);
 
     /* Focus the camera */
-    if (s_focus == QCCTV_FORCE_FOCUS)
+    if (s_focus)
         focusCamera();
+
+    /* Change the auto-regulate resolution option */
+    if (old_reg != new_reg && old_reg == autoRegulateResolution())
+        setAutoRegulateResolution (new_reg);
 
     /* Feed the watchdog for this connection */
     foreach (QTcpSocket* socket, m_sockets) {
@@ -438,7 +471,7 @@ void QCCTV_LocalCamera::readCommandPacket()
  */
 void QCCTV_LocalCamera::onWatchdogTimeout()
 {
-    if (resolution() == QCCTV_QCIF)
+    if (resolution() == QCCTV_QCIF || !autoRegulateResolution())
         return;
 
     setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
@@ -514,6 +547,7 @@ void QCCTV_LocalCamera::generateData()
         m_data.append ((quint8) flashlightEnabled());
         m_data.append ((quint8) cameraStatus());
         m_data.append ((quint8) resolution());
+        m_data.append ((quint8) autoRegulateResolution());
 
         /* Add raw image bytes */
         if (!m_imageData.isEmpty()) {

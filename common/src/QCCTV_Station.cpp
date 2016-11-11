@@ -201,6 +201,21 @@ bool QCCTV_Station::flashlightAvailable (const int camera)
 }
 
 /**
+ * Returns \c true if the camera is allowed to auto-regulate the image
+ * resolution to improve communication times
+ *
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return \c false
+ */
+bool QCCTV_Station::autoRegulateResolution (const int camera)
+{
+    if (getCamera (camera))
+        return getCamera (camera)->autoRegulateResolution();
+
+    return false;
+}
+
+/**
  * Returns a pointer to the controller of the given \a camera
  * \note If an invalid camera ID is given to this function,
  *       then this function shall return a \c NULL pointer
@@ -267,6 +282,19 @@ void QCCTV_Station::setFlashlightEnabled (const int camera, const bool enabled)
 }
 
 /**
+ * Allows or disallows the \a camera to autoregulate its image resolution to
+ * improve communication tiems
+ * \note If the \a camera parameter is invalid, then this function shall
+ *       have no effect
+ */
+void QCCTV_Station::setAutoRegulateResolution (const int camera,
+                                               const bool regulate)
+{
+    if (getCamera (camera))
+        getCamera (camera)->changeAutoRegulate (regulate);
+}
+
+/**
  * Removes the given \a camera from the registered cameras list
  * \note Cameras that where registered after the removed camera shall
  *       change their respective ID's after calling this function
@@ -318,6 +346,8 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (newCameraImage (int)));
         connect (camera, SIGNAL (resolutionChanged (int)),
                  this,   SIGNAL (resolutionChanged (int)));
+        connect (camera, SIGNAL (autoRegulateResolutionChanged (int)),
+                 this,   SIGNAL (autoRegulateResolutionChanged (int)));
 
         camera->setAddress (ip);
     }

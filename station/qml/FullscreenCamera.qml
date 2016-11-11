@@ -38,12 +38,17 @@ Item {
     property bool flashOn: false
     property string cameraName: ""
     property string cameraStatus: ""
+    property bool autoRegulate: true
 
     //
     // Update items automatically
     //
     onFpsChanged: fpsSpinbox.value = fps
     onResolutionChanged: resolutions.currentIndex = resolution
+    onAutoRegulateChanged: {
+        autoRegulateCheck.checked = autoRegulate
+        QCCTVStation.setAutoRegulateResolution (camNumber, autoRegulate)
+    }
 
     //
     // Obtains latest camera data from QCCTV
@@ -54,6 +59,7 @@ Item {
         cameraName = QCCTVStation.cameraName (camNumber)
         flashOn = QCCTVStation.flashlightEnabled (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
+        autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
 
         image.source = "image://qcctv/reload/" + camNumber
         image.source = "image://qcctv/" + camNumber
@@ -135,6 +141,11 @@ Item {
                 cameraStatus = QCCTVStation.statusString (camNumber)
         }
 
+        onAutoRegulateResolutionChanged: {
+            if (camera === camNumber)
+                autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
+        }
+
         onCameraCountChanged: {
             backButton.visible = QCCTVStation.cameraCount() > 1
 
@@ -183,7 +194,7 @@ Item {
     }
 
     //
-    // FPS setter dialog
+    // Settings dialog
     //
     Popup {
         id: fpsDialog
@@ -231,6 +242,16 @@ Item {
                     else
                         firstIndexChange = false
                 }
+            }
+
+            Switch {
+                id: autoRegulateCheck
+                text: qsTr ("Auto-regulate video resolution")
+                onCheckedChanged: autoRegulate = checked
+            }
+
+            Item {
+                Layout.minimumHeight: app.spacing * 2
             }
 
             Button {

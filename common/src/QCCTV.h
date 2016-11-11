@@ -82,10 +82,11 @@ extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
 /*
  * Additional command flags
  */
-#define QCCTV_FORCE_FOCUS 5
+#define QCCTV_FORCE_FOCUS      0x01
+#define QCCTV_AUTOREGULATE_RES 0x01
 
 /*
- * Network ports
+ * Set network ports
  */
 #define QCCTV_STREAM_PORT    1100
 #define QCCTV_COMMAND_PORT   1150

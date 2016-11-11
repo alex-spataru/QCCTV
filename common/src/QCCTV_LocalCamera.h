@@ -43,11 +43,13 @@ class QCCTV_LocalCamera : public QObject
 signals:
     void fpsChanged();
     void imageChanged();
+    void hostCountChanged();
     void resolutionChanged();
     void cameraNameChanged();
     void lightStatusChanged();
     void focusStatusChanged();
     void cameraStatusChanged();
+    void autoRegulateResolutionChanged();
 
 public:
     QCCTV_LocalCamera();
@@ -65,6 +67,7 @@ public:
     Q_INVOKABLE bool flashlightEnabled() const;
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
+    Q_INVOKABLE bool autoRegulateResolution() const;
     Q_INVOKABLE QStringList availableResolutions() const;
 
 public slots:
@@ -75,6 +78,7 @@ public slots:
     void setName (const QString& name);
     void setResolution (const int resolution);
     void setFlashlightEnabled (const bool enabled);
+    void setAutoRegulateResolution (const bool regulate);
 
 private slots:
     void update();
@@ -98,6 +102,8 @@ private:
     int m_fps;
     int m_cameraStatus;
     int m_flashlightStatus;
+
+    bool m_autoRegulateResolution;
 
     QImage m_image;
     QString m_name;
