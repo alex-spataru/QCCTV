@@ -108,8 +108,8 @@ ApplicationWindow {
         if (isMobile)
             showMaximized()
 
-        Universal.theme = Universal.Dark
         Material.theme = Material.Dark
+        Material.accent = Material.Teal
 
         fps = QCCTVCamera.fps()
         cameraName = QCCTVCamera.cameraName()
