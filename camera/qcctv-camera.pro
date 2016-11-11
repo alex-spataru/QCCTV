@@ -89,13 +89,11 @@ SOURCES += \
 
 RESOURCES += \
     $$PWD/qml/qml.qrc \
-    $$PWD/../etc/common/common.qrc
+    $$PWD/images/images.qrc
 
 OTHER_FILES += \
     $$PWD/qml/*.js \
-    $$PWD/qml/*.qml \
-    $$PWD/../etc/common/*.js \
-    $$PWD/../etc/common/*.qml \
+    $$PWD/qml/*.qml
 
 DISTFILES += \
     $$PWD/android/AndroidManifest.xml

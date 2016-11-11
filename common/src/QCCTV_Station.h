@@ -57,6 +57,7 @@ public:
     Q_INVOKABLE QHostAddress address (const int camera);
     Q_INVOKABLE QString statusString (const int camera);
     Q_INVOKABLE bool flashlightEnabled (const int camera);
+    Q_INVOKABLE bool flashlightAvailable (const int camera);
 
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 

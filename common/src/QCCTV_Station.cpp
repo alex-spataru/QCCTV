@@ -181,8 +181,21 @@ QString QCCTV_Station::statusString (const int camera)
  */
 bool QCCTV_Station::flashlightEnabled (const int camera)
 {
-    if (getCamera (camera))
+    if (flashlightAvailable (camera))
         return (getCamera (camera)->lightStatus() == QCCTV_FLASHLIGHT_ON);
+
+    return false;
+}
+
+/**
+ * Returns \c true if the flashlight of the given \a camera works
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return \c flase
+ */
+bool QCCTV_Station::flashlightAvailable (const int camera)
+{
+    if (getCamera (camera))
+        return ! (getCamera (camera)->cameraStatus() & QCCTV_CAMSTATUS_LIGHT_FAILURE);
 
     return false;
 }
@@ -265,6 +278,11 @@ void QCCTV_Station::removeCamera (const int camera)
 
         m_cameraIPs.removeAt (camera);
         m_cameraList.removeAt (camera);
+
+        foreach (QCCTV_RemoteCamera* remoteCam, m_cameraList) {
+            if (remoteCam->id() > camera)
+                remoteCam->changeID (remoteCam->id() - 1);
+        }
 
         emit cameraCountChanged();
     }

@@ -25,36 +25,30 @@ import QtMultimedia 5.4
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
-import QtGraphicalEffects 1.0
 
+import QtQuick.Controls.Material 2.0
 import QtQuick.Controls.Universal 2.0
-
-import "qrc:/common/"
 
 ApplicationWindow {
     id: app
     
-    //
-    // Window geometry
-    //
     width: 720
     height: 480
-    x: isMobile ? 0 : 100
-    y: isMobile ? 0 : 100
-
-    //
-    // Window properties
-    //
     color: "#000"
     visible: true
+    x: isMobile ? 0 : 100
+    y: isMobile ? 0 : 100
     title: AppDspName + " " + AppVersion
 
     //
     // Global variables
     //
+    property var fps: 0
     property var spacing: 8
-    property int forceReload: 0
-    property bool controlsEnabled: true
+    property var resolution: 0
+    property bool flashOn: false
+    property string cameraName: ""
+    property string cameraStatus: ""
 
     //
     // Settings
@@ -62,25 +56,62 @@ ApplicationWindow {
     Settings {
         property alias x: app.x
         property alias y: app.y
+        property alias fps: app.fps
         property alias width: app.width
         property alias height: app.height
-        property alias fps: fpsSpinbox.value
-        property alias name: nameTextfield.text
-        property alias resolution: resolutions.currentIndex
+        property alias cameraName: app.cameraName
+        property alias resolution: app.resolution
     }
 
     //
-    // Show window correctly on mobile devices
+    // Update the UI when the camera name changes
+    //
+    onCameraNameChanged: {
+        nameLabel.text = cameraName
+        nameInput.text = cameraName
+    }
+
+    //
+    // Update the UI when the FPS changes
+    //
+    onFpsChanged: {
+        fpsSpin.value = fps
+        fpsLabel.text = fps + " " + qsTr ("FPS")
+    }
+
+    //
+    // Update the UI when the status changes
+    //
+    onCameraStatusChanged: statusLabel.text = cameraStatus
+
+    //
+    // Change the flashlight status when the user clicks on the flashlight
+    //
+    onFlashOnChanged: QCCTVCamera.setFlashlightEnabled (flashOn)
+
+    //
+    // Update the UI when the resolution chages
+    //
+    onResolutionChanged: resolutions.currentIndex = resolution
+
+    //
+    // Load the initial camera information during launch
     //
     Component.onCompleted: {
         if (isMobile)
             showMaximized()
 
         Universal.theme = Universal.Dark
+        Material.theme = Material.Dark
+
+        fps = QCCTVCamera.fps()
+        cameraName = QCCTVCamera.cameraName()
+        resolution = QCCTVCamera.resolution()
+        cameraStatus = QCCTVCamera.statusString()
     }
 
     //
-    // QCCTV signals/slots
+    // QCCTV-to-UI signal processing
     //
     Connections {
         target: QCCTVCamera
@@ -91,30 +122,15 @@ ApplicationWindow {
             image.sourceChanged (image.source)
         }
 
-        onFpsChanged: {
-            fps.text = QCCTVCamera.fps() + " FPS"
-            fpsSpinbox.value = QCCTVCamera.fps()
-        }
-
-        onCameraNameChanged: {
-            camName.text = QCCTVCamera.cameraName()
-            nameTextfield.text = QCCTVCamera.cameraName()
-        }
-
-        onFocusStatusChanged: {
-            status.display (qsTr ("Focusing Camera") + "...")
-        }
-
-        onLightStatusChanged: {
-            if (QCCTVCamera.flashlightOn())
-                status.display (qsTr ("Flashlight enabled"))
-            else
-                status.display (qsTr ("Flashlight disabled"))
-        }
+        onFpsChanged: fps = QCCTVCamera.fps()
+        onResolutionChanged: resolution = QCCTVCamera.resolution()
+        onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
+        onLightStatusChanged: flashOn = QCCTVCamera.flashlightEnabled()
+        onCameraStatusChanged: cameraStatus = QCCTVCamera.statusString()
     }
 
     //
-    // Video output
+    // Video output image
     //
     Image {
         id: image
@@ -122,377 +138,230 @@ ApplicationWindow {
         smooth: true
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: app.controlsEnabled = !app.controlsEnabled
-        }
-
-        Behavior on opacity { NumberAnimation{} }
     }
 
     //
-    // Blur image when settings panel is shown
+    // Camera information labels
     //
-    FastBlur {
-        id: blur
-        radius: 0
-        source: image
-        anchors.fill: parent
-
-        Behavior on radius { NumberAnimation {} }
-    }
-
-    //
-    // Top status bar
-    //
-    Panel {
-        id: menu
-        height: 24 + spacing
-        opacity: app.controlsEnabled ? 1 : 0
+    ColumnLayout {
+        spacing: app.spacing / 2
 
         anchors {
             top: parent.top
             left: parent.left
-            right: parent.right
             margins: app.spacing
         }
 
-        //
-        // Camera name
-        //
         Label {
-            id: camName
-            text: QCCTVCamera.cameraName()
-
-            anchors {
-                left: parent.left
-                margins: spacing
-                verticalCenter: parent.verticalCenter
-            }
+            id: nameLabel
+            color: "#fff"
         }
 
-        //
-        // FPS indicator
-        //
         Label {
-            id: fps
-            text: QCCTVCamera.fps() + " FPS"
+            id: statusLabel
+            color: "#ccc"
+        }
 
-            anchors {
-                right: parent.right
-                margins: spacing
-                verticalCenter: parent.verticalCenter
-            }
+        Label {
+            id: fpsLabel
+            color: "#ccc"
         }
     }
 
     //
-    // Action buttons
+    // Settings dialog
     //
-    Row {
-        id: buttons
-        spacing: app.spacing * 2
-        opacity: app.controlsEnabled ? 1 : 0
-
-        Behavior on opacity { NumberAnimation{} }
-
-        anchors {
-            bottom: parent.bottom
-            margins: app.spacing * 2
-            horizontalCenter: parent.horizontalCenter
-        }
-
-        //
-        // Light control button
-        //
-        Button {
-            width: 54
-            height: 54
-            enabled: app.controlsEnabled
-            source: "qrc:/common/images/light.png"
-            anchors.verticalCenter: parent.verticalCenter
-
-            onClicked: {
-                toggled = !toggled
-
-                QCCTVCamera.turnOffFlashlight()
-
-                if (QCCTVCamera.flashlightAvailable()) {
-                    if (toggled)
-                        QCCTVCamera.turnOnFlashlight()
-                    else
-                        QCCTVCamera.turnOffFlashlight()
-                }
-
-                else
-                    status.display (qsTr ("Flashlight Error"))
-            }
-        }
-
-        //
-        // Settings button
-        //
-        Button {
-            width: 64
-            height: 64
-            enabled: app.controlsEnabled
-            onClicked: settings.showPanel()
-            source: "qrc:/common/images/settings.png"
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        //
-        // Photo button
-        //
-        Button {
-            width: 64
-            height: 64
-            enabled: app.controlsEnabled
-            source: "qrc:/common/images/camera.png"
-            anchors.verticalCenter: parent.verticalCenter
-            onClicked: {
-                if (QCCTVCamera.readyForCapture()) {
-                    status.display (qsTr ("Saving Photo") + "...")
-                    QCCTVCamera.takePhoto()
-                }
-
-                else
-                    status.display (qsTr ("Camera not Ready!"))
-            }
-        }
-
-        //
-        // Focus button
-        //
-        Button {
-            width: 54
-            height: 54
-            enabled: app.controlsEnabled
-            onClicked: QCCTVCamera.focusCamera()
-            source: "qrc:/common/images/focus.png"
-            anchors.verticalCenter: parent.verticalCenter
-        }
-    }
-
-    //
-    // Status label
-    //
-    Panel {
-        id: status
-        height: 24
-        opacity: 0
-        width: Math.min (app.width * 0.6, sText.width * 2)
-        
-        anchors {
-            bottom: parent.bottom
-            bottomMargin: buttons.height + 6 * spacing
-            horizontalCenter: image.horizontalCenter
-        }
-
-        //
-        // Shows the status window with the given \a text
-        // for two seconds and then hides the window
-        //
-        function display (text) {
-            sTimer.restart()
-            sText.text = text
-            status.opacity = 1
-        }
-
-        //
-        // Window hide timer
-        //
-        Timer {
-            id: sTimer
-            interval: 2000
-            onTriggered: status.opacity = 0
-        }
-
-        //
-        // Dynamic status label
-        //
-        Label {
-            id: sText
-            anchors.centerIn: parent
-        }
-    }
-
-    //
-    // Settings panel
-    //
-    Item {
+    Popup {
         id: settings
-        Component.onCompleted: settings.hidePanel()
 
-        //
-        // Resize the margins when window size changes
-        //
-        Connections {
-            target: app
-            onWidthChanged: {
-                if (settings.anchors.leftMargin > 0)
-                    settings.anchors.leftMargin = app.width
-            }
-        }
+        modal: true
+        x: (app.width - width) / 2
+        y: (app.height - height) / 2
 
-        //
-        // Shows the settings dialog
-        //
-        function showPanel() {
-            blur.radius = 64
-            settings.opacity = 1
-            anchors.leftMargin = 0
-            controlsEnabled = false
-        }
+        Material.theme: Material.Light
+        Universal.theme: Universal.Light
 
-        //
-        // Hides the settings dialog
-        //
-        function hidePanel() {
-            blur.radius = 0
-            settings.opacity = 0
-            controlsEnabled = true
-            anchors.leftMargin = app.width
-        }
+        ColumnLayout {
+            spacing: app.spacing
 
-        //
-        // Geometry
-        //
-        anchors.fill: parent
-        anchors.leftMargin: parent.width
-
-        //
-        // Animations
-        //
-        Behavior on opacity { NumberAnimation{} }
-        Behavior on anchors.leftMargin { NumberAnimation{} }
-
-        //
-        // Disable all other mouse areas
-        //
-        MouseArea {
-            anchors.fill: parent
-            enabled: settings.opacity > 0
-        }
-
-        //
-        // Back button
-        //
-        Panel {
-            id: back
-            width: settingsLabel.height
-            height: settingsLabel.height
-
-            anchors {
-                top: parent.top
-                left: parent.left
-                margins: app.spacing
+            Label {
+                text: qsTr ("Camera Name") + ":"
             }
 
-            Image {
-                anchors.centerIn: parent
-                sourceSize: Qt.size (18, 18)
-                source: "qrc:/common/images/back.png"
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                enabled: settings.opacity > 0
-                onClicked: settings.hidePanel()
-            }
-        }
-
-        //
-        // Settings label
-        //
-        Panel {
-            id: settingsLabel
-            height: 24 + spacing
-
-            anchors {
-                top: parent.top
-                left: back.right
-                right: parent.right
-                margins: app.spacing
+            //
+            // Camera name text input
+            //
+            TextField {
+                id: nameInput
+                Layout.fillWidth: true
+                Layout.minimumWidth: 240
+                onTextChanged: QCCTVCamera.setName (text)
             }
 
             Label {
-                text: qsTr ("Settings")
+                text: qsTr ("Camera FPS") + ":"
+            }
 
-                anchors {
-                    left: parent.left
-                    margins: spacing
-                    verticalCenter: parent.verticalCenter
+            //
+            // FPS spinbox
+            //
+            SpinBox {
+                id: fpsSpin
+                Layout.fillWidth: true
+                to: QCCTVCamera.maximumFPS()
+                from: QCCTVCamera.minimumFPS()
+                onValueChanged: QCCTVCamera.setFPS (value)
+            }
+
+            Label {
+                text: qsTr ("Target Resolution") + ":"
+            }
+
+            //
+            // Resolution selector
+            //
+            ComboBox {
+                id: resolutions
+                Layout.fillWidth: true
+                model: QCCTVCamera.availableResolutions()
+                onCurrentIndexChanged: QCCTVCamera.setResolution (currentIndex)
+            }
+
+            Item {
+                Layout.minimumHeight: app.spacing * 2
+            }
+
+            //
+            // Close button
+            //
+            Button {
+                text: qsTr ("Close")
+                Layout.fillWidth: true
+                onClicked: settings.close()
+            }
+        }
+    }
+
+    //
+    // Camera control buttons
+    //
+    RowLayout {
+        id: row
+        spacing: app.spacing
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            margins: app.spacing
+            bottom: parent.bottom
+        }
+
+        function showTooltip (text) {
+            tooltip.text = text
+            tooltip.visible = true
+        }
+
+        //
+        // Status tooltip
+        //
+        ToolTip {
+            id: tooltip
+            timeout: 2000
+        }
+
+        //
+        // Spacer
+        //
+        Item {
+            Layout.fillWidth: true
+        }
+
+        //
+        // Settings Button
+        //
+        Button {
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: Qt.size (48, 48)
+                source: "qrc:/images/settings.svg"
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+            }
+
+            onClicked: settings.open()
+        }
+
+        //
+        // Camera Capture Button
+        //
+        Button {
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: Qt.size (48, 48)
+                source: "qrc:/images/camera.svg"
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+            }
+
+            onClicked: {
+                if (QCCTVCamera.readyForCapture()) {
+                    QCCTVCamera.takePhoto()
+                    row.showTooltip (qsTr ("Image Captured"))
                 }
+
+                else
+                    row.showTooltip (qsTr ("Camera not ready!"))
             }
         }
 
         //
-        // Controls
+        // Flashlight Button
         //
-        Panel {
-            anchors.fill: parent
-            anchors.margins: app.spacing
-            anchors.topMargin: settingsLabel.height + (2 * app.spacing)
-
-            ColumnLayout {
-                spacing: app.spacing
-                anchors.fill: parent
-                anchors.margins: app.spacing
-
-                Label {
-                    text: qsTr ("Camera Name") + ":"
-                }
-
-                TextField {
-                    id: nameTextfield
-                    Layout.fillWidth: true
-                    text: QCCTVCamera.cameraName()
-                    onTextChanged: {
-                        if (text.length > 0)
-                            QCCTVCamera.setName (text)
-                    }
-                }
-
-                Label {
-                    text: qsTr ("FPS") + ":"
-                }
-
-                SpinBox {
-                    id: fpsSpinbox
-                    Layout.fillWidth: true
-                    value: QCCTVCamera.fps()
-                    to: QCCTVCamera.maximumFPS()
-                    from: QCCTVCamera.minimumFPS()
-                    onValueChanged: QCCTVCamera.setFPS (value)
-                }
-
-                Label {
-                    text: qsTr ("Preferred Resolution") + ":"
-                }
-
-                ComboBox {
-                    id: resolutions
-                    Layout.fillWidth: true
-                    model: QCCTVCamera.availableResolutions()
-                    currentIndex: QCCTVCamera.currentResolution()
-                    onCurrentIndexChanged: QCCTVCamera.setResolution (currentIndex)
-                }
-
-                Label {
-                    color: "#ccc"
-                    font.pixelSize: 10
-                    Layout.fillWidth: true
-                    text: "* " + qsTr ("The resolution may be downsized " +
-                                       "automatically while streaming data " +
-                                       "to a QCCTV Station")
-                }
-
-                Item {
-                    Layout.fillHeight: true
-                }
+        Button {
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: Qt.size (48, 48)
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+                source: flashOn ? "qrc:/images/flash-on.svg" :
+                                  "qrc:/images/flash-off.svg"
             }
+
+            onClicked: {
+                flashOn = !flashOn
+
+                if (QCCTVCamera.flashlightAvailable())
+                    row.showTooltip (flashOn ? qsTr ("Flashlight On") :
+                                               qsTr ("Flashlight Off"))
+
+                else
+                    row.showTooltip (qsTr ("Flashlight Error"))
+            }
+        }
+
+        //
+        // Focus Button
+        //
+        Button {
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: Qt.size (48, 48)
+                source: "qrc:/images/focus.svg"
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+            }
+
+            onClicked: {
+                QCCTVCamera.focusCamera()
+                row.showTooltip (qsTr ("Focusing Camera") + "...")
+            }
+        }
+
+        //
+        // Spacer
+        //
+        Item {
+            Layout.fillWidth: true
         }
     }
 }

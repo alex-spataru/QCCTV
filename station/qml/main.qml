@@ -122,6 +122,12 @@ ApplicationWindow {
                 toggler = !toggler
             }
 
+            /* Force the UI to generate a 2x2 grid when having 2 cams */
+            if (model === 2) {
+                rows = 2
+                cols = 2
+            }
+
             /* Get available size */
             var w = app.width
             var h = app.height

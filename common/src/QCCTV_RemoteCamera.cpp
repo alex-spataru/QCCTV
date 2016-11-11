@@ -486,8 +486,8 @@ void QCCTV_RemoteCamera::readCameraPacket()
     /* Decode image */
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
+        m_image = img;
         m_images.append (addCurrentDateTime (img));
-        m_image = m_images.last();
         emit newImage (id());
     }
 
@@ -520,7 +520,7 @@ QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
     /* Construct strings */
     QDateTime current = QDateTime::currentDateTimeUtc();
     QString utc = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz UTC");
-    QString str = utc + "\n" + cameraName() + "\n" + statusString();
+    QString str = cameraName() + "\n" + utc;
 
     /* Get font */
     QFont font;

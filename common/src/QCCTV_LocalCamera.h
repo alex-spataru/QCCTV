@@ -54,32 +54,27 @@ public:
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
+    Q_INVOKABLE int resolution() const;
     Q_INVOKABLE int minimumFPS() const;
     Q_INVOKABLE int maximumFPS() const;
     Q_INVOKABLE int cameraStatus() const;
-    Q_INVOKABLE bool flashlightOn() const;
-    Q_INVOKABLE bool flashlightOff() const;
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE bool readyForCapture() const;
-    Q_INVOKABLE int currentResolution() const;
+    Q_INVOKABLE bool flashlightEnabled() const;
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
-    Q_INVOKABLE QCCTV_Resolution resolution() const;
-    Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
     Q_INVOKABLE QStringList availableResolutions() const;
 
 public slots:
     void takePhoto();
     void focusCamera();
-    void turnOnFlashlight();
-    void turnOffFlashlight();
     void setFPS (const int fps);
     void setCamera (QCamera* camera);
     void setName (const QString& name);
     void setResolution (const int resolution);
-    void setResolution (const QCCTV_Resolution resolution);
+    void setFlashlightEnabled (const bool enabled);
 
 private slots:
     void update();

@@ -32,15 +32,28 @@ Item {
     //
     // Properties
     //
+    property int fps: 0
     property int camNumber: 0
+    property int resolution: 0
+    property bool flashOn: false
+    property string cameraName: ""
+    property string cameraStatus: ""
+
+    //
+    // Update items automatically
+    //
+    onFpsChanged: fpsSpinbox.value = fps
+    onResolutionChanged: resolutions.currentIndex = resolution
 
     //
     // Obtains latest camera data from QCCTV
     //
     function reloadData() {
-        fpsSpinbox.value = QCCTVStation.fps (camNumber)
-        resolutions.currentIndex = QCCTVStation.resolution (camNumber)
-        lightButton.flashOn = QCCTVStation.flashlightEnabled (camNumber)
+        fps = QCCTVStation.fps (camNumber)
+        resolution = QCCTVStation.resolution (camNumber)
+        cameraName = QCCTVStation.cameraName (camNumber)
+        flashOn = QCCTVStation.flashlightEnabled (camNumber)
+        cameraStatus = QCCTVStation.statusString (camNumber)
 
         image.source = "image://qcctv/reload/" + camNumber
         image.source = "image://qcctv/" + camNumber
@@ -91,17 +104,17 @@ Item {
 
         onFpsChanged: {
             if (camera === camNumber && enabled)
-                fpsSpinbox.value = QCCTVStation.fps (camNumber)
+                fps = QCCTVStation.fps (camNumber)
         }
 
         onLightStatusChanged: {
             if (camera === camNumber && enabled)
-                lightButton.flashOn = QCCTVStation.flashlightEnabled (camNumber)
+                flashOn = QCCTVStation.flashlightEnabled (camNumber)
         }
 
         onResolutionChanged: {
             if (camera === camNumber && enabled)
-                resolutions.currentIndex = QCCTVStation.resolution (camNumber)
+                resolution = QCCTVStation.resolution (camNumber)
         }
 
         onDisconnected: {
@@ -110,6 +123,16 @@ Item {
 
             if (QCCTVStation.cameraCount() === 1)
                 showCamera (0)
+        }
+
+        onCameraNameChanged: {
+            if (camera === camNumber)
+                cameraName = QCCTVStation.cameraName (camNumber)
+        }
+
+        onCameraStatusChanged: {
+            if (camera === camNumber)
+                cameraStatus = QCCTVStation.statusString (camNumber)
         }
 
         onCameraCountChanged: {
@@ -131,9 +154,32 @@ Item {
     Image {
         id: image
         cache: false
-        asynchronous: false
+        asynchronous: true
         anchors.fill: parent
-        fillMode: Image.Stretch
+        fillMode: Image.PreserveAspectCrop
+    }
+
+    //
+    // Title labels
+    //
+    ColumnLayout {
+        spacing: app.spacing / 2
+
+        anchors {
+            top: parent.top
+            left: parent.left
+            margins: app.spacing
+        }
+
+        Label {
+            color: "#fff"
+            text: cameraName
+        }
+
+        Label {
+            color: "#ccc"
+            text: cameraStatus
+        }
     }
 
     //
@@ -142,7 +188,9 @@ Item {
     Popup {
         id: fpsDialog
 
+        dim: true
         modal: true
+
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
 
@@ -207,6 +255,14 @@ Item {
         }
 
         //
+        // Tooltip
+        //
+        ToolTip {
+            id: tooltip
+            timeout: 2000
+        }
+
+        //
         // Spacer
         //
         Item {
@@ -223,6 +279,7 @@ Item {
 
             contentItem: Image {
                 fillMode: Image.Pad
+                sourceSize: Qt.size (36, 36)
                 source: "qrc:/images/back.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
@@ -237,6 +294,7 @@ Item {
         Button {
             contentItem: Image {
                 fillMode: Image.Pad
+                sourceSize: Qt.size (36, 36)
                 source: "qrc:/images/settings.svg"
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
@@ -250,19 +308,27 @@ Item {
         //
         Button {
             id: lightButton
-            property bool flashOn: false
 
             contentItem: Image {
                 fillMode: Image.Pad
+                sourceSize: Qt.size (36, 36)
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
-                source: parent.flashOn ? "qrc:/images/flash-on.svg" :
-                                         "qrc:/images/flash-off.svg"
+                source: flashOn ? "qrc:/images/flash-on.svg" :
+                                  "qrc:/images/flash-off.svg"
             }
 
             onClicked: {
                 flashOn = !flashOn
-                QCCTVStation.setFlashlightEnabled (camNumber, flashOn)
+
+                if (flashOn && QCCTVStation.flashlightAvailable (camNumber))
+                    QCCTVStation.setFlashlightEnabled (camNumber, flashOn)
+
+                else if (flashOn) {
+                    flashOn = false
+                    tooltip.text = qsTr ("Flashlight Error")
+                    tooltip.visible = true
+                }
             }
         }
 
@@ -275,6 +341,7 @@ Item {
 
             contentItem: Image {
                 fillMode: Image.Pad
+                sourceSize: Qt.size (36, 36)
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
                 source: parent.soundOn ? "qrc:/images/volume-on.svg" :

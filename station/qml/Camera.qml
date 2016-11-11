@@ -29,8 +29,13 @@ Item {
 
     signal clicked
     property int camNumber: 0
+    property string cameraName: ""
+    property string cameraStatus: ""
 
     Component.onCompleted: {
+        cameraName = QCCTVStation.cameraName (camNumber)
+        cameraStatus = QCCTVStation.statusString (camNumber)
+
         image.source = "image://qcctv/reload/" + camNumber
         image.source = "image://qcctv/" + camNumber
         image.sourceChanged (image.source)
@@ -47,13 +52,44 @@ Item {
                 image.sourceChanged (image.source)
             }
         }
+
+        onCameraNameChanged: {
+            if (camera === camNumber)
+                cameraName = QCCTVStation.cameraName (camNumber)
+        }
+
+        onCameraStatusChanged: {
+            if (camera === camNumber)
+                cameraStatus = QCCTVStation.statusString (camNumber)
+        }
     }
 
     Image {
         id: image
         cache: false
+        asynchronous: true
         anchors.fill: parent
-        fillMode: Image.Stretch
+        fillMode: Image.PreserveAspectCrop
+    }
+
+    ColumnLayout {
+        spacing: app.spacing / 2
+
+        anchors {
+            top: parent.top
+            left: parent.left
+            margins: app.spacing
+        }
+
+        Label {
+            color: "#fff"
+            text: cameraName
+        }
+
+        Label {
+            color: "#ccc"
+            text: cameraStatus
+        }
     }
 
     MouseArea {

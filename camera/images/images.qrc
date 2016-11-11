@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>camera.svg</file>
+        <file>qcctv.png</file>
+        <file>settings.svg</file>
+        <file>flash-off.svg</file>
+        <file>flash-on.svg</file>
+        <file>focus.svg</file>
+    </qresource>
+</RCC>

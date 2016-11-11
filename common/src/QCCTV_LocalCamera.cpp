@@ -99,6 +99,15 @@ int QCCTV_LocalCamera::fps() const
 }
 
 /**
+ * Returns the current resolution as an \c int, which can be used by QML
+ * interfaces directly
+ */
+int QCCTV_LocalCamera::resolution() const
+{
+    return (int) m_resolution;
+}
+
+/**
  * Returns the minimum FPS value allowed by QCCTV, this function can be used
  * to set control/widget limits of QML or classic interfaces
  */
@@ -117,44 +126,12 @@ int QCCTV_LocalCamera::maximumFPS() const
 }
 
 /**
- * Returns the resolution of the image that the camera streams
- */
-QCCTV_Resolution QCCTV_LocalCamera::resolution() const
-{
-    return m_resolution;
-}
-
-/**
- * Returns the current status of the flashlight (on or off)
- */
-QCCTV_LightStatus QCCTV_LocalCamera::lightStatus() const
-{
-    return (QCCTV_LightStatus) m_flashlightStatus;
-}
-
-/**
  * Returns an ordered list with the available image resolutions, this function
  * can be used to populate a combobox or a QML model
  */
 QStringList QCCTV_LocalCamera::availableResolutions() const
 {
     return QCCTV_AVAILABLE_RESOLUTIONS();
-}
-
-/**
- * Returns \c true if the flash light is on
- */
-bool QCCTV_LocalCamera::flashlightOn() const
-{
-    return lightStatus() == QCCTV_FLASHLIGHT_ON;
-}
-
-/**
- * Returns \c true if the flash light is off
- */
-bool QCCTV_LocalCamera::flashlightOff() const
-{
-    return lightStatus() == QCCTV_FLASHLIGHT_OFF;
 }
 
 /**
@@ -193,12 +170,11 @@ bool QCCTV_LocalCamera::readyForCapture() const
 }
 
 /**
- * Returns the current resolution as an \c int, which can be used by QML
- * interfaces directly
+ * Returns the current status of the flashlight (on or off)
  */
-int QCCTV_LocalCamera::currentResolution() const
+bool QCCTV_LocalCamera::flashlightEnabled() const
 {
-    return (int) resolution();
+    return (bool) m_flashlightStatus;
 }
 
 /**
@@ -251,22 +227,6 @@ void QCCTV_LocalCamera::focusCamera()
         m_camera->searchAndLock (QCamera::LockFocus);
         emit focusStatusChanged();
     }
-}
-
-/**
- * Attempts to turn on the camera flashlight/torch
- */
-void QCCTV_LocalCamera::turnOnFlashlight()
-{
-    setFlashlightStatus (QCCTV_FLASHLIGHT_ON);
-}
-
-/**
- * Attempts to turn off the camera flashlight/torch
- */
-void QCCTV_LocalCamera::turnOffFlashlight()
-{
-    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 }
 
 /**
@@ -325,22 +285,22 @@ void QCCTV_LocalCamera::setName (const QString& name)
 
 /**
  * Changes the resolution of the image that the camera sends to the station
- * \note This is an overloaded function
  */
 void QCCTV_LocalCamera::setResolution (const int resolution)
 {
-    setResolution ((QCCTV_Resolution) resolution);
+    if ((int) m_resolution != resolution) {
+        m_resolution = (QCCTV_Resolution) resolution;
+        emit resolutionChanged();
+    }
 }
 
 /**
- * Changes the resolution of the image that the camera sends to the station
+ * Turns on or off the flashlight based on the value of the \a enabled
+ * parameter
  */
-void QCCTV_LocalCamera::setResolution (const QCCTV_Resolution resolution)
+void QCCTV_LocalCamera::setFlashlightEnabled (const bool enabled)
 {
-    if (m_resolution != resolution) {
-        m_resolution = resolution;
-        emit resolutionChanged();
-    }
+    setFlashlightStatus (enabled ? QCCTV_FLASHLIGHT_ON : QCCTV_FLASHLIGHT_OFF);
 }
 
 /**
@@ -406,7 +366,7 @@ void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
         QCCTV_Watchdog* watchdog = new QCCTV_Watchdog (this);
-        watchdog->setExpirationTime (500);
+        watchdog->setExpirationTime (1000);
 
         m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());
@@ -456,7 +416,7 @@ void QCCTV_LocalCamera::readCommandPacket()
         setFPS (new_fps);
 
     /* Set resolution */
-    if (old_res != new_res && old_res == currentResolution())
+    if (old_res != new_res && old_res == resolution())
         setResolution (new_res);
 
     /* Set flashlight status */
@@ -493,11 +453,11 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
 
     if (image.width() == 0 || image.height() == 0) {
         m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
-        m_imageData = QCCTV_ENCODE_IMAGE (m_image, resolution());
+        m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
     }
 
     else {
-        m_imageData = QCCTV_ENCODE_IMAGE (image, resolution());
+        m_imageData = QCCTV_ENCODE_IMAGE (image, (QCCTV_Resolution) resolution());
         m_image = QCCTV_DECODE_IMAGE (m_imageData);
     }
 
@@ -550,17 +510,17 @@ void QCCTV_LocalCamera::generateData()
         m_data.append (cameraName());
 
         /* Add FPS, light status and camera status */
-        m_data.append (fps());
-        m_data.append (lightStatus());
-        m_data.append (cameraStatus());
-        m_data.append (currentResolution());
+        m_data.append ((quint8) fps());
+        m_data.append ((quint8) flashlightEnabled());
+        m_data.append ((quint8) cameraStatus());
+        m_data.append ((quint8) resolution());
 
         /* Add raw image bytes */
         if (!m_imageData.isEmpty()) {
             m_data.append ((m_imageData.length() & 0xff0000) >> 16);
             m_data.append ((m_imageData.length() & 0xff00) >> 8);
             m_data.append ((m_imageData.length() & 0xff));
-            m_data.append (m_imageData);
+            m_data.append ((m_imageData));
         }
 
         /* Compress packet */
@@ -632,15 +592,14 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
     if (m_flashlightStatus == status)
         return;
 
-    if (!m_camera)
+    if (!flashlightAvailable()) {
+        emit lightStatusChanged();
         return;
-
-    if (!flashlightAvailable())
-        return;
+    }
 
     m_flashlightStatus = status;
 
-    if (flashlightOn()) {
+    if (flashlightEnabled()) {
         m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
         focusCamera();
     }

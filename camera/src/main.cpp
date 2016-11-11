@@ -65,7 +65,7 @@ int main (int argc, char* argv[])
     QCCTV_LocalCameraImage provider (&localCamera);
 
     /* Set application style */
-    QQuickStyle::setStyle ("Universal");
+    QQuickStyle::setStyle ("Material");
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS
