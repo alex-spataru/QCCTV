@@ -14,15 +14,19 @@ The QCCTV suite consists of two applications:
 - When the QCCTV Station receives a broadcast datagram from a camera, it attempts to establish a TCP connection with the camera
 - If the connection is established, then the camera will send *stream* packets periodically, which contain the following data:
     - CRC32 checksum
-    - Camera status byte
     - Camera name
-    - Flashlight status
-    - Camera FPS value
+	- Camera group
+	- Camera FPS value
+	- Camera status byte
+    - Flashlight status byte
+	- Auto-Resolution status byte
     - Compressed JPEG image
 - On the other hand, the QCCTV station will send *command* packets when it receives (and interprets) a stream packet, these packets contain the following data:
     - Desired camera FPS
-    - Flashlight status request (e.g. to remotely turn on or off the flashlight)
-    - A focus request (e.g. to force the camera to focus on an objective)
+	- Desired image resolution
+	- A focus request (e.g. to force the camera to focus on an objective)
+    - Desired flashlight status (e.g. to remotely turn on or off the flashlight)
+	- Auto-regulated resolution status (e.g to force the camera to send high-quality images)
 
 If the QCCTV station does not receive a stream packet in more than 2-5 seconds, then it will asume that the camera is dead and will re-establish the connection with the camera as soon as it receives another broadcast datagram from the camera.
 
