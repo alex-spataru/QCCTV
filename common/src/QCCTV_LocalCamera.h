@@ -43,6 +43,7 @@ class QCCTV_LocalCamera : public QObject
 signals:
     void fpsChanged();
     void imageChanged();
+    void groupNameChanged();
     void hostCountChanged();
     void resolutionChanged();
     void cameraNameChanged();
@@ -61,6 +62,7 @@ public:
     Q_INVOKABLE int maximumFPS() const;
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE QString cameraName() const;
+    Q_INVOKABLE QString cameraGroup() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE bool readyForCapture() const;
@@ -76,6 +78,7 @@ public slots:
     void setFPS (const int fps);
     void setCamera (QCamera* camera);
     void setName (const QString& name);
+    void setGroup (const QString& group);
     void setResolution (const int resolution);
     void setFlashlightEnabled (const bool enabled);
     void setAutoRegulateResolution (const bool regulate);
@@ -107,6 +110,7 @@ private:
 
     QImage m_image;
     QString m_name;
+    QString m_group;
     QByteArray m_data;
     QByteArray m_imageData;
 
@@ -123,6 +127,5 @@ private:
     QList<QTcpSocket*> m_sockets;
     QList<QCCTV_Watchdog*> m_watchdogs;
 };
-
 
 #endif

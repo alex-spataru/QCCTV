@@ -73,7 +73,7 @@ int QCCTV_Station::maximumFPS() const
  */
 int QCCTV_Station::cameraCount() const
 {
-    return m_cameraList.count();
+    return m_cameras.count();
 }
 
 /**
@@ -216,6 +216,21 @@ bool QCCTV_Station::autoRegulateResolution (const int camera)
 }
 
 /**
+ * Returns a list with the IP's of the connected cameras
+ */
+QList<QHostAddress> QCCTV_Station::cameraIPs()
+{
+    QList<QHostAddress> list;
+
+    for (int i = 0; i < cameraCount(); ++i) {
+        if (getCamera (i))
+            list.append (getCamera (i)->address());
+    }
+
+    return list;
+}
+
+/**
  * Returns a pointer to the controller of the given \a camera
  * \note If an invalid camera ID is given to this function,
  *       then this function shall return a \c NULL pointer
@@ -223,7 +238,7 @@ bool QCCTV_Station::autoRegulateResolution (const int camera)
 QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
 {
     if (camera < cameraCount())
-        return m_cameraList.at (camera);
+        return m_cameras.at (camera);
 
     return NULL;
 }
@@ -315,12 +330,13 @@ void QCCTV_Station::removeCamera (const int camera)
     if (getCamera (camera)) {
         getCamera (camera)->deleteLater();
 
-        m_cameraIPs.removeAt (camera);
-        m_cameraList.removeAt (camera);
+        m_cameras.removeAt (camera);
 
-        foreach (QCCTV_RemoteCamera* remoteCam, m_cameraList) {
-            if (remoteCam->id() > camera)
-                remoteCam->changeID (remoteCam->id() - 1);
+        foreach (QCCTV_RemoteCamera* cam, m_cameras) {
+            if (cam) {
+                if (cam->id() > camera)
+                    cam->changeID (cam->id() - 1);
+            }
         }
 
         emit cameraCountChanged();
@@ -337,11 +353,9 @@ void QCCTV_Station::removeCamera (const int camera)
  */
 void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
-    if (!ip.isNull() && !m_cameraIPs.contains (ip)) {
+    if (!ip.isNull() && !cameraIPs().contains (ip)) {
         QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
-        m_cameraIPs.append (ip);
-        m_cameraList.append (camera);
-        m_cameraList.last()->changeID (m_cameraList.count() - 1);
+        m_cameras.append (camera);
 
         connect (camera, SIGNAL (connected (int)),
                  this,   SIGNAL (connected (int)));
@@ -361,5 +375,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
 
         camera->setAddress (ip);
+        camera->changeID (cameraCount() - 1);
     }
 }

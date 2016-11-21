@@ -61,6 +61,7 @@ public:
     Q_INVOKABLE bool flashlightAvailable (const int camera);
     Q_INVOKABLE bool autoRegulateResolution (const int camera);
 
+    Q_INVOKABLE QList<QHostAddress> cameraIPs();
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 public slots:
@@ -78,8 +79,7 @@ private slots:
 
 private:
     QImage m_cameraError;
-    QList<QHostAddress> m_cameraIPs;
-    QList<QCCTV_RemoteCamera*> m_cameraList;
+    QList<QCCTV_RemoteCamera*> m_cameras;
 };
 
 #endif

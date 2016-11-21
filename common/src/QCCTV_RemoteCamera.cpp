@@ -43,6 +43,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     /* Initialize default variables */
     m_id = 0;
     m_focus = false;
+    m_group = "Default";
     m_connected = false;
     m_oldAutoRegulate = true;
     m_newAutoRegulate = true;
@@ -117,6 +118,14 @@ bool QCCTV_RemoteCamera::isConnected() const
 QString QCCTV_RemoteCamera::cameraName() const
 {
     return m_name;
+}
+
+/**
+ * Returns the group assigned to the camera
+ */
+QString QCCTV_RemoteCamera::cameraGroup() const
+{
+    return m_group;
 }
 
 /**
@@ -388,6 +397,21 @@ void QCCTV_RemoteCamera::updateName (const QString& name)
 }
 
 /**
+ * Updates the \a group reported by the camera
+ */
+void QCCTV_RemoteCamera::updateGroup (const QString& group)
+{
+    if (m_group != group) {
+        m_group = group;
+
+        if (m_group.isEmpty())
+            m_group = "Default";
+
+        emit newCameraGroup (id());
+    }
+}
+
+/**
  * Updates the connection status of the camera and emits the appropiate signals
  */
 void QCCTV_RemoteCamera::updateConnected (const bool status)
@@ -473,6 +497,7 @@ void QCCTV_RemoteCamera::readCameraPacket()
         return;
 
     /* Uncompress the stream data */
+    int offset = 0;
     stream = qUncompress (stream);
 
     /* Get camera name */
@@ -481,22 +506,38 @@ void QCCTV_RemoteCamera::readCameraPacket()
     for (int i = 0; i < name_len; ++i) {
         int pos = 1 + i;
         if (stream.size() > pos)
-            name.append (stream.at (1 + i));
+            name.append (stream.at (pos));
 
         else
             return;
     }
 
+    /* Get camera group */
+    QString group;
+    int group_len = stream.at (name_len + 1);
+    for (int i = 0; i < group_len; ++i) {
+        int pos = name_len + 2 + i;
+        if (stream.size() > pos)
+            group.append (stream.at (pos));
+
+        else
+            return;
+    }
+
+    /* Set offset value */
+    offset = name_len + group_len + 1;
+
     /* Get camera information  */
-    quint8 fps = stream.at (name_len + 1);
-    quint8 light = stream.at (name_len + 2);
-    quint8 status = stream.at (name_len + 3);
-    quint8 resolution = stream.at (name_len + 4);
-    quint8 autoregulate = stream.at (name_len + 5);
+    quint8 fps = stream.at (offset + 1);
+    quint8 light = stream.at (offset + 2);
+    quint8 status = stream.at (offset + 3);
+    quint8 resolution = stream.at (offset + 4);
+    quint8 autoregulate = stream.at (offset + 5);
 
     /* Update values */
     updateFPS (fps);
     updateName (name);
+    updateGroup (group);
     updateStatus (status);
     setFlashlightStatus (light);
     updateResolution (resolution);
@@ -508,15 +549,15 @@ void QCCTV_RemoteCamera::readCameraPacket()
         updateAutoRegulate (false);
 
     /* Get image length */
-    quint8 img_a = stream.at (name_len + 6);
-    quint8 img_b = stream.at (name_len + 7);
-    quint8 img_c = stream.at (name_len + 8);
+    quint8 img_a = stream.at (offset + 6);
+    quint8 img_b = stream.at (offset + 7);
+    quint8 img_c = stream.at (offset + 8);
     quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
 
     /* Get image bytes */
     QByteArray raw_image;
     for (quint32 i = 0; i < img_len; ++i) {
-        int pos = name_len + 9 + i;
+        int pos = offset + 9 + i;
         if (stream.size() > pos)
             raw_image.append (stream [pos]);
         else

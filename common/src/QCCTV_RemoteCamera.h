@@ -40,6 +40,7 @@ signals:
     void fpsChanged (const int id);
     void disconnected (const int id);
     void newCameraName (const int id);
+    void newCameraGroup (const int id);
     void newLightStatus (const int id);
     void newCameraStatus (const int id);
     void resolutionChanged (const int id);
@@ -54,6 +55,7 @@ public:
     Q_INVOKABLE int cameraStatus() const;
     Q_INVOKABLE bool isConnected() const;
     Q_INVOKABLE QString cameraName() const;
+    Q_INVOKABLE QString cameraGroup() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
@@ -82,6 +84,7 @@ private slots:
     void updateFPS (const int fps);
     void updateStatus (const int status);
     void updateName (const QString& name);
+    void updateGroup (const QString& group);
     void updateConnected (const bool status);
     void updateResolution (const int resolution);
     void updateAutoRegulate (const bool regulate);
@@ -107,6 +110,7 @@ private:
 
     QString m_name;
     QImage m_image;
+    QString m_group;
     QList<QImage> m_images;
     QCCTV_LightStatus m_lightStatus;
 

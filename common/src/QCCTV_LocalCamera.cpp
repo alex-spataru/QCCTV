@@ -60,6 +60,7 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
 
     /* Set default values */
     setName ("");
+    setGroup ("");
     m_fps = QCCTV_DEFAULT_FPS;
     m_autoRegulateResolution = true;
     m_resolution = QCCTV_DEFAULT_RES;
@@ -140,6 +141,14 @@ QStringList QCCTV_LocalCamera::availableResolutions() const
 QString QCCTV_LocalCamera::cameraName() const
 {
     return m_name;
+}
+
+/**
+ * Returns the user-assigned group of the camera
+ */
+QString QCCTV_LocalCamera::cameraGroup() const
+{
+    return m_group;
 }
 
 /**
@@ -290,6 +299,17 @@ void QCCTV_LocalCamera::setName (const QString& name)
         m_name = name;
         emit cameraNameChanged();
     }
+}
+
+/**
+ * Changes the \a group assigned to the camera
+ */
+void QCCTV_LocalCamera::setGroup (const QString& group)
+{
+    if (group.isEmpty())
+        m_group = "Default";
+    else
+        m_group = group;
 }
 
 /**
@@ -473,6 +493,9 @@ void QCCTV_LocalCamera::onWatchdogTimeout()
     if (resolution() == QCCTV_QCIF || !autoRegulateResolution())
         return;
 
+    if (connectedHosts().isEmpty())
+        return;
+
     setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
 }
 
@@ -539,7 +562,11 @@ void QCCTV_LocalCamera::generateData()
     if (m_data.isEmpty()) {
         /* Add camera name */
         m_data.append (cameraName().length());
-        m_data.append (cameraName());
+        m_data.append (cameraName().toLatin1());
+
+        /* Add camera group */
+        m_data.append (cameraGroup().length());
+        m_data.append (cameraGroup().toLatin1());
 
         /* Add FPS, light status and camera status */
         m_data.append ((quint8) fps());
