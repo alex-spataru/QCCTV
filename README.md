@@ -1,4 +1,4 @@
-# QCCTV
+# ![QCCTV](etc/qcctv.png)
 
 QCCTV allows you to use your devices (computers, mobile phones, tablets, etc.) to implement a CCTV network in your LAN.
 
