@@ -4,5 +4,6 @@
         <file>Camera.qml</file>
         <file>LoadingScreen.qml</file>
         <file>FullscreenCamera.qml</file>
+        <file>GroupView.qml</file>
     </qresource>
 </RCC>

@@ -52,11 +52,11 @@ public:
 
     Q_INVOKABLE int id() const;
     Q_INVOKABLE int fps() const;
-    Q_INVOKABLE int cameraStatus() const;
+    Q_INVOKABLE int status() const;
+    Q_INVOKABLE QImage image() const;
+    Q_INVOKABLE QString name() const;
+    Q_INVOKABLE QString group() const;
     Q_INVOKABLE bool isConnected() const;
-    Q_INVOKABLE QString cameraName() const;
-    Q_INVOKABLE QString cameraGroup() const;
-    Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE QHostAddress address() const;
     Q_INVOKABLE bool autoRegulateResolution() const;

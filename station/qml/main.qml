@@ -45,12 +45,6 @@ ApplicationWindow {
     property int spacing: 8
 
     //
-    // Resize grid cells when user resizes window
-    //
-    onWidthChanged: grid.redraw()
-    onHeightChanged: grid.redraw()
-
-    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
@@ -78,85 +72,38 @@ ApplicationWindow {
     //
     Connections {
         target: QCCTVStation
-        onCameraCountChanged: {
-            grid.redraw()
+        onGroupCountChanged: {
+            tabs.model = 0
+            tabs.model = QCCTVStation.groupCount()
             loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
         }
     }
 
     //
-    // Camera grid
+    // Group view
     //
-    GridView {
-        id: grid
+    Page {
         anchors.fill: parent
 
-        //
-        // Re-sizes the cells to fit the application window size
-        //
-        function redraw() {
-            /* Reset the model */
-            model = 0
-            model = QCCTVStation.cameraCount()
-
-            /* There is only one camera, show full screen controller */
-            if (model === 1) {
-                enabled = false
-                fullscreenCamera.showCamera (0)
-            } else if (fullscreenCamera.enabled) {
-                fullscreenCamera.hideCamera()
-            }
-
-            /* Initialize variables */
-            var cols = 1
-            var rows = 1
-            var toggler = false
-
-            /* Calculate ideal rows and columns size */
-            while (cols * rows < model) {
-                if (toggler)
-                    rows += 1
-                else
-                    cols += 1
-
-                toggler = !toggler
-            }
-
-            /* Force the UI to generate a 2x2 grid when having 2 cams */
-            if (model === 2) {
-                rows = 2
-                cols = 2
-            }
-
-            /* Get available size */
-            var w = app.width
-            var h = app.height
-
-            /* Set initial size */
-            cellWidth = w / Math.max (rows, 1)
-            cellHeight = h / Math.max (cols, 1)
-
-            /* Ensure that cells are not too small */
-            cellWidth = Math.max (cellWidth, Math.max (w / 12, 140))
-            cellHeight = Math.max (cellHeight, Math.max (h / 9, 100))
+        GroupView {
+            group: 0
+            id: groupView
+            anchors.fill: parent
         }
 
-        //
-        // Fade while hidding or showing
-        //
-        opacity: enabled ? 1 : 0
-        Behavior on opacity { NumberAnimation {} }
+        footer: TabBar {
+            Repeater {
+                id: tabs
+                delegate: TabButton {
+                    onClicked: {
+                        groupView.group = index
+                        groupView.redraw()
+                    }
 
-        //
-        // Camera view object
-        //
-        delegate: Camera {
-            id: cam
-            camNumber: index
-            enabled: grid.enabled
-            width: grid.cellWidth
-            height: grid.cellHeight
-            onClicked: fullscreenCamera.showCamera (camNumber)
+                    font.capitalization: Font.AllUppercase
+                    text: QCCTVStation.getGroupName (index)
+                }
+            }
         }
     }
 

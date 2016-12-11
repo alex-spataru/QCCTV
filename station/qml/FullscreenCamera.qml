@@ -42,13 +42,21 @@ Item {
     property size buttonSize: Qt.size (48, 48)
 
     //
-    // Update items automatically
+    // Update FPS automatically
     //
     onFpsChanged: {
         fpsSpinbox.value = fps
         fpsText.text = fps + " FPS"
     }
+
+    //
+    // Update resolution indicator automatically
+    //
     onResolutionChanged: resolutions.currentIndex = resolution
+
+    //
+    // Update auto-regulate checkbox automatically
+    //
     onAutoRegulateChanged: {
         autoRegulateCheck.checked = autoRegulate
         QCCTVStation.setAutoRegulateResolution (camNumber, autoRegulate)
@@ -78,15 +86,12 @@ Item {
     function hideCamera() {
         opacity = 0
         enabled = 0
-        grid.enabled = 1
     }
 
     //
     // Shows the camera widge
     //
     function showCamera (camera) {
-        grid.enabled = 0
-
         opacity = 1
         enabled = 1
         camNumber = camera
@@ -152,15 +157,7 @@ Item {
                 autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
         }
 
-        onCameraCountChanged: {
-            backButton.visible = QCCTVStation.cameraCount() > 1
-
-            if (QCCTVStation.cameraCount() === 1)
-                showCamera (0)
-
-            if (QCCTVStation.cameraCount() < 1 && fpsDialog.visible)
-                fpsDialog.close()
-        }
+        onCameraCountChanged: fpsDialog.close()
     }
 
     Behavior on opacity { NumberAnimation {}}
@@ -307,8 +304,6 @@ Item {
         //
         Button {
             id: backButton
-            visible: false
-            enabled: visible
 
             contentItem: Image {
                 fillMode: Image.Pad

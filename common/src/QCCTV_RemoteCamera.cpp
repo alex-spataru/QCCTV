@@ -43,7 +43,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     /* Initialize default variables */
     m_id = 0;
     m_focus = false;
-    m_group = "Default";
+    m_group = "Unknown";
     m_connected = false;
     m_oldAutoRegulate = true;
     m_newAutoRegulate = true;
@@ -98,9 +98,33 @@ int QCCTV_RemoteCamera::fps() const
 /**
  * Returns the operation status reported by the camera
  */
-int QCCTV_RemoteCamera::cameraStatus() const
+int QCCTV_RemoteCamera::status() const
 {
     return m_cameraStatus;
+}
+
+/**
+ * Returns the latest image captured by the camera
+ */
+QImage QCCTV_RemoteCamera::image() const
+{
+    return m_image;
+}
+
+/**
+ * Returns the name of the camera
+ */
+QString QCCTV_RemoteCamera::name() const
+{
+    return m_name;
+}
+
+/**
+ * Returns the group assigned to the camera
+ */
+QString QCCTV_RemoteCamera::group() const
+{
+    return m_group;
 }
 
 /**
@@ -110,30 +134,6 @@ int QCCTV_RemoteCamera::cameraStatus() const
 bool QCCTV_RemoteCamera::isConnected() const
 {
     return m_connected;
-}
-
-/**
- * Returns the name of the camera
- */
-QString QCCTV_RemoteCamera::cameraName() const
-{
-    return m_name;
-}
-
-/**
- * Returns the group assigned to the camera
- */
-QString QCCTV_RemoteCamera::cameraGroup() const
-{
-    return m_group;
-}
-
-/**
- * Returns the latest image captured by the camera
- */
-QImage QCCTV_RemoteCamera::currentImage() const
-{
-    return m_image;
 }
 
 /**
@@ -601,7 +601,7 @@ QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
     /* Construct strings */
     QDateTime current = QDateTime::currentDateTimeUtc();
     QString utc = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz UTC");
-    QString str = cameraName() + "\n" + utc;
+    QString str = name() + "\n" + utc;
 
     /* Get font */
     QFont font;

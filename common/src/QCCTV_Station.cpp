@@ -35,6 +35,8 @@ QCCTV_Station::QCCTV_Station()
              this, SIGNAL (cameraCountChanged()));
     connect (this, SIGNAL (disconnected (int)),
              this,   SLOT (removeCamera (int)));
+    connect (this, SIGNAL (cameraCountChanged()),
+             this,   SLOT (updateGroups()));
 
     /* Set camera error image */
     m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
@@ -69,11 +71,35 @@ int QCCTV_Station::maximumFPS() const
 }
 
 /**
+ * Returns the number of groups that have been found by the station
+ */
+int QCCTV_Station::groupCount() const
+{
+    return m_groups.count();
+}
+
+/**
  * Returns the number of cameras that the station is connected to
  */
 int QCCTV_Station::cameraCount() const
 {
     return m_cameras.count();
+}
+
+/**
+ * Returns the number of cameras associated with the given \a group ID
+ */
+int QCCTV_Station::cameraCount (const int group) const
+{
+    return getGroupCameras (group).count();
+}
+
+/**
+ * Returns a list with all available groups
+ */
+QStringList QCCTV_Station::groups() const
+{
+    return m_groups;
 }
 
 /**
@@ -83,6 +109,46 @@ int QCCTV_Station::cameraCount() const
 QStringList QCCTV_Station::availableResolutions() const
 {
     return QCCTV_AVAILABLE_RESOLUTIONS();
+}
+
+/**
+ * Returns a list with the ID of each camera assigned to the given \a group ID.
+ *
+ * The \a group ID can be obtained by using the \c indexOf(QString) function
+ * of the list returned by \a groups().
+ */
+QList<int> QCCTV_Station::getGroupCameraIDs (const int group) const
+{
+    QList<int> list;
+
+    foreach (QCCTV_RemoteCamera* camera, getGroupCameras (group))
+        list.append (camera->id());
+
+    return list;
+}
+
+/**
+ * Returns a list with the pointers to the cameras that are assigned to the given
+ * \a group ID
+ *
+ * The \a group ID can be obtained by using the \c indexOf(QString) function
+ * of the list returned by \a groups().
+ */
+QList<QCCTV_RemoteCamera*> QCCTV_Station::getGroupCameras (const int group) const
+{
+    QList<QCCTV_RemoteCamera*> list;
+
+    if (group < groupCount()) {
+        QString name = groups().at (group);
+        foreach (QCCTV_RemoteCamera* camera, m_cameras) {
+            if (camera) {
+                if (camera->group().toLower() == name.toLower())
+                    list.append (camera);
+            }
+        }
+    }
+
+    return list;
 }
 
 /**
@@ -117,7 +183,7 @@ int QCCTV_Station::resolution (const int camera)
 int QCCTV_Station::cameraStatus (const int camera)
 {
     if (getCamera (camera))
-        return getCamera (camera)->cameraStatus();
+        return getCamera (camera)->status();
 
     return -1;
 }
@@ -130,7 +196,7 @@ int QCCTV_Station::cameraStatus (const int camera)
 QString QCCTV_Station::cameraName (const int camera)
 {
     if (getCamera (camera))
-        return getCamera (camera)->cameraName();
+        return getCamera (camera)->name();
 
     return "";
 }
@@ -143,7 +209,7 @@ QString QCCTV_Station::cameraName (const int camera)
 QImage QCCTV_Station::currentImage (const int camera)
 {
     if (getCamera (camera))
-        return getCamera (camera)->currentImage();
+        return getCamera (camera)->image();
 
     return m_cameraError;
 }
@@ -195,7 +261,7 @@ bool QCCTV_Station::flashlightEnabled (const int camera)
 bool QCCTV_Station::flashlightAvailable (const int camera)
 {
     if (getCamera (camera))
-        return ! (getCamera (camera)->cameraStatus() & QCCTV_CAMSTATUS_LIGHT_FAILURE);
+        return ! (getCamera (camera)->status() & QCCTV_CAMSTATUS_LIGHT_FAILURE);
 
     return false;
 }
@@ -231,6 +297,18 @@ QList<QHostAddress> QCCTV_Station::cameraIPs()
 }
 
 /**
+ * Returns the name of the group at the given \a index
+ * This function is made available to ease QML-based implementations
+ */
+QString QCCTV_Station::getGroupName (const int group)
+{
+    if (group < groupCount())
+        return groups().at (group);
+
+    return "";
+}
+
+/**
  * Returns a pointer to the controller of the given \a camera
  * \note If an invalid camera ID is given to this function,
  *       then this function shall return a \c NULL pointer
@@ -241,6 +319,20 @@ QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
         return m_cameras.at (camera);
 
     return NULL;
+}
+
+/**
+ * Re-generates the camera groups list
+ */
+void QCCTV_Station::updateGroups()
+{
+    m_groups.clear();
+
+    foreach (QCCTV_RemoteCamera* camera, m_cameras)
+        if (!m_groups.contains (camera->group().toLower()))
+            m_groups.append (camera->group().toLower());
+
+    emit groupCountChanged();
 }
 
 /**
@@ -329,7 +421,6 @@ void QCCTV_Station::removeCamera (const int camera)
 {
     if (getCamera (camera)) {
         getCamera (camera)->deleteLater();
-
         m_cameras.removeAt (camera);
 
         foreach (QCCTV_RemoteCamera* cam, m_cameras) {
@@ -373,6 +464,8 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (resolutionChanged (int)));
         connect (camera, SIGNAL (autoRegulateResolutionChanged (int)),
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
+        connect (camera, SIGNAL (newCameraGroup (int)),
+                 this,     SLOT (updateGroups()));
 
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);

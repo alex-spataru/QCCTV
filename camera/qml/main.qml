@@ -48,6 +48,7 @@ ApplicationWindow {
     property var resolution: 0
     property bool flashOn: false
     property string cameraName: ""
+    property string cameraGroup: ""
     property string cameraStatus: ""
     property bool autoRegulate: true
 
@@ -62,6 +63,7 @@ ApplicationWindow {
         property alias height: app.height
         property alias cameraName: app.cameraName
         property alias resolution: app.resolution
+        property alias cameraGroup: app.cameraGroup
         property alias autoRegulate: app.autoRegulate
     }
 
@@ -72,6 +74,11 @@ ApplicationWindow {
         nameLabel.text = cameraName
         nameInput.text = cameraName
     }
+
+    //
+    // Update the UI when the camera group changes
+    //
+    onCameraGroupChanged: groupInput.text = cameraGroup
 
     //
     // Update the UI when the FPS changes
@@ -114,6 +121,7 @@ ApplicationWindow {
         fps = QCCTVCamera.fps()
         cameraName = QCCTVCamera.cameraName()
         resolution = QCCTVCamera.resolution()
+        cameraGroup = QCCTVCamera.cameraGroup()
         cameraStatus = QCCTVCamera.statusString()
     }
 
@@ -192,6 +200,9 @@ ApplicationWindow {
         ColumnLayout {
             spacing: app.spacing
 
+            //
+            // Camera name label
+            //
             Label {
                 text: qsTr ("Camera Name") + ":"
             }
@@ -206,6 +217,26 @@ ApplicationWindow {
                 onTextChanged: QCCTVCamera.setName (text)
             }
 
+            //
+            // Camera group label
+            //
+            Label {
+                text: qsTr ("Camera Group") + ":"
+            }
+
+            //
+            // Camera group text input
+            //
+            TextField {
+                id: groupInput
+                Layout.fillWidth: true
+                Layout.minimumWidth: 280
+                onTextChanged: QCCTVCamera.setGroup (text)
+            }
+
+            //
+            // FPS label
+            //
             Label {
                 text: qsTr ("Camera FPS") + ":"
             }
@@ -221,6 +252,9 @@ ApplicationWindow {
                 onValueChanged: QCCTVCamera.setFPS (value)
             }
 
+            //
+            // Resolution label
+            //
             Label {
                 text: qsTr ("Target Resolution") + ":"
             }
@@ -245,6 +279,9 @@ ApplicationWindow {
                 onCheckedChanged: QCCTVCamera.setAutoRegulateResolution (checked)
             }
 
+            //
+            // Spacer
+            //
             Item {
                 Layout.minimumHeight: app.spacing * 2
             }

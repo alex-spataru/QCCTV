@@ -30,6 +30,7 @@ class QCCTV_Station : public QObject
     Q_OBJECT
 
 signals:
+    void groupCountChanged();
     void cameraCountChanged();
     void connected (const int camera);
     void fpsChanged (const int camera);
@@ -47,8 +48,16 @@ public:
 
     Q_INVOKABLE int minimumFPS() const;
     Q_INVOKABLE int maximumFPS() const;
+
+    Q_INVOKABLE int groupCount() const;
     Q_INVOKABLE int cameraCount() const;
+    Q_INVOKABLE int cameraCount (const int group) const;
+
+    Q_INVOKABLE QStringList groups() const;
     Q_INVOKABLE QStringList availableResolutions() const;
+
+    Q_INVOKABLE QList<int> getGroupCameraIDs (const int group) const;
+    Q_INVOKABLE QList<QCCTV_RemoteCamera*> getGroupCameras (const int group) const;
 
     Q_INVOKABLE int fps (const int camera);
     Q_INVOKABLE int resolution (const int camera);
@@ -62,9 +71,11 @@ public:
     Q_INVOKABLE bool autoRegulateResolution (const int camera);
 
     Q_INVOKABLE QList<QHostAddress> cameraIPs();
+    Q_INVOKABLE QString getGroupName (const int group);
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
 public slots:
+    void updateGroups();
     void removeAllCameras();
     void focusCamera (const int camera);
     void changeFPS (const int camera, const int fps);
@@ -79,6 +90,7 @@ private slots:
 
 private:
     QImage m_cameraError;
+    QStringList m_groups;
     QList<QCCTV_RemoteCamera*> m_cameras;
 };
 
