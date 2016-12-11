@@ -38,9 +38,8 @@ Item {
         cameraName = QCCTVStation.cameraName (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
 
-        image.source = "image://qcctv/reload/" + camNumber
+        image.source = ""
         image.source = "image://qcctv/" + camNumber
-        image.sourceChanged (image.source)
     }
 
     Connections {
@@ -49,9 +48,8 @@ Item {
 
         onNewCameraImage: {
             if (camera === camNumber & enabled) {
-                image.source = "image://qcctv/reload/" + camNumber
+                image.source = ""
                 image.source = "image://qcctv/" + camNumber
-                image.sourceChanged (image.source)
             }
         }
 

@@ -75,9 +75,8 @@ Item {
 
         fpsText.text = fps + " FPS"
 
-        image.source = "image://qcctv/reload/" + camNumber
+        image.source = ""
         image.source = "image://qcctv/" + camNumber
-        image.sourceChanged (image.source)
     }
 
     //
@@ -108,14 +107,12 @@ Item {
     // React to QCCTV events
     //
     Connections {
-        enabled: true
         target: QCCTVStation
 
         onNewCameraImage: {
             if (camera === camNumber && enabled) {
-                image.source = "image://qcctv/reload/" + camNumber
+                image.source = ""
                 image.source = "image://qcctv/" + camNumber
-                image.sourceChanged (image.source)
             }
         }
 

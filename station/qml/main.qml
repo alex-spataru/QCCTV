@@ -52,9 +52,8 @@ ApplicationWindow {
             showMaximized()
 
         Material.theme = Material.Dark
-        Universal.theme = Universal.Dark
-
         Material.accent = Material.Teal
+        Universal.theme = Universal.Dark
     }
 
     //
@@ -80,26 +79,33 @@ ApplicationWindow {
     }
 
     //
-    // Group view
+    // Standard camera grid and group selector
     //
     Page {
         anchors.fill: parent
+        opacity: fullscreenCamera.enabled ? 0 : 1
 
+        Behavior on opacity { NumberAnimation{} }
+
+        //
+        // Camera grid
+        //
         GroupView {
-            group: 0
             id: groupView
             anchors.fill: parent
+            enabled: !fullscreenCamera.enabled
         }
 
+        //
+        // Group selector
+        //
         footer: TabBar {
+            opacity: 0.62
+
             Repeater {
                 id: tabs
                 delegate: TabButton {
-                    onClicked: {
-                        groupView.group = index
-                        groupView.redraw()
-                    }
-
+                    onClicked: groupView.group = index
                     font.capitalization: Font.AllUppercase
                     text: QCCTVStation.getGroupName (index)
                 }
@@ -113,6 +119,7 @@ ApplicationWindow {
     FullscreenCamera {
         id: fullscreenCamera
         anchors.fill: parent
+        Component.onCompleted: hideCamera()
     }
 
     //
