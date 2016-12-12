@@ -20,7 +20,7 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-import QtQuick 2.0
+import QtQuick 2.7
 import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.0
@@ -71,7 +71,7 @@ ApplicationWindow {
     //
     Connections {
         target: QCCTVStation
-        onGroupCountChanged: {
+        onCameraCountChanged: {
             tabs.model = 0
             tabs.model = QCCTVStation.groupCount()
             loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
@@ -93,7 +93,6 @@ ApplicationWindow {
         GroupView {
             id: groupView
             anchors.fill: parent
-            enabled: !fullscreenCamera.enabled
         }
 
         //
