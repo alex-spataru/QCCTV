@@ -76,6 +76,7 @@ public slots:
     void takePhoto();
     void focusCamera();
     void setFPS (const int fps);
+    void setCamera (QCamera* camera);
     void setName (const QString& name);
     void setGroup (const QString& group);
     void setResolution (const int resolution);
@@ -102,6 +103,7 @@ private:
 
 private:
     int m_fps;
+    int m_frame;
     int m_cameraStatus;
     int m_flashlightStatus;
 
@@ -112,6 +114,9 @@ private:
     QString m_group;
     QByteArray m_data;
     QByteArray m_imageData;
+
+    QCamera* m_camera;
+    QCameraImageCapture* m_capture;
 
     QCCTV_CRC32 m_crc32;
     QCCTV_Resolution m_resolution;

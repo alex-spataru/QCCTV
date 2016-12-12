@@ -22,6 +22,7 @@
 
 QT += core
 QT += network
+QT += multimedia
 
 CONFIG += c++11
 INCLUDEPATH += $$PWD/src

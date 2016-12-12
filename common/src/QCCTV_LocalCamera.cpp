@@ -26,6 +26,9 @@
 
 #include <QBuffer>
 #include <QSysInfo>
+#include <QCameraInfo>
+#include <QCameraExposure>
+#include <QCameraImageCapture>
 
 /**
  * Initializes the class by:
@@ -37,6 +40,10 @@
  */
 QCCTV_LocalCamera::QCCTV_LocalCamera()
 {
+    /* Initialize pointers */
+    m_camera = NULL;
+    m_capture = NULL;
+
     /* Configure sockets */
     connect (&m_server,    SIGNAL (newConnection()),
              this,           SLOT (acceptConnection()));
@@ -47,15 +54,13 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
     m_cmdSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ShareAddress);
 
-    /* Setup the image capturer */
-    connect (&m_imageCapture, SIGNAL (imageCaptured (QImage)),
-             this,              SLOT (changeImage   (QImage)));
+    /* Setup the frame grabber */
+    connect (&m_imageCapture, SIGNAL (newFrame (QImage)),
+             this,              SLOT (changeImage (QImage)));
 
-    /* Set default values (and emit signals) */
+    /* Set default values */
     setName ("");
     setGroup ("");
-
-    /* Set default values (without emiting signals) */
     m_fps = QCCTV_DEFAULT_FPS;
     m_autoRegulateResolution = true;
     m_resolution = QCCTV_DEFAULT_RES;
@@ -167,6 +172,9 @@ QString QCCTV_LocalCamera::statusString() const
  */
 bool QCCTV_LocalCamera::readyForCapture() const
 {
+    if (m_camera && m_capture)
+        return m_capture->isReadyForCapture();
+
     return false;
 }
 
@@ -183,6 +191,9 @@ bool QCCTV_LocalCamera::flashlightEnabled() const
  */
 bool QCCTV_LocalCamera::flashlightAvailable() const
 {
+    if (m_camera)
+        return m_camera->exposure()->isFlashReady();
+
     return false;
 }
 
@@ -221,6 +232,8 @@ int QCCTV_LocalCamera::cameraStatus() const
  */
 void QCCTV_LocalCamera::takePhoto()
 {
+    if (readyForCapture())
+        m_capture->capture();
 }
 
 /**
@@ -228,6 +241,10 @@ void QCCTV_LocalCamera::takePhoto()
  */
 void QCCTV_LocalCamera::focusCamera()
 {
+    if (m_camera) {
+        m_camera->searchAndLock (QCamera::LockFocus);
+        emit focusStatusChanged();
+    }
 }
 
 /**
@@ -238,6 +255,24 @@ void QCCTV_LocalCamera::setFPS (const int fps)
     if (m_fps != QCCTV_GET_VALID_FPS (fps)) {
         m_fps = QCCTV_GET_VALID_FPS (fps);
         emit fpsChanged();
+    }
+}
+
+/**
+ * Changes the camera used to capture images to send to the QCCTV network
+ */
+void QCCTV_LocalCamera::setCamera (QCamera* camera)
+{
+    if (camera) {
+        m_camera = camera;
+        m_camera->setViewfinder (&m_imageCapture);
+        m_camera->setCaptureMode (QCamera::CaptureStillImage);
+        m_camera->start();
+
+        if (m_capture)
+            delete m_capture;
+
+        m_capture = new QCameraImageCapture (m_camera);
     }
 }
 
@@ -314,12 +349,15 @@ void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
  */
 void QCCTV_LocalCamera::update()
 {
+    /* Generate a new camera status */
     updateStatus();
+
+    /* Enable the frame grabber */
+    m_imageCapture.setEnabled (true);
+
+    /* Construct a new stream of data to send */
     generateData();
     sendCameraData();
-
-    /* Instruct the frame-grabber to capture a new image */
-    m_imageCapture.captureImage();
 
     /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
@@ -466,8 +504,13 @@ void QCCTV_LocalCamera::onWatchdogTimeout()
  */
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
+    ++m_frame;
+    m_imageCapture.setEnabled (false);
+
     if (image.width() == 0 || image.height() == 0) {
-        m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
+        m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480),
+                                          QString ("NO IMAGE (Frame %1)").arg (m_frame));
+
         m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
     }
 
@@ -476,7 +519,8 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
         m_image = QCCTV_DECODE_IMAGE (m_imageData);
     }
 
-    emit imageChanged();
+    if (!m_image.isNull())
+        emit imageChanged();
 }
 
 /**
@@ -484,9 +528,15 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
  */
 void QCCTV_LocalCamera::updateStatus()
 {
-    /* Check if camera is available */
-    if (!readyForCapture())
+    /* No camera present */
+    if (!m_camera)
         addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
+
+    /* Check if camera is available */
+    else if (m_camera->status() != QCamera::ActiveStatus)
+        addStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
+
+    /* Video is OK, ensure that VIDEO_FAILURE is removed */
     else
         removeStatusFlag (QCCTV_CAMSTATUS_VIDEO_FAILURE);
 
@@ -613,10 +663,12 @@ void QCCTV_LocalCamera::setFlashlightStatus (const QCCTV_LightStatus status)
     m_flashlightStatus = status;
 
     if (flashlightEnabled()) {
-
-    } else {
-
+        m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
+        focusCamera();
     }
+
+    else
+        m_camera->exposure()->setFlashMode (QCameraExposure::FlashOff);
 
     emit lightStatusChanged();
 }

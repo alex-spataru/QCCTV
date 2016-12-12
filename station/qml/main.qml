@@ -45,6 +45,17 @@ ApplicationWindow {
     property int spacing: 8
 
     //
+    // Forces the UI to re-generate the tabs and camera grid
+    //
+    function generateGrid() {
+        tabs.model = 0
+        groupView.group = 0
+        fullscreenCamera.hideCamera()
+        tabs.model = QCCTVStation.groupCount()
+        loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
+    }
+
+    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
@@ -71,11 +82,8 @@ ApplicationWindow {
     //
     Connections {
         target: QCCTVStation
-        onCameraCountChanged: {
-            tabs.model = 0
-            tabs.model = QCCTVStation.groupCount()
-            loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
-        }
+        onGroupCountChanged: generateGrid()
+        onCameraCountChanged: generateGrid()
     }
 
     //

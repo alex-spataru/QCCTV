@@ -23,21 +23,29 @@
 #ifndef _QCCTV_IMAGE_CAPTURE_H
 #define _QCCTV_IMAGE_CAPTURE_H
 
-#include <QImage>
 #include <QObject>
+#include <QAbstractVideoSurface>
 
-class QCCTV_ImageCapture : public QObject
+class QCCTV_ImageCapture : public QAbstractVideoSurface
 {
     Q_OBJECT
 
 signals:
-    void imageCaptured (const QImage& frame);
+    void newFrame (const QImage& frame);
 
 public:
     QCCTV_ImageCapture (QObject* parent = NULL);
 
+    bool isEnabled() const;
+    bool present (const QVideoFrame& frame);
+    QList<QVideoFrame::PixelFormat> supportedPixelFormats
+    (QAbstractVideoBuffer::HandleType handleType) const;
+
 public slots:
-    void captureImage();
+    void setEnabled (const bool enabled);
+
+private:
+    bool m_enabled;
 };
 
 #endif

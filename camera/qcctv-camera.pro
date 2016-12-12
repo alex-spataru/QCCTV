@@ -31,7 +31,6 @@ QT += svg
 QT += core
 QT += quick
 QT += widgets
-QT += multimedia
 QT += quickcontrols2
 
 #-------------------------------------------------------------------------------
