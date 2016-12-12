@@ -20,32 +20,13 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_FRAME_GRABBER_H
-#define _QCCTV_FRAME_GRABBER_H
+#include "QCCTV_ImageCapture.h"
 
-#include <QObject>
-#include <QAbstractVideoSurface>
-
-class QCCTV_FrameGrabber : public QAbstractVideoSurface
+QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QObject (parent)
 {
-    Q_OBJECT
+}
 
-signals:
-    void newFrame (const QImage& frame);
-
-public:
-    QCCTV_FrameGrabber (QObject* parent = NULL);
-
-    bool isEnabled() const;
-    bool present (const QVideoFrame& frame);
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats
-    (QAbstractVideoBuffer::HandleType handleType) const;
-
-public slots:
-    void setEnabled (const bool enabled);
-
-private:
-    bool m_enabled;
-};
-
-#endif
+void QCCTV_ImageCapture::captureImage()
+{
+    emit imageCaptured (QImage (0, 0, QImage::Format_RGB32));
+}

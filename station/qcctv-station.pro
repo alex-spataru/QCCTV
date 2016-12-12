@@ -27,6 +27,7 @@
 TEMPLATE = app
 TARGET = QCCTV-Station
 
+QT += svg
 QT += core
 QT += quick
 QT += widgets

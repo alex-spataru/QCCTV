@@ -31,7 +31,7 @@
 #include "QCCTV.h"
 #include "QCCTV_CRC32.h"
 #include "QCCTV_Watchdog.h"
-#include "QCCTV_FrameGrabber.h"
+#include "QCCTV_ImageCapture.h"
 
 class QCamera;
 class QCameraImageCapture;
@@ -76,7 +76,6 @@ public slots:
     void takePhoto();
     void focusCamera();
     void setFPS (const int fps);
-    void setCamera (QCamera* camera);
     void setName (const QString& name);
     void setGroup (const QString& group);
     void setResolution (const int resolution);
@@ -114,12 +113,9 @@ private:
     QByteArray m_data;
     QByteArray m_imageData;
 
-    QCamera* m_camera;
-    QCameraImageCapture* m_capture;
-
     QCCTV_CRC32 m_crc32;
     QCCTV_Resolution m_resolution;
-    QCCTV_FrameGrabber m_frameGrabber;
+    QCCTV_ImageCapture m_imageCapture;
 
     QTcpServer m_server;
     QUdpSocket m_cmdSocket;

@@ -21,10 +21,7 @@
  */
 
 #include <QtQml>
-#include <QCamera>
 #include <QQuickStyle>
-#include <QCameraInfo>
-#include <QMediaObject>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -82,10 +79,6 @@ int main (int argc, char* argv[])
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.rootContext()->setContextProperty ("QCCTVCamera", &localCamera);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
-
-    /* Obtain camera from QML interface */
-    QCamera cam (QCameraInfo::defaultCamera());
-    localCamera.setCamera (&cam);
 
     /* Exit if QML fails to load */
     if (engine.rootObjects().isEmpty())
