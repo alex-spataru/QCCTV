@@ -48,7 +48,7 @@ public slots:
     void setEnabled (const bool enabled);
 
 private slots:
-    void publishImage();
+    bool publishImage();
     bool present (const QVideoFrame& frame);
 
 private:

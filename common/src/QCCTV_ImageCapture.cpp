@@ -118,11 +118,11 @@ void QCCTV_ImageCapture::setEnabled (const bool enabled)
 /**
  * Checks if the image is valid and rotates it to fix issues with mobile/touch screens
  */
-void QCCTV_ImageCapture::publishImage()
+bool QCCTV_ImageCapture::publishImage()
 {
     /* Image is invalid */
     if (m_image.isNull() || !m_camera)
-        return;
+        return false;
 
     /* Get current display rotation */
     const QScreen* screen = QGuiApplication::primaryScreen();
@@ -141,6 +141,7 @@ void QCCTV_ImageCapture::publishImage()
 
     /* Notify QCCTV */
     emit newFrame (m_image);
+    return !m_image.isNull();
 }
 
 /**
@@ -152,50 +153,51 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
     if (!frame.isValid() || !m_enabled)
         return false;
 
-    /* Convert the videoframe to an image */
+    /* Clone the frame (so that we can use it) */
     QVideoFrame clone (frame);
-    if (clone.map (QAbstractVideoBuffer::ReadOnly)) {
-        const QImage::Format format = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
+    if (!clone.map (QAbstractVideoBuffer::ReadOnly))
+        return false;
 
-        /* This is simple, image is supported natively by Qt */
-        if (format != QImage::Format_Invalid)
-            m_image = QImage (clone.bits(),
+    /* Get the image format from the pixel format of the frame */
+    const QImage::Format format = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
+
+    /* This is simple, the format is supported natively by Qt */
+    if (format != QImage::Format_Invalid)
+        m_image = QImage (clone.bits(),
+                          clone.width(),
+                          clone.height(),
+                          format);
+
+    /* This is an NV12/NV21 image (happens on Android) */
+    else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
+             clone.pixelFormat() == QVideoFrame::Format_NV21) {
+        bool success = false;
+        uchar rgb [clone.mappedBytes() * 4];
+
+        /* Perform NV12 to RGB conversion */
+        if (clone.pixelFormat() == QVideoFrame::Format_NV12)
+            success = nv12_to_rgb (rgb,
+                                   clone.bits(),
+                                   clone.width(),
+                                   clone.height());
+
+        /* Perform NV21 to RGB conversion */
+        else if (clone.pixelFormat() == QVideoFrame::Format_NV21)
+            success = nv21_to_rgb (rgb,
+                                   clone.bits(),
+                                   clone.width(),
+                                   clone.height());
+
+        /* Conversion finished, generate image */
+        if (success) {
+            m_image = QImage (rgb,
                               clone.width(),
                               clone.height(),
-                              format);
-
-        /* This is an NV12/NV21 image */
-        else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
-                 clone.pixelFormat() == QVideoFrame::Format_NV21) {
-            /* Initialize variables */
-            bool success = false;
-            uchar rgb [clone.mappedBytes() * 4];
-
-            /* Perform NV12 to ARGB32 conversion */
-            if (clone.pixelFormat() == QVideoFrame::Format_NV12)
-                success = nv12_to_rgb (rgb, clone.bits(), clone.width(), clone.height());
-
-            /* Perform NV21 to ARGB32 conversion */
-            else if (clone.pixelFormat() == QVideoFrame::Format_NV21)
-                success = nv21_to_rgb (rgb, clone.bits(), clone.width(), clone.height());
-
-            /* Conversion finished, generate image */
-            if (success) {
-                m_image = QImage (rgb,
-                                  clone.width(),
-                                  clone.height(),
-                                  QImage::Format_RGB888);
-            }
+                              QImage::Format_RGB888);
         }
-
-        /* Last ditch attempt to save the day */
-        else
-            m_image = QImage::fromData (clone.bits(), clone.mappedBytes());
-
-        /* Unmap the frame data */
-        clone.unmap();
-        publishImage();
     }
 
-    return true;
+    /* Unmap the frame data and process the obtained image */
+    clone.unmap();
+    return publishImage();
 }

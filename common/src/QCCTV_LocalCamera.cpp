@@ -364,6 +364,9 @@ void QCCTV_LocalCamera::update()
     generateData();
     sendCameraData();
 
+    /* Force UI to re-load image */
+    emit imageChanged();
+
     /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
 }
@@ -518,12 +521,9 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
     if (m_image.isNull())
         m_image = ERROR_IMG;
 
-    /* Clear image data */
+    /* Generate image data bits */
     m_imageData.clear();
     m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
-
-    /* Notify UI */
-    emit imageChanged();
 }
 
 /**
