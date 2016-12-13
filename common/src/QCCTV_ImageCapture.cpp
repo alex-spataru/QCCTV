@@ -34,6 +34,8 @@
  */
 QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QAbstractVideoSurface (parent)
 {
+    m_probe = NULL;
+    m_camera = NULL;
     m_enabled = false;
 }
 
@@ -90,6 +92,9 @@ void QCCTV_ImageCapture::setSource (QCamera* source)
     m_info = QCameraInfo (*source);
 
 #ifdef Q_OS_ANDROID
+    if (m_probe)
+        delete m_probe;
+
     m_probe = new QVideoProbe (this);
     m_probe->setSource (source);
     connect (m_probe, SIGNAL (videoFrameProbed (QVideoFrame)),
