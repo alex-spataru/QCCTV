@@ -15,14 +15,136 @@
  * limitations under the License.
  *
  */
+
 #include "yuv2rgb.h"
 
-//-----------------------------------------------------------------------------
 #ifdef ARM_NEON_ENABLE
+
 #include <arm_neon.h>
+
+class NV12toRGB_neon
+{
+public:
+    enum { bytes_per_pixel = 3 };
+    typedef uint8x8x3_t PixelBlock;
+    static PixelBlock const init_pixelblock (unsigned char)
+    {
+        return uint8x8x3_t();
+    }
+
+    static uint8x8_t const loadvu (unsigned char const* uv)
+    {
+        return vld1_u8 (uv);
+    }
+
+    static void store_pixel_block (unsigned char* dst,
+                                   PixelBlock& pblock,
+                                   uint8x8_t const& r,
+                                   uint8x8_t const& g,
+                                   uint8x8_t const& b)
+    {
+        pblock.val[0] = r;
+        pblock.val[1] = g;
+        pblock.val[2] = b;
+        vst3_u8 (dst, pblock);
+    }
+};
+
+class NV12toRGBA_neon
+{
+public:
+    enum { bytes_per_pixel = 4 };
+    typedef uint8x8x4_t PixelBlock;
+    static PixelBlock const init_pixelblock (unsigned char fill_alpha)
+    {
+        PixelBlock block;
+        block.val[3] = vdup_n_u8 (fill_alpha);
+        return block;
+    }
+
+    static uint8x8_t const loadvu (unsigned char const* uv)
+    {
+        return vld1_u8 (uv);
+    }
+
+    static void store_pixel_block (unsigned char* dst,
+                                   PixelBlock& pblock,
+                                   uint8x8_t const& r,
+                                   uint8x8_t const& g,
+                                   uint8x8_t const& b)
+    {
+        pblock.val[0] = r;
+        pblock.val[1] = g;
+        pblock.val[2] = b;
+        vst4_u8 (dst, pblock);
+    }
+};
+
+class NV21toRGB_neon
+{
+public:
+    enum { bytes_per_pixel = 3 };
+    typedef uint8x8x3_t PixelBlock;
+    static PixelBlock const init_pixelblock (unsigned char)
+    {
+        return uint8x8x3_t();
+    }
+
+    static uint8x8_t const loadvu (unsigned char const* uv)
+    {
+        return vld1_u8 (uv);
+    }
+
+    static void store_pixel_block (unsigned char* dst,
+                                   PixelBlock& pblock,
+                                   uint8x8_t const& r,
+                                   uint8x8_t const& g,
+                                   uint8x8_t const& b)
+    {
+        pblock.val[0] = r;
+        pblock.val[1] = g;
+        pblock.val[2] = b;
+        vst3_u8 (dst, pblock);
+    }
+};
+
+class NV21toRGBA_neon
+{
+public:
+    enum { bytes_per_pixel = 4 };
+    typedef uint8x8x4_t PixelBlock;
+    static PixelBlock const init_pixelblock (unsigned char fill_alpha)
+    {
+        PixelBlock block;
+        block.val[3] = vdup_n_u8 (fill_alpha);
+        return block;
+    }
+
+    static uint8x8_t const loadvu (unsigned char const* uv)
+    {
+        return vld1_u8 (uv);
+    }
+
+    static void store_pixel_block (unsigned char* dst,
+                                   PixelBlock& pblock,
+                                   uint8x8_t const& r,
+                                   uint8x8_t const& g,
+                                   uint8x8_t const& b)
+    {
+        pblock.val[0] = r;
+        pblock.val[1] = g;
+        pblock.val[2] = b;
+        vst4_u8 (dst, pblock);
+    }
+};
+
 template<typename trait>
-bool decode_yuv_neon (unsigned char* out, unsigned char const* y, unsigned char const* uv,
-                      int width, int height, unsigned char fill_alpha = 0xff)
+bool decode_yuv_neon (unsigned char* out,
+                      unsigned char const* y,
+                      unsigned char const* uv,
+                      const int width,
+                      const int height,
+                      unsigned char fill_alpha = 0xff)
 {
     // pre-condition : width, height must be even
     if (0 != (width & 1) || width < 2 || 0 != (height & 1) || height < 2 || !out || !y || !uv)
@@ -96,140 +218,122 @@ bool decode_yuv_neon (unsigned char* out, unsigned char const* y, unsigned char 
     return true;
 }
 
-//------------------------------------------------------------------------------
-class NV12toRGB_neon
+bool nv12_to_rgb (unsigned char* rgb,
+                  unsigned char const* nv12,
+                  const int width,
+                  const int height)
+{
+    return decode_yuv_neon<NV12toRGB_neon> (rgb, nv12, nv12 + (width * height), width, height);
+}
+
+bool nv12_to_rgba (unsigned char* rgba,
+                   unsigned char alpha,
+                   unsigned char const* nv12,
+                   const int width,
+                   const int height)
+{
+    return decode_yuv_neon<NV12toRGBA_neon> (rgba, nv12, nv12 + (width * height), width, height, alpha);
+}
+
+
+bool nv21_to_rgb (unsigned char* rgb,
+                  unsigned char const* nv21,
+                  const int width,
+                  const int height)
+{
+    return decode_yuv_neon<NV21toRGB_neon> (rgb, nv21, nv21 + (width * height), width, height);
+}
+
+bool nv21_to_rgba (unsigned char* rgba,
+                   unsigned char alpha,
+                   unsigned char const* nv21,
+                   const int width,
+                   const int height)
+{
+    return decode_yuv_neon<NV21toRGBA_neon> (rgba, nv21, nv21 + (width * height), width, height, alpha);
+}
+
+#else
+
+class NV21toRGB
 {
 public:
     enum { bytes_per_pixel = 3 };
-    typedef uint8x8x3_t PixelBlock;
-    static PixelBlock const init_pixelblock (unsigned char /*fill_alpha*/)
+    static void loadvu (int& U, int& V, unsigned char const*& uv)
     {
-        return uint8x8x3_t();
+        V = (*uv++) - 128;
+        U = (*uv++) - 128;
     }
-    static uint8x8_t const loadvu (unsigned char const* uv)
+    static void store_pixel (unsigned char*& dst,
+                             int iR, int iG, int iB, unsigned char)
     {
-        return vld1_u8 (uv);
-    }
-    static void store_pixel_block (unsigned char* dst, PixelBlock& pblock, uint8x8_t const& r,
-                                   uint8x8_t const& g, uint8x8_t const& b)
-    {
-        pblock.val[0] = r;
-        pblock.val[1] = g;
-        pblock.val[2] = b;
-        vst3_u8 (dst, pblock);
+        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
+        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
+        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
     }
 };
 
-bool nv12_to_rgb (unsigned char* rgb, unsigned char const* nv21, int width, int height)
-{
-    return decode_yuv_neon<NV12toRGB_neon> (rgb, nv21, nv21 + (width * height), width, height);
-}
-
-bool nv12_to_rgb (unsigned char* rgb, unsigned char const* y, unsigned char const* uv, int width,
-                  int height)
-{
-    return decode_yuv_neon<NV12toRGB_neon> (rgb, y, uv, width, height);
-}
-
-//------------------------------------------------------------------------------
-class NV12toRGBA_neon
+class NV21toRGBA
 {
 public:
     enum { bytes_per_pixel = 4 };
-    typedef uint8x8x4_t PixelBlock;
-    static PixelBlock const init_pixelblock (unsigned char fill_alpha)
+    static void loadvu (int& U, int& V, unsigned char const*& uv)
     {
-        PixelBlock block;
-        block.val[3] = vdup_n_u8 (fill_alpha); // alpha channel in the last
-        return block;
+        V = (*uv++) - 128;
+        U = (*uv++) - 128;
     }
-    static uint8x8_t const loadvu (unsigned char const* uv)
+    static void store_pixel (unsigned char*& dst,
+                             int iR, int iG, int iB, unsigned char alpha)
     {
-        return vld1_u8 (uv);
-    }
-    static void store_pixel_block (unsigned char* dst, PixelBlock& pblock, uint8x8_t const& r,
-                                   uint8x8_t const& g, uint8x8_t const& b)
-    {
-        pblock.val[0] = r;
-        pblock.val[1] = g;
-        pblock.val[2] = b;
-        vst4_u8 (dst, pblock);
+        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
+        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
+        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
+        *dst++ = alpha;
     }
 };
-bool nv12_to_rgba (unsigned char* rgba, unsigned char alpha, unsigned char const* nv21, int width,
-                   int height)
-{
-    return decode_yuv_neon<NV12toRGBA_neon> (rgba, nv21, nv21 + (width * height), width, height, alpha);
-}
 
-//------------------------------------------------------------------------------
-class NV12toBGRA_neon
-{
-public:
-    enum { bytes_per_pixel = 4 };
-    typedef uint8x8x4_t PixelBlock;
-    static PixelBlock const init_pixelblock (unsigned char fill_alpha)
-    {
-        PixelBlock block;
-        block.val[3] = vdup_n_u8 (fill_alpha); // alpha channel in the last
-        return block;
-    }
-    static uint8x8_t const loadvu (unsigned char const* uv)
-    {
-        return vld1_u8 (uv);
-    }
-    static void store_pixel_block (unsigned char* dst, PixelBlock& pblock, uint8x8_t const& r,
-                                   uint8x8_t const& g, uint8x8_t const& b)
-    {
-        pblock.val[0] = b;
-        pblock.val[1] = g;
-        pblock.val[2] = r;
-        vst4_u8 (dst, pblock);
-    }
-};
-bool nv12_to_bgra (unsigned char* rgba, unsigned char alpha, unsigned char const* nv21, int width,
-                   int height)
-{
-    return decode_yuv_neon<NV12toBGRA_neon> (rgba, nv21, nv21 + (width * height), width, height, alpha);
-}
-
-//------------------------------------------------------------------------------
-class NV12toBGR_neon
+class NV12toRGB
 {
 public:
     enum { bytes_per_pixel = 3 };
-    typedef uint8x8x3_t PixelBlock;
-    static PixelBlock const init_pixelblock (unsigned char /*fill_alpha*/)
+    static void loadvu (int& U, int& V, unsigned char const*& uv)
     {
-        return uint8x8x3_t();
+        U = (*uv++) - 128;
+        V = (*uv++) - 128;
     }
-    static uint8x8_t const loadvu (unsigned char const* uv)
+    static void store_pixel (unsigned char*& dst,
+                             int iR, int iG, int iB, unsigned char)
     {
-        return vld1_u8 (uv);
-    }
-    static void store_pixel_block (unsigned char* dst, PixelBlock& pblock, uint8x8_t const& r,
-                                   uint8x8_t const& g, uint8x8_t const& b)
-    {
-        pblock.val[0] = b;
-        pblock.val[1] = g;
-        pblock.val[2] = r;
-        vst3_u8 (dst, pblock);
+        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
+        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
+        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
     }
 };
-bool nv12_to_bgr (unsigned char* bgr, unsigned char const* nv21, int width, int height)
+
+class NV12toRGBA
 {
-    return decode_yuv_neon<NV12toBGR_neon> (bgr, nv21, nv21 + (width * height), width, height);
-}
+public:
+    enum { bytes_per_pixel = 4 };
+    static void loadvu (int& U, int& V, unsigned char const*& uv)
+    {
+        U = (*uv++) - 128;
+        V = (*uv++) - 128;
+    }
+    static void store_pixel (unsigned char*& dst,
+                             int iR, int iG, int iB, unsigned char alpha)
+    {
+        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
+        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
+        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
+        *dst++ = alpha;
+    }
+};
 
-#else // !neon
-
-#ifdef __ANDROID__
-    #warning "use SLOW YUV(nv21) decoder : Try #define ARM_NEON_ENABLE if target architecture is ARMv7a"
-#endif
-
-//------------------------------------------------------------------------------
 template<typename trait>
-bool decode_yuv (unsigned char* out, unsigned char const* yuv, int width, int height,
+bool decode_yuv (unsigned char* out,
+                 unsigned char const* yuv,
+                 const int width,
+                 const int height,
                  unsigned char alpha = 0xff)
 {
     // pre-condition : width and height must be even
@@ -280,98 +384,38 @@ bool decode_yuv (unsigned char* out, unsigned char const* yuv, int width, int he
     return true;
 }
 
-//------------------------------------------------------------------------------
-class NV12toRGB
+bool nv12_to_rgb (unsigned char* rgb,
+                  unsigned char const* nv12,
+                  const int width,
+                  const int height)
 {
-public:
-    enum { bytes_per_pixel = 3 };
-    static void loadvu (int& U, int& V, unsigned char const*& uv)
-    {
-        U = (*uv++) - 128;
-        V = (*uv++) - 128;
-    }
-    static void store_pixel (unsigned char*& dst, int iR, int iG, int iB, unsigned char/*alpha*/)
-    {
-        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
-        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
-        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
-    }
-};
-bool nv12_to_rgb (unsigned char* rgb, unsigned char const* nv21, int width, int height)
-{
-    return decode_yuv<NV12toRGB> (rgb, nv21, width, height);
+    return decode_yuv<NV12toRGB> (rgb, nv12, width, height);
 }
 
-//------------------------------------------------------------------------------
-class NV12toRGBA
+bool nv12_to_rgba (unsigned char* rgba,
+                   unsigned char alpha,
+                   unsigned char const* nv12,
+                   const int width,
+                   const int height)
 {
-public:
-    enum { bytes_per_pixel = 4 };
-    static void loadvu (int& U, int& V, unsigned char const*& uv)
-    {
-        U = (*uv++) - 128;
-        V = (*uv++) - 128;
-    }
-    static void store_pixel (unsigned char*& dst, int iR, int iG, int iB, unsigned char alpha)
-    {
-        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
-        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
-        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
-        *dst++ = alpha;
-    }
-};
-
-bool nv12_to_rgba (unsigned char* rgba, unsigned char alpha, unsigned char const* nv21, int width,
-                   int height)
-{
-    return decode_yuv<NV12toRGBA> (rgba, nv21, width, height, alpha);
+    return decode_yuv<NV12toRGBA> (rgba, nv12, width, height, alpha);
 }
 
-//------------------------------------------------------------------------------
-class NV12toBGR
+bool nv21_to_rgb (unsigned char* rgb,
+                  unsigned char const* nv21,
+                  const int width,
+                  const int height)
 {
-public:
-    enum { bytes_per_pixel = 3 };
-    static void loadvu (int& U, int& V, unsigned char const*& uv)
-    {
-        U = (*uv++) - 128;
-        V = (*uv++) - 128;
-    }
-    static void store_pixel (unsigned char*& dst, int iR, int iG, int iB, unsigned char/*alpha*/)
-    {
-        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
-        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
-        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
-    }
-};
-bool nv12_to_bgr (unsigned char* bgr, unsigned char const* nv21, int width, int height)
-{
-    return decode_yuv<NV12toBGR> (bgr, nv21, width, height);
+    return decode_yuv<NV21toRGB> (rgb, nv21, width, height);
 }
 
-//------------------------------------------------------------------------------
-class NV12toBGRA
+bool nv21_to_rgba (unsigned char* rgba,
+                   unsigned char alpha,
+                   unsigned char const* nv21,
+                   const int width,
+                   const int height)
 {
-public:
-    enum { bytes_per_pixel = 4 };
-    static void loadvu (int& U, int& V, unsigned char const*& uv)
-    {
-        U = (*uv++) - 128;
-        V = (*uv++) - 128;
-    }
-    static void store_pixel (unsigned char*& dst, int iR, int iG, int iB, unsigned char alpha)
-    {
-        *dst++ = (iB > 0) ? (iB < 65535 ? (unsigned char) (iB >> 8) : 0xff) : 0;
-        *dst++ = (iG > 0) ? (iG < 65535 ? (unsigned char) (iG >> 8) : 0xff) : 0;
-        *dst++ = (iR > 0) ? (iR < 65535 ? (unsigned char) (iR >> 8) : 0xff) : 0;
-        *dst++ = alpha;
-    }
-};
-
-bool nv12_to_bgra (unsigned char* rgba, unsigned char alpha, unsigned char const* nv21, int width,
-                   int height)
-{
-    return decode_yuv<NV12toBGRA> (rgba, nv21, width, height, alpha);
+    return decode_yuv<NV21toRGBA> (rgba, nv21, width, height, alpha);
 }
 
 #endif

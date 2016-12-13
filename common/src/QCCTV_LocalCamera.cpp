@@ -517,15 +517,10 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_imageCapture.setEnabled (false);
 
-    /* Re-assign image */
     if (!image.isNull())
         m_image = image;
     else
         m_image = ERROR_IMG;
-
-    /* Set image orientation */
-    if (m_image.height() > m_image.width())
-        m_image = m_image.mirrored (true, false);
 }
 
 /**

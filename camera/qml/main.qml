@@ -21,7 +21,7 @@
  */
 
 import QtQuick 2.0
-import QtMultimedia 5.0
+import QtMultimedia 5.2
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
@@ -132,9 +132,8 @@ ApplicationWindow {
         target: QCCTVCamera
 
         onImageChanged: {
-            image.source = "image://qcctv/reload"
+            image.source = ""
             image.source = "image://qcctv/"
-            image.sourceChanged (image.source)
         }
 
         onFpsChanged: fps = QCCTVCamera.fps()
@@ -151,7 +150,6 @@ ApplicationWindow {
     Image {
         id: image
         cache: false
-        smooth: true
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
     }
@@ -162,10 +160,10 @@ ApplicationWindow {
     VideoOutput {
         width: 0
         height: 0
-        fillMode: Image.PreserveAspectCrop
 
         source: Camera {
             objectName: "camera"
+            captureMode: Camera.CaptureStillImage
         }
     }
 

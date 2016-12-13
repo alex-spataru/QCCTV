@@ -23,6 +23,8 @@
 #include "ImageProvider.h"
 #include "QCCTV_LocalCamera.h"
 
+#include <QPainter>
+
 QCCTV_LocalCameraImage::QCCTV_LocalCameraImage (QCCTV_LocalCamera* parent) :
     QQuickImageProvider (QQuickImageProvider::Image)
 {

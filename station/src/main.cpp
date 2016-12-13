@@ -51,8 +51,8 @@ int main (int argc, char* argv[])
     QGuiApplication app (argc, argv);
 
     /* Initialize QCCTV station */
-    QCCTV_Station station;
-    QCCTV_StationImage provider (&station);
+    QCCTV_Station* station = new QCCTV_Station();
+    QCCTV_StationImage* provider = new QCCTV_StationImage (station);
 
     /* Set application style */
     QQuickStyle::setStyle ("Material");
@@ -66,9 +66,9 @@ int main (int argc, char* argv[])
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
-    engine.addImageProvider ("qcctv", &provider);
+    engine.addImageProvider ("qcctv", provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
-    engine.rootContext()->setContextProperty ("QCCTVStation", &station);
+    engine.rootContext()->setContextProperty ("QCCTVStation", station);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));

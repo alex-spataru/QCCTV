@@ -24,28 +24,35 @@
 #define _QCCTV_IMAGE_CAPTURE_H
 
 #include <QObject>
+#include <QCameraInfo>
 #include <QVideoProbe>
-#include <QMediaObject>
 
+class QCamera;
 class QCCTV_ImageCapture : public QObject
 {
     Q_OBJECT
 
 signals:
-    void newFrame (const QImage& frame);
+    void newFrame (const QImage frame);
 
 public:
     QCCTV_ImageCapture (QObject* parent = NULL);
 
 public slots:
+    void setSource (QCamera* source);
     void setEnabled (const bool enabled);
-    void setSource (QMediaObject* source);
 
 private slots:
+    void publishImage();
     void processVideoFrame (const QVideoFrame frame);
 
 private:
+    int m_rotation;
     bool m_enabled;
+
+    QImage m_image;
+    QCamera* m_camera;
+    QCameraInfo m_info;
     QVideoProbe m_probe;
 };
 
