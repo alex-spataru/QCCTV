@@ -273,6 +273,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
 {
     if (camera) {
         m_camera = camera;
+        m_camera->setCaptureMode (QCamera::CaptureStillImage);
         m_imageCapture.setSource (m_camera);
 
         if (m_capture)

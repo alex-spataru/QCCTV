@@ -20,44 +20,22 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_IMAGE_CAPTURE_H
-#define _QCCTV_IMAGE_CAPTURE_H
+#ifndef _QCCTV_CAMERA_IMAGE_PROVIDER_H
+#define _QCCTV_CAMERA_IMAGE_PROVIDER_H
 
-#include <QObject>
-#include <QCameraInfo>
-#include <QAbstractVideoSurface>
+#include <QQuickImageProvider>
 
-class QCamera;
-class QVideoProbe;
-
-class QCCTV_ImageCapture : public QAbstractVideoSurface
+class QCCTV_LocalCamera;
+class QCCTV_ImageProvider : public QQuickImageProvider
 {
-    Q_OBJECT
-
-signals:
-    void newFrame (const QImage& frame);
-
 public:
-    QCCTV_ImageCapture (QObject* parent = NULL);
-
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats
-    (QAbstractVideoBuffer::HandleType handleType) const;
-
-public slots:
-    void setSource (QCamera* source);
-    void setEnabled (const bool enabled);
-
-private slots:
-    void publishImage();
-    bool present (const QVideoFrame& frame);
+    QCCTV_ImageProvider (QCCTV_LocalCamera* parent);
+    QImage requestImage (const QString& id, QSize* size,
+                         const QSize& requestedSize);
 
 private:
-    bool m_enabled;
-
-    QImage m_image;
-    QCamera* m_camera;
-    QCameraInfo m_info;
-    QVideoProbe* m_probe;
+    QImage m_cameraError;
+    QCCTV_LocalCamera* m_localCamera;
 };
 
 #endif

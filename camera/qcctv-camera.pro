@@ -86,7 +86,7 @@ include ($$PWD/../common/qcctv-common.pri)
 SOURCES += \
     $$PWD/src/main.cpp \
     $$PWD/src/AndroidLockHelper.cpp \
-    $$PWD/src/ImageProvider.cpp
+    src/ImageProvider.cpp
 
 RESOURCES += \
     $$PWD/qml/qml.qrc \
@@ -101,4 +101,4 @@ DISTFILES += \
 
 HEADERS += \
     $$PWD/src/AndroidLockHelper.h \
-    $$PWD/src/ImageProvider.h
+    src/ImageProvider.h

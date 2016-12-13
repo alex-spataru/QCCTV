@@ -20,44 +20,27 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_IMAGE_CAPTURE_H
-#define _QCCTV_IMAGE_CAPTURE_H
+#include "ImageProvider.h"
+#include "QCCTV_LocalCamera.h"
 
-#include <QObject>
-#include <QCameraInfo>
-#include <QAbstractVideoSurface>
+#include <QPainter>
 
-class QCamera;
-class QVideoProbe;
-
-class QCCTV_ImageCapture : public QAbstractVideoSurface
+QCCTV_ImageProvider::QCCTV_ImageProvider (QCCTV_LocalCamera* parent) :
+    QQuickImageProvider (QQuickImageProvider::Image)
 {
-    Q_OBJECT
+    m_localCamera = parent;
+    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "IMAGE ERROR");
+}
 
-signals:
-    void newFrame (const QImage& frame);
+QImage QCCTV_ImageProvider::requestImage (const QString& id, QSize* size,
+                                          const QSize& requestedSize)
+{
+    Q_UNUSED (id);
+    Q_UNUSED (size);
+    Q_UNUSED (requestedSize);
 
-public:
-    QCCTV_ImageCapture (QObject* parent = NULL);
+    if (m_localCamera)
+        return m_localCamera->currentImage();
 
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats
-    (QAbstractVideoBuffer::HandleType handleType) const;
-
-public slots:
-    void setSource (QCamera* source);
-    void setEnabled (const bool enabled);
-
-private slots:
-    void publishImage();
-    bool present (const QVideoFrame& frame);
-
-private:
-    bool m_enabled;
-
-    QImage m_image;
-    QCamera* m_camera;
-    QCameraInfo m_info;
-    QVideoProbe* m_probe;
-};
-
-#endif
+    return m_cameraError;
+}

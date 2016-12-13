@@ -28,6 +28,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include "ImageProvider.h"
 #include "AndroidLockHelper.h"
 #include "QCCTV_LocalCamera.h"
 
@@ -61,7 +62,8 @@ int main (int argc, char* argv[])
     QQuickStyle::setStyle ("Material");
 
     /* Initialize QCCTV */
-    QCCTV_LocalCamera qcctvCamera;
+    QCCTV_LocalCamera* qcctvCamera = new QCCTV_LocalCamera();
+    QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS
@@ -72,20 +74,34 @@ int main (int argc, char* argv[])
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
+    engine.addImageProvider ("qcctv", provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
-    engine.rootContext()->setContextProperty ("QCCTVCamera", &qcctvCamera);
+    engine.rootContext()->setContextProperty ("QCCTVCamera", qcctvCamera);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
 
     /* Exit if QML fails to load */
     if (engine.rootObjects().isEmpty())
         return EXIT_FAILURE;
 
-    /* Get camera from QML interface */
-    QObject* obj = engine.rootObjects().first()->findChild<QObject*> ("camera");
-    QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
-    qcctvCamera.setCamera (cam);
+    /* Get the camera from the QML interface (on Android) */
+#ifdef Q_OS_ANDROID
+    QQmlApplicationEngine camEngine;
+    camEngine.load (QUrl (QStringLiteral ("qrc:/camera.qml")));
+
+    if (!camEngine.rootObjects().isEmpty()) {
+        QObject* obj = camEngine.rootObjects().first()->findChild<QObject*> ("camera");
+        QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
+        qcctvCamera->setCamera (cam);
+    }
+#endif
+
+    /* Get camera directly from the C++ API (non-Android systems) */
+#ifndef Q_OS_ANDROID
+    QCamera camera (QCameraInfo::defaultCamera());
+    qcctvCamera->setCamera (&camera);
+#endif
 
     /* Enter application loop */
     return app.exec();

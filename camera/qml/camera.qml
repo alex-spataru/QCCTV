@@ -20,44 +20,10 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_IMAGE_CAPTURE_H
-#define _QCCTV_IMAGE_CAPTURE_H
+import QtMultimedia 5.2
 
-#include <QObject>
-#include <QCameraInfo>
-#include <QAbstractVideoSurface>
-
-class QCamera;
-class QVideoProbe;
-
-class QCCTV_ImageCapture : public QAbstractVideoSurface
-{
-    Q_OBJECT
-
-signals:
-    void newFrame (const QImage& frame);
-
-public:
-    QCCTV_ImageCapture (QObject* parent = NULL);
-
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats
-    (QAbstractVideoBuffer::HandleType handleType) const;
-
-public slots:
-    void setSource (QCamera* source);
-    void setEnabled (const bool enabled);
-
-private slots:
-    void publishImage();
-    bool present (const QVideoFrame& frame);
-
-private:
-    bool m_enabled;
-
-    QImage m_image;
-    QCamera* m_camera;
-    QCameraInfo m_info;
-    QVideoProbe* m_probe;
-};
-
-#endif
+VideoOutput {
+    source: Camera {
+        objectName: "camera"
+    }
+}

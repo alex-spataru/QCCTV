@@ -25,18 +25,60 @@
 
 #include <QScreen>
 #include <QCamera>
+#include <QVideoProbe>
 #include <QCameraInfo>
 #include <QGuiApplication>
 
 /**
  * Initializes the default variables
  */
-QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QObject (parent)
+QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QAbstractVideoSurface (parent)
 {
-    m_rotation = 0;
     m_enabled = false;
-    connect (&m_probe, SIGNAL (videoFrameProbed (QVideoFrame)),
-             this,       SLOT (processVideoFrame (QVideoFrame)));
+}
+
+/**
+ * Returns the supported pixel formats of the frame grabber, we just return
+ * all available pixel formats to avoid issues...
+ */
+QList<QVideoFrame::PixelFormat> QCCTV_ImageCapture::supportedPixelFormats
+(QAbstractVideoBuffer::HandleType handleType) const
+{
+    Q_UNUSED (handleType);
+
+    return QList<QVideoFrame::PixelFormat>()
+           << QVideoFrame::Format_ARGB32
+           << QVideoFrame::Format_ARGB32_Premultiplied
+           << QVideoFrame::Format_RGB32
+           << QVideoFrame::Format_RGB24
+           << QVideoFrame::Format_RGB565
+           << QVideoFrame::Format_RGB555
+           << QVideoFrame::Format_ARGB8565_Premultiplied
+           << QVideoFrame::Format_BGRA32
+           << QVideoFrame::Format_BGRA32_Premultiplied
+           << QVideoFrame::Format_BGR32
+           << QVideoFrame::Format_BGR24
+           << QVideoFrame::Format_BGR565
+           << QVideoFrame::Format_BGR555
+           << QVideoFrame::Format_BGRA5658_Premultiplied
+           << QVideoFrame::Format_AYUV444
+           << QVideoFrame::Format_AYUV444_Premultiplied
+           << QVideoFrame::Format_YUV444
+           << QVideoFrame::Format_YUV420P
+           << QVideoFrame::Format_YV12
+           << QVideoFrame::Format_UYVY
+           << QVideoFrame::Format_YUYV
+           << QVideoFrame::Format_NV12
+           << QVideoFrame::Format_NV21
+           << QVideoFrame::Format_IMC1
+           << QVideoFrame::Format_IMC2
+           << QVideoFrame::Format_IMC3
+           << QVideoFrame::Format_IMC4
+           << QVideoFrame::Format_Y8
+           << QVideoFrame::Format_Y16
+           << QVideoFrame::Format_Jpeg
+           << QVideoFrame::Format_CameraRaw
+           << QVideoFrame::Format_AdobeDng;
 }
 
 /**
@@ -45,8 +87,19 @@ QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QObject (parent)
 void QCCTV_ImageCapture::setSource (QCamera* source)
 {
     m_camera = source;
-    m_probe.setSource (source);
     m_info = QCameraInfo (*source);
+
+#ifdef Q_OS_ANDROID
+    m_probe = new QVideoProbe (this);
+    m_probe->setSource (source);
+    connect (m_probe, SIGNAL (videoFrameProbed (QVideoFrame)),
+             this,      SLOT (present          (QVideoFrame)));
+#else
+    m_camera->setViewfinder (this);
+#endif
+
+    if (m_camera->state() != QCamera::ActiveState)
+        m_camera->start();
 }
 
 /**
@@ -71,21 +124,28 @@ void QCCTV_ImageCapture::publishImage()
     const int angle = screen->angleBetween (screen->nativeOrientation(), screen->orientation());
 
     /* Calculate rotation */
-    m_rotation = (360 - m_info.orientation() + angle) % 360;
+    const int rotation = (360 - m_info.orientation() + angle) % 360;
 
     /* Rotate image */
-    m_image = m_image.transformed (QTransform().rotate (m_rotation));
+    m_image = m_image.transformed (QTransform().rotate (rotation));
+
+    /* Fix mirrored image issue on Windows */
+#if defined Q_OS_WIN
+    m_image = m_image.mirrored (false, true);
+#endif
+
+    /* Notify QCCTV */
     emit newFrame (m_image);
 }
 
 /**
  * Generates a \c QImage from the given \a frame
  */
-void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
+bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
 {
     /* Frame is invalid or grabber is disabled */
     if (!frame.isValid() || !m_enabled)
-        return;
+        return false;
 
     /* Convert the videoframe to an image */
     QVideoFrame clone (frame);
@@ -103,9 +163,8 @@ void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
         else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
                  clone.pixelFormat() == QVideoFrame::Format_NV21) {
             /* Initialize variables */
-            const int size = clone.mappedBytes() * 4;
             bool success = false;
-            uchar rgb [size];
+            uchar rgb [clone.mappedBytes() * 4];
 
             /* Perform NV12 to ARGB32 conversion */
             if (clone.pixelFormat() == QVideoFrame::Format_NV12)
@@ -117,11 +176,7 @@ void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
 
             /* Conversion finished, generate image */
             if (success) {
-                uchar data [size];
-                for (int i = 0; i > size; ++i)
-                    data [i] = rgb [i];
-
-                m_image = QImage (data,
+                m_image = QImage (rgb,
                                   clone.width(),
                                   clone.height(),
                                   QImage::Format_RGB888);
@@ -136,4 +191,6 @@ void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
         clone.unmap();
         publishImage();
     }
+
+    return true;
 }
