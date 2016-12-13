@@ -41,9 +41,9 @@ signals:
     void disconnected (const int id);
     void newCameraName (const int id);
     void newCameraGroup (const int id);
-    void newLightStatus (const int id);
     void newCameraStatus (const int id);
     void resolutionChanged (const int id);
+    void lightStatusChanged (const int id);
     void autoRegulateResolutionChanged (const int camera);
 
 public:
@@ -65,14 +65,12 @@ public:
 
 public slots:
     void requestFocus();
-    void turnOnFlashlight();
-    void turnOffFlashlight();
     void changeID (const int id);
     void changeFPS (const int fps);
-    void setFlashlightStatus (const int status);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
     void changeAutoRegulate (const bool regulate);
+    void changeFlashlightStatus (const int status);
 
 private slots:
     void clearBuffer();
@@ -88,6 +86,7 @@ private slots:
     void updateConnected (const bool status);
     void updateResolution (const int resolution);
     void updateAutoRegulate (const bool regulate);
+    void updateFlashlightStatus (const int status);
 
 private:
     void readCameraPacket();
@@ -104,6 +103,8 @@ private:
     int m_newFPS;
     int m_oldResolution;
     int m_newResolution;
+    int m_oldFlashlightStatus;
+    int m_newFlashlightStatus;
 
     bool m_oldAutoRegulate;
     bool m_newAutoRegulate;
@@ -112,7 +113,6 @@ private:
     QImage m_image;
     QString m_group;
     QList<QImage> m_images;
-    QCCTV_LightStatus m_lightStatus;
 
     QByteArray m_data;
     QTcpSocket m_socket;

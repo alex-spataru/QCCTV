@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (c) 2016 Alex Spataru
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -344,10 +344,10 @@ Item {
             onClicked: {
                 flashOn = !flashOn
 
-                if (flashOn && QCCTVStation.flashlightAvailable (camNumber))
+                if (QCCTVStation.flashlightAvailable (camNumber))
                     QCCTVStation.setFlashlightEnabled (camNumber, flashOn)
 
-                else if (flashOn) {
+                else {
                     flashOn = false
                     tooltip.text = qsTr ("Flashlight Error")
                     tooltip.visible = true

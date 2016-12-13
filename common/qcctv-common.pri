@@ -26,6 +26,12 @@ QT += multimedia
 
 CONFIG += c++11
 INCLUDEPATH += $$PWD/src
+INCLUDEPATH += $$PWD/lib
+
+android {
+    #DEFINES += ARM_NEON_ENABLE
+    #QMAKE_CXXFLAGS += -mfloat-abi=softfp -mfpu=neon -flax-vector-conversions
+}
 
 HEADERS += \
     $$PWD/src/QCCTV_Discovery.h \
@@ -35,7 +41,8 @@ HEADERS += \
     $$PWD/src/QCCTV.h \
     $$PWD/src/QCCTV_Watchdog.h \
     $$PWD/src/QCCTV_CRC32.h \
-    $$PWD/src/QCCTV_ImageCapture.h
+    $$PWD/src/QCCTV_ImageCapture.h \
+    $$PWD/lib/yuv2rgb/yuv2rgb.h
 
 SOURCES += \
     $$PWD/src/QCCTV_Discovery.cpp \
@@ -45,5 +52,6 @@ SOURCES += \
     $$PWD/src/QCCTV.cpp \
     $$PWD/src/QCCTV_Watchdog.cpp \
     $$PWD/src/QCCTV_CRC32.cpp \
-    $$PWD/src/QCCTV_ImageCapture.cpp
+    $$PWD/src/QCCTV_ImageCapture.cpp \
+    $$PWD/lib/yuv2rgb/yuv2rgb.cpp
 

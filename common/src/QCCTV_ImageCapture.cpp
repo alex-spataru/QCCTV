@@ -20,104 +20,17 @@
  * DEALINGS IN THE SOFTWARE
  */
 
+#include "yuv2rgb/yuv2rgb.h"
 #include "QCCTV_ImageCapture.h"
 
 /**
  * Initializes the default variables
  */
-QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QAbstractVideoSurface (parent)
+QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QObject (parent)
 {
     m_enabled = false;
-}
-
-/**
- * Returns \c true if the frame grabber is enabled
- */
-bool QCCTV_ImageCapture::isEnabled() const
-{
-    return m_enabled;
-}
-
-/**
- * Obtains an image from the \a frame and processes it as a \c QImage
- *
- * This function only runs if the grabber is enabled (to save some CPU usage)
- */
-bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
-{
-    /* Grabber is disabled, abort */
-    if (!isEnabled())
-        return false;
-
-    /* Create variables */
-    QImage image;
-    QVideoFrame clone (frame);
-    clone.map (QAbstractVideoBuffer::ReadOnly);
-
-    /* Get the image from the frame */
-    image = QImage (clone.bits(),
-                    clone.width(),
-                    clone.height(),
-                    clone.bytesPerLine(),
-                    QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat()));
-
-    /* Image is invalid, abort */
-    if (image.isNull())
-        return false;
-
-    /* Fix mirrored image issue on Windows */
-#if defined Q_OS_WIN
-    image = image.mirrored (false, true);
-#endif
-
-    /* Send image to parent object */
-    clone.unmap();
-    emit newFrame (image);
-    return true;
-}
-
-/**
- * Returns the supported pixel formats of the frame grabber, we just return
- * all available pixel formats to avoid issues...
- */
-QList<QVideoFrame::PixelFormat> QCCTV_ImageCapture::supportedPixelFormats
-(QAbstractVideoBuffer::HandleType handleType) const
-{
-    Q_UNUSED (handleType);
-
-    return QList<QVideoFrame::PixelFormat>()
-           << QVideoFrame::Format_ARGB32
-           << QVideoFrame::Format_ARGB32_Premultiplied
-           << QVideoFrame::Format_RGB32
-           << QVideoFrame::Format_RGB24
-           << QVideoFrame::Format_RGB565
-           << QVideoFrame::Format_RGB555
-           << QVideoFrame::Format_ARGB8565_Premultiplied
-           << QVideoFrame::Format_BGRA32
-           << QVideoFrame::Format_BGRA32_Premultiplied
-           << QVideoFrame::Format_BGR32
-           << QVideoFrame::Format_BGR24
-           << QVideoFrame::Format_BGR565
-           << QVideoFrame::Format_BGR555
-           << QVideoFrame::Format_BGRA5658_Premultiplied
-           << QVideoFrame::Format_AYUV444
-           << QVideoFrame::Format_AYUV444_Premultiplied
-           << QVideoFrame::Format_YUV444
-           << QVideoFrame::Format_YUV420P
-           << QVideoFrame::Format_YV12
-           << QVideoFrame::Format_UYVY
-           << QVideoFrame::Format_YUYV
-           << QVideoFrame::Format_NV12
-           << QVideoFrame::Format_NV21
-           << QVideoFrame::Format_IMC1
-           << QVideoFrame::Format_IMC2
-           << QVideoFrame::Format_IMC3
-           << QVideoFrame::Format_IMC4
-           << QVideoFrame::Format_Y8
-           << QVideoFrame::Format_Y16
-           << QVideoFrame::Format_Jpeg
-           << QVideoFrame::Format_CameraRaw
-           << QVideoFrame::Format_AdobeDng;
+    connect (&m_probe, SIGNAL (videoFrameProbed (QVideoFrame)),
+             this,       SLOT (processVideoFrame (QVideoFrame)));
 }
 
 /**
@@ -126,4 +39,74 @@ QList<QVideoFrame::PixelFormat> QCCTV_ImageCapture::supportedPixelFormats
 void QCCTV_ImageCapture::setEnabled (const bool enabled)
 {
     m_enabled = enabled;
+}
+
+/**
+ * Changes the source from which we shall obtain (and process) the images
+ */
+void QCCTV_ImageCapture::setSource (QMediaObject* source)
+{
+    m_probe.setSource (source);
+}
+
+/**
+ * Generates a \c QImage from the given \a frame
+ */
+#include <qdebug.h>
+void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
+{
+    /* Frame is invalid or grabber is disabled */
+    if (!frame.isValid() && !m_enabled)
+        return;
+
+    /* Convert the videoframe to an image */
+    QVideoFrame clone (frame);
+    if (clone.map (QAbstractVideoBuffer::ReadOnly)) {
+        QImage::Format format = QVideoFrame::imageFormatFromPixelFormat (clone.pixelFormat());
+
+        /* This is simple, image is supported natively by Qt */
+        if (format != QImage::Format_Invalid)
+            emit newFrame (QImage (clone.bits(),
+                                   clone.width(),
+                                   clone.height(),
+                                   format));
+
+        /* This is an NV12/NV21 image */
+        else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
+                 clone.pixelFormat() == QVideoFrame::Format_NV21) {
+            /* Perform conversion */
+            uchar* rgb = new uchar [clone.mappedBytes() * 4];
+            bool converted = nv12_to_rgb (rgb,
+                                          clone.bits(),
+                                          clone.width(),
+                                          clone.height());
+
+            /* Conversion OK, generate image */
+            if (converted) {
+                QImage image ((const uchar*) rgb,
+                              clone.width(),
+                              clone.height(),
+                              QImage::Format_RGB888);
+
+                if (!image.isNull())
+                    emit newFrame (image);
+            }
+
+            /* Free RGB map */
+            if (rgb != NULL)
+                delete[] rgb;
+        }
+
+        /* God bless you */
+        else {
+            QImage image = QImage::fromData (clone.bits(), clone.mappedBytes());
+            if (!image.isNull())
+                emit newFrame (image);
+        }
+
+        /* Unmap the frame data */
+        clone.unmap();
+    }
+
+    qDebug() << "A";
 }

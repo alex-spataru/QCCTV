@@ -20,33 +20,10 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_IMAGE_CAPTURE_H
-#define _QCCTV_IMAGE_CAPTURE_H
+import QtQuick 2.0
+import QtMultimedia 5.4
 
-#include <QObject>
-#include <QVideoProbe>
-#include <QMediaObject>
-
-class QCCTV_ImageCapture : public QObject
-{
-    Q_OBJECT
-
-signals:
-    void newFrame (const QImage& frame);
-
-public:
-    QCCTV_ImageCapture (QObject* parent = NULL);
-
-public slots:
-    void setEnabled (const bool enabled);
-    void setSource (QMediaObject* source);
-
-private slots:
-    void processVideoFrame (const QVideoFrame frame);
-
-private:
-    bool m_enabled;
-    QVideoProbe m_probe;
-};
-
-#endif
+Camera {
+    id: camera
+    objectName: "camera"
+}

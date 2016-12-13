@@ -21,7 +21,7 @@
  */
 
 import QtQuick 2.0
-import QtMultimedia 5.4
+import QtMultimedia 5.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
@@ -140,7 +140,7 @@ ApplicationWindow {
         onFpsChanged: fps = QCCTVCamera.fps()
         onResolutionChanged: resolution = QCCTVCamera.resolution()
         onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
-        onLightStatusChanged: flashOn = QCCTVCamera.flashlightEnabled()
+        onLightStatusChanged: flashOn = QCCTVCamera.flashlightStatus()
         onCameraStatusChanged: cameraStatus = QCCTVCamera.statusString()
         onAutoRegulateResolutionChanged: autoRegulate = QCCTVCamera.autoRegulateResolution()
     }
@@ -154,6 +154,19 @@ ApplicationWindow {
         smooth: true
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
+    }
+
+    //
+    // Hidden video output
+    //
+    VideoOutput {
+        width: 0
+        height: 0
+        fillMode: Image.PreserveAspectCrop
+
+        source: Camera {
+            objectName: "camera"
+        }
     }
 
     //
@@ -214,7 +227,10 @@ ApplicationWindow {
                 id: nameInput
                 Layout.fillWidth: true
                 Layout.minimumWidth: 280
-                onTextChanged: QCCTVCamera.setName (text)
+                onTextChanged: {
+                    if (text.length > 0)
+                        QCCTVCamera.setName (text)
+                }
             }
 
             //
@@ -231,7 +247,10 @@ ApplicationWindow {
                 id: groupInput
                 Layout.fillWidth: true
                 Layout.minimumWidth: 280
-                onTextChanged: QCCTVCamera.setGroup (text)
+                onTextChanged: {
+                    if (text.length > 0)
+                        QCCTVCamera.setGroup (text)
+                }
             }
 
             //
@@ -398,6 +417,7 @@ ApplicationWindow {
         // Focus Button
         //
         Button {
+
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: Qt.size (48, 48)

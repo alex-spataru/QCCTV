@@ -396,7 +396,7 @@ void QCCTV_Station::changeResolution (const int camera, const int resolution)
 void QCCTV_Station::setFlashlightEnabled (const int camera, const bool enabled)
 {
     if (getCamera (camera))
-        getCamera (camera)->setFlashlightStatus ((int) enabled);
+        getCamera (camera)->changeFlashlightStatus ((int) enabled);
 }
 
 /**
@@ -462,6 +462,8 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (newCameraImage (int)));
         connect (camera, SIGNAL (resolutionChanged (int)),
                  this,   SIGNAL (resolutionChanged (int)));
+        connect (camera, SIGNAL (lightStatusChanged (int)),
+                 this,   SIGNAL (lightStatusChanged (int)));
         connect (camera, SIGNAL (autoRegulateResolutionChanged (int)),
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
         connect (camera, SIGNAL (newCameraGroup (int)),

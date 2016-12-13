@@ -83,13 +83,14 @@ int main (int argc, char* argv[])
     engine.rootContext()->setContextProperty ("QCCTVCamera", &localCamera);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
 
-    /* Obtain camera from QML interface */
-    QCamera cam (QCameraInfo::defaultCamera());
-    localCamera.setCamera (&cam);
-
     /* Exit if QML fails to load */
     if (engine.rootObjects().isEmpty())
         return EXIT_FAILURE;
+
+    /* Get camera from QML interface */
+    QObject* obj = engine.rootObjects().first()->findChild<QObject*> ("camera");
+    QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
+    localCamera.setCamera (cam);
 
     /* Enter application loop */
     return app.exec();

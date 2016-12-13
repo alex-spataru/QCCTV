@@ -61,12 +61,14 @@ public:
     Q_INVOKABLE int minimumFPS() const;
     Q_INVOKABLE int maximumFPS() const;
     Q_INVOKABLE int cameraStatus() const;
+    Q_INVOKABLE int flashlightStatus() const;
+
     Q_INVOKABLE QString cameraName() const;
     Q_INVOKABLE QString cameraGroup() const;
     Q_INVOKABLE QImage currentImage() const;
     Q_INVOKABLE QString statusString() const;
     Q_INVOKABLE bool readyForCapture() const;
-    Q_INVOKABLE bool flashlightEnabled() const;
+
     Q_INVOKABLE bool flashlightAvailable() const;
     Q_INVOKABLE QStringList connectedHosts() const;
     Q_INVOKABLE bool autoRegulateResolution() const;
@@ -103,17 +105,17 @@ private:
 
 private:
     int m_fps;
-    int m_frame;
     int m_cameraStatus;
     int m_flashlightStatus;
 
     bool m_autoRegulateResolution;
 
     QImage m_image;
+    QImage m_displayImage;
+
     QString m_name;
     QString m_group;
     QByteArray m_data;
-    QByteArray m_imageData;
 
     QCamera* m_camera;
     QCameraImageCapture* m_capture;

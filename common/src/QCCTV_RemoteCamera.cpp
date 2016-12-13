@@ -52,8 +52,9 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_oldFPS = QCCTV_DEFAULT_FPS;
     m_newResolution = QCCTV_DEFAULT_RES;
     m_oldResolution = QCCTV_DEFAULT_RES;
-    m_lightStatus = QCCTV_FLASHLIGHT_OFF;
     m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
+    m_oldFlashlightStatus = QCCTV_FLASHLIGHT_OFF;
+    m_newFlashlightStatus = QCCTV_FLASHLIGHT_OFF;
 
     /* Configure the socket */
     connect (&m_watchdog, SIGNAL (expired()),
@@ -173,7 +174,7 @@ QCCTV_Resolution QCCTV_RemoteCamera::resolution() const
  */
 QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
 {
-    return m_lightStatus;
+    return (QCCTV_LightStatus) m_oldFlashlightStatus;
 }
 
 /**
@@ -187,28 +188,6 @@ void QCCTV_RemoteCamera::requestFocus()
     m_focus = true;
     QTimer::singleShot (500, Qt::PreciseTimer,
                         this, SLOT (resetFocusRequest()));
-}
-
-/**
- * Instructs the camera to turn on its flashlight (on the next command packet)
- */
-void QCCTV_RemoteCamera::turnOnFlashlight()
-{
-    if (m_lightStatus != QCCTV_FLASHLIGHT_ON) {
-        m_lightStatus = QCCTV_FLASHLIGHT_ON;
-        emit newLightStatus (id());
-    }
-}
-
-/**
- * Instructs the camera to turn off its flashlight (on the next command packet)
- */
-void QCCTV_RemoteCamera::turnOffFlashlight()
-{
-    if (m_lightStatus != QCCTV_FLASHLIGHT_OFF) {
-        m_lightStatus = QCCTV_FLASHLIGHT_OFF;
-        emit newLightStatus (id());
-    }
 }
 
 /**
@@ -226,17 +205,6 @@ void QCCTV_RemoteCamera::changeFPS (const int fps)
 {
     m_newFPS = QCCTV_GET_VALID_FPS (fps);
     m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
-}
-
-/**
- * Changes the flashlight status of the camera and emits the appropiate signals
- */
-void QCCTV_RemoteCamera::setFlashlightStatus (const int status)
-{
-    if (m_lightStatus != status) {
-        m_lightStatus = (QCCTV_LightStatus) status;
-        emit newLightStatus (id());
-    }
 }
 
 /**
@@ -269,6 +237,14 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 void QCCTV_RemoteCamera::changeAutoRegulate (const bool regulate)
 {
     m_newAutoRegulate = regulate;
+}
+
+/**
+ * Changes the flashlight status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
+{
+    m_newFlashlightStatus = status;
 }
 
 /**
@@ -336,7 +312,8 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     data.append (m_newFPS);
     data.append (m_oldResolution);
     data.append (m_newResolution);
-    data.append (m_lightStatus);
+    data.append (m_oldFlashlightStatus);
+    data.append (m_newFlashlightStatus);
     data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
     data.append (m_oldAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
     data.append (m_newAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
@@ -451,6 +428,18 @@ void QCCTV_RemoteCamera::updateAutoRegulate (const bool regulate)
 }
 
 /**
+ * Updates the flashlight status flag of the camera
+ */
+void QCCTV_RemoteCamera::updateFlashlightStatus (const int status)
+{
+    if (m_oldFlashlightStatus != status) {
+        m_newFlashlightStatus = status;
+        m_oldFlashlightStatus = status;
+        emit lightStatusChanged (id());
+    }
+}
+
+/**
  * Called when we receive a datagram from the camera, this function interprets
  * the status bytes and the image data contained in the received packet.
  *
@@ -539,8 +528,8 @@ void QCCTV_RemoteCamera::readCameraPacket()
     updateName (name);
     updateGroup (group);
     updateStatus (status);
-    setFlashlightStatus (light);
     updateResolution (resolution);
+    updateFlashlightStatus (light);
 
     /* Update auto-regulate option */
     if (autoregulate == QCCTV_AUTOREGULATE_RES)

@@ -147,10 +147,11 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
         break;
     }
 
-    /* Scale image */
-    QImage final = image.scaled (width, height,
-                                 Qt::KeepAspectRatio,
-                                 Qt::SmoothTransformation);
+    /* Scale the image */
+    QImage final = image;
+    final = final.scaled (width, height,
+                          Qt::KeepAspectRatio,
+                          Qt::FastTransformation);
 
     /* Save image to byte array */
     QByteArray raw_bytes;
