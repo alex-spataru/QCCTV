@@ -94,10 +94,8 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
     m_watchdogs.clear();
     m_broadcastSocket.close();
 
-    if (m_camera) {
-        m_camera->stop();
-        m_camera->deleteLater();
-    }
+    if (m_capture)
+        delete m_capture;
 }
 
 /**
@@ -165,7 +163,7 @@ QString QCCTV_LocalCamera::cameraGroup() const
  */
 QImage QCCTV_LocalCamera::currentImage() const
 {
-    return m_displayImage;
+    return m_image;
 }
 
 /**
@@ -365,9 +363,6 @@ void QCCTV_LocalCamera::update()
     generateData();
     sendCameraData();
 
-    /* Update image displayed in UI */
-    emit imageChanged();
-
     /* Call this function again in several milliseconds */
     QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
 }
@@ -517,10 +512,17 @@ void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
     m_imageCapture.setEnabled (false);
 
-    if (!image.isNull())
-        m_image = image;
-    else
+    /* Change image */
+    m_image = image;
+    if (m_image.isNull())
         m_image = ERROR_IMG;
+
+    /* Clear image data */
+    m_imageData.clear();
+    m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
+
+    /* Notify UI */
+    emit imageChanged();
 }
 
 /**
@@ -579,13 +581,11 @@ void QCCTV_LocalCamera::generateData()
         m_data.append ((quint8) autoRegulateResolution());
 
         /* Add raw image bytes */
-        QByteArray image = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
-        if (!image.isEmpty()) {
-            m_displayImage = QCCTV_DECODE_IMAGE (image);
-            m_data.append ((image.length() & 0xff0000) >> 16);
-            m_data.append ((image.length() & 0xff00) >> 8);
-            m_data.append ((image.length() & 0xff));
-            m_data.append ((image));
+        if (!m_imageData.isEmpty()) {
+            m_data.append ((m_imageData.length() & 0xff0000) >> 16);
+            m_data.append ((m_imageData.length() & 0xff00) >> 8);
+            m_data.append ((m_imageData.length() & 0xff));
+            m_data.append ((m_imageData));
         }
 
         /* Compress packet */

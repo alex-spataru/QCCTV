@@ -111,11 +111,11 @@ private:
     bool m_autoRegulateResolution;
 
     QImage m_image;
-    QImage m_displayImage;
 
     QString m_name;
     QString m_group;
     QByteArray m_data;
+    QByteArray m_imageData;
 
     QCamera* m_camera;
     QCameraImageCapture* m_capture;

@@ -28,7 +28,6 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-#include "ImageProvider.h"
 #include "AndroidLockHelper.h"
 #include "QCCTV_LocalCamera.h"
 
@@ -59,13 +58,10 @@ int main (int argc, char* argv[])
 
     /* Initialize application */
     QGuiApplication app (argc, argv);
+    QQuickStyle::setStyle ("Material");
 
     /* Initialize QCCTV */
-    QCCTV_LocalCamera* localCamera = new QCCTV_LocalCamera();
-    QCCTV_LocalCameraImage* provider = new QCCTV_LocalCameraImage (localCamera);
-
-    /* Set application style */
-    QQuickStyle::setStyle ("Material");
+    QCCTV_LocalCamera qcctvCamera;
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS
@@ -76,11 +72,10 @@ int main (int argc, char* argv[])
 
     /* Load QML interface */
     QQmlApplicationEngine engine;
-    engine.addImageProvider ("qcctv", provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
-    engine.rootContext()->setContextProperty ("QCCTVCamera", localCamera);
+    engine.rootContext()->setContextProperty ("QCCTVCamera", &qcctvCamera);
     engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
 
     /* Exit if QML fails to load */
@@ -90,7 +85,7 @@ int main (int argc, char* argv[])
     /* Get camera from QML interface */
     QObject* obj = engine.rootObjects().first()->findChild<QObject*> ("camera");
     QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
-    localCamera->setCamera (cam);
+    qcctvCamera.setCamera (cam);
 
     /* Enter application loop */
     return app.exec();

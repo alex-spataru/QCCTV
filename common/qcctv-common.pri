@@ -28,6 +28,8 @@ CONFIG += c++11
 INCLUDEPATH += $$PWD/src
 INCLUDEPATH += $$PWD/lib
 
+QMAKE_CXXFLAGS += -std=c++0x
+
 android {
     DEFINES += ARM_NEON_ENABLE
     QMAKE_CXXFLAGS += -mfloat-abi=softfp -mfpu=neon -flax-vector-conversions

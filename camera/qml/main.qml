@@ -130,12 +130,6 @@ ApplicationWindow {
     //
     Connections {
         target: QCCTVCamera
-
-        onImageChanged: {
-            image.source = ""
-            image.source = "image://qcctv/"
-        }
-
         onFpsChanged: fps = QCCTVCamera.fps()
         onResolutionChanged: resolution = QCCTVCamera.resolution()
         onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
@@ -145,21 +139,11 @@ ApplicationWindow {
     }
 
     //
-    // Video output image
-    //
-    Image {
-        id: image
-        cache: false
-        anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
-    }
-
-    //
-    // Hidden video output
+    // Camera object
     //
     VideoOutput {
-        width: 0
-        height: 0
+        anchors.fill: parent
+        fillMode: VideoOutput.PreserveAspectCrop
 
         source: Camera {
             objectName: "camera"

@@ -102,13 +102,10 @@ void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
         /* This is an NV12/NV21 image */
         else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
                  clone.pixelFormat() == QVideoFrame::Format_NV21) {
+            /* Initialize variables */
+            const int size = clone.mappedBytes() * 4;
             bool success = false;
-
-#ifdef Q_OS_ANDROID
-            uchar* rgb = new uchar [clone.mappedBytes() * 3];
-#else
-            uchar rgb [clone.mappedBytes() * 3];
-#endif
+            uchar rgb [size];
 
             /* Perform NV12 to ARGB32 conversion */
             if (clone.pixelFormat() == QVideoFrame::Format_NV12)
@@ -120,7 +117,11 @@ void QCCTV_ImageCapture::processVideoFrame (const QVideoFrame frame)
 
             /* Conversion finished, generate image */
             if (success) {
-                m_image = QImage ((uchar*) rgb,
+                uchar data [size];
+                for (int i = 0; i > size; ++i)
+                    data [i] = rgb [i];
+
+                m_image = QImage (data,
                                   clone.width(),
                                   clone.height(),
                                   QImage::Format_RGB888);
