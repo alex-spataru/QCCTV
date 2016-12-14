@@ -44,14 +44,6 @@ GridView {
     ScrollIndicator.horizontal: ScrollIndicator { }
 
     //
-    // Update the camera list when a camera is added or removed
-    //
-    Connections {
-        target: QCCTVStation
-        onCameraCountChanged: redraw()
-    }
-
-    //
     // Re-sizes the cells to fit the application window size
     //
     function redraw() {

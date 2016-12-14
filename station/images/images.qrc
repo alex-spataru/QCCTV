@@ -7,5 +7,7 @@
         <file>flash-off.svg</file>
         <file>flash-on.svg</file>
         <file>focus.svg</file>
+        <file>download.svg</file>
+        <file>open.svg</file>
     </qresource>
 </RCC>

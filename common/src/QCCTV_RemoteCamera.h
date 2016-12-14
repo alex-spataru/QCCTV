@@ -68,6 +68,7 @@ public slots:
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
+    void setSaveIncomingMedia (const bool save);
     void setRecordingsPath (const QString& path);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
@@ -99,6 +100,7 @@ private:
     bool m_focus;
     bool m_connected;
     int m_cameraStatus;
+    bool m_saveIncomingMedia;
 
     int m_oldFPS;
     int m_newFPS;

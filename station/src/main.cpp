@@ -23,7 +23,7 @@
 #include <QtQml>
 #include <QLabel>
 #include <QQuickStyle>
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
 
 #include "ImageProvider.h"
@@ -37,18 +37,18 @@ const QString APP_WEBSITE = "http://github.com/alex-spataru";
 int main (int argc, char* argv[])
 {
     /* Set application information */
-    QGuiApplication::setApplicationName (APP_DSPNAME);
-    QGuiApplication::setOrganizationName (APP_COMPANY);
-    QGuiApplication::setApplicationVersion (APP_VERSION);
-    QGuiApplication::setOrganizationDomain (APP_WEBSITE);
+    QApplication::setApplicationName (APP_DSPNAME);
+    QApplication::setOrganizationName (APP_COMPANY);
+    QApplication::setApplicationVersion (APP_VERSION);
+    QApplication::setOrganizationDomain (APP_WEBSITE);
 
     /* Set application attributes */
-    QGuiApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
-    QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
-    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
+    QApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
+    QApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
     /* Initialize application */
-    QGuiApplication app (argc, argv);
+    QApplication app (argc, argv);
 
     /* Initialize QCCTV station */
     QCCTV_Station* station = new QCCTV_Station();

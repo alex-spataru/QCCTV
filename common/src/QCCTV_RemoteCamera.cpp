@@ -51,6 +51,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_oldAutoRegulate = true;
     m_newAutoRegulate = true;
     m_name = "Unknown Camera";
+    m_saveIncomingMedia = true;
     m_newFPS = QCCTV_DEFAULT_FPS;
     m_oldFPS = QCCTV_DEFAULT_FPS;
     m_newResolution = QCCTV_DEFAULT_RES;
@@ -219,6 +220,17 @@ void QCCTV_RemoteCamera::changeFPS (const int fps)
         m_watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
 }
 
+/**
+ * Allows or disallows saving the incoming images to the disk
+ */
+void QCCTV_RemoteCamera::setSaveIncomingMedia (const bool save)
+{
+    m_saveIncomingMedia = save;
+}
+
+/**
+ * Changes the path in which we should save incoming images
+ */
 void QCCTV_RemoteCamera::setRecordingsPath (const QString& path)
 {
     if (!path.isEmpty())
@@ -616,6 +628,10 @@ void QCCTV_RemoteCamera::saveImage (QImage& image)
     painter.setFont (font);
     painter.setPen (QPen (Qt::green));
     painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
+
+    /* We are not allowed to save the image, we are done for now */
+    if (!m_saveIncomingMedia)
+        return;
 
     /* Get recordings directory */
     QString path = QString ("%1/%2/%3/%4/%5/Day %6/%7 Hours/Minute %8/")

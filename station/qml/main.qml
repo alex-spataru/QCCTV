@@ -31,6 +31,10 @@ import "."
 
 ApplicationWindow {
     id: app
+
+    //
+    // Window options
+    //
     width: 840
     height: 520
     color: "#000"
@@ -45,25 +49,15 @@ ApplicationWindow {
     property int spacing: 8
 
     //
-    // Forces the UI to re-generate the tabs and camera grid
-    //
-    function generateGrid() {
-        tabs.model = 0
-        groupView.group = 0
-        fullscreenCamera.hideCamera()
-        tabs.model = QCCTVStation.groupCount()
-        loadingScreen.opacity = QCCTVStation.cameraCount() > 0 ? 0 : 1
-    }
-
-    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
         if (isMobile)
             showMaximized()
 
+        Material.accent = "#8fc859"
+        Universal.accent = "#8fc859"
         Material.theme = Material.Dark
-        Material.accent = Material.Teal
         Universal.theme = Universal.Dark
     }
 
@@ -78,65 +72,36 @@ ApplicationWindow {
     }
 
     //
-    // QCCTV signals/slots
+    // Toolbar
     //
-    Connections {
-        target: QCCTVStation
-        onGroupCountChanged: generateGrid()
-        onCameraCountChanged: generateGrid()
-    }
-
-    //
-    // Standard camera grid and group selector
-    //
-    Page {
-        anchors.fill: parent
-        opacity: fullscreenCamera.enabled ? 0 : 1
-
-        Behavior on opacity { NumberAnimation{} }
-
-        //
-        // Camera grid
-        //
-        GroupView {
-            id: groupView
-            anchors.fill: parent
+    header: TabBar {
+        TabButton {
+            text: qsTr ("Live Feed")
+            onClicked: stackView.pop()
         }
 
-        //
-        // Group selector
-        //
-        footer: TabBar {
-            opacity: 0.62
-
-            Repeater {
-                id: tabs
-                delegate: TabButton {
-                    onClicked: groupView.group = index
-                    font.capitalization: Font.AllUppercase
-                    text: QCCTVStation.getGroupName (index)
-                }
-            }
+        TabButton {
+            text: qsTr ("Settings")
+            onClicked: stackView.push (settings)
         }
     }
 
     //
-    // Fullscreen camera (shown when user clicks on a camera)
+    // Pages
     //
-    FullscreenCamera {
-        id: fullscreenCamera
+    StackView {
+        id: stackView
         anchors.fill: parent
-        Component.onCompleted: hideCamera()
-    }
+        initialItem: liveFeed
 
-    //
-    // QCCTV loading screen (shown when there are no cameras)
-    //
-    LoadingScreen {
-        id: loadingScreen
-        anchors.fill: parent
-        opacity: QCCTVStation.cameraCount() > 0 ? 0 : 1
+        LiveFeed {
+            id: liveFeed
+            visible: false
+        }
 
-        Behavior on opacity { NumberAnimation{} }
+        SettingsPage {
+            id: settings
+            visible: false
+        }
     }
 }

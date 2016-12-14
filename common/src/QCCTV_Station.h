@@ -34,6 +34,7 @@ signals:
     void groupCountChanged();
     void cameraCountChanged();
     void recordingsPathChanged();
+    void saveIncomingMediaChanged();
     void connected (const int camera);
     void fpsChanged (const int camera);
     void disconnected (const int camera);
@@ -57,6 +58,7 @@ public:
 
     Q_INVOKABLE QStringList groups() const;
     Q_INVOKABLE QString recordingsPath() const;
+    Q_INVOKABLE bool saveIncomingMedia() const;
     Q_INVOKABLE QStringList availableResolutions() const;
 
     Q_INVOKABLE QList<int> getGroupCameraIDs (const int group) const;
@@ -83,6 +85,7 @@ public slots:
     void openRecordingsPath();
     void chooseRecordingsPath();
     void focusCamera (const int camera);
+    void setSaveIncomingMedia (const bool save);
     void setRecordingsPath (const QString& path);
     void changeFPS (const int camera, const int fps);
     void setFlashlightEnabledAll (const bool enabled);
@@ -98,6 +101,7 @@ private:
     QImage m_cameraError;
     QStringList m_groups;
     QString m_recordingsPath;
+    bool m_saveIncomingMedia;
     QList<QThread*> m_threads;
     QList<QCCTV_RemoteCamera*> m_cameras;
 };

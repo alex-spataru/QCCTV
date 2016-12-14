@@ -5,5 +5,7 @@
         <file>LoadingScreen.qml</file>
         <file>FullscreenCamera.qml</file>
         <file>GroupView.qml</file>
+        <file>LiveFeed.qml</file>
+        <file>SettingsPage.qml</file>
     </qresource>
 </RCC>

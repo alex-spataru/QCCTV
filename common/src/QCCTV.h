@@ -102,7 +102,7 @@ extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
 #define QCCTV_IMAGE_FORMAT    "JPG"
 #define QCCTV_DEFAULT_RES     QCCTV_Original
 #define QCCTV_MAX_BUFFER_SIZE 200 * 1024
-#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV/Recordings/"
+#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV"
 
 /*
  * Watchdog timings

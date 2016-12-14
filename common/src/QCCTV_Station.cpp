@@ -44,6 +44,8 @@ QCCTV_Station::QCCTV_Station()
              this,   SLOT (updateGroups()));
 
     /* Set camera error image */
+    setRecordingsPath ("");
+    setSaveIncomingMedia (true);
     m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
 }
 
@@ -113,6 +115,15 @@ QStringList QCCTV_Station::groups() const
 QString QCCTV_Station::recordingsPath() const
 {
     return m_recordingsPath;
+}
+
+/**
+ * Returns \c true if the station should save received camera frames
+ * to the hard disk
+ */
+bool QCCTV_Station::saveIncomingMedia() const
+{
+    return m_saveIncomingMedia;
 }
 
 /**
@@ -394,6 +405,19 @@ void QCCTV_Station::focusCamera (const int camera)
 }
 
 /**
+ * Allows or disallows the QCCTV Station to save incoming media
+ */
+void QCCTV_Station::setSaveIncomingMedia (const bool save)
+{
+    m_saveIncomingMedia = save;
+
+    foreach (QCCTV_RemoteCamera* camera, m_cameras)
+        camera->setSaveIncomingMedia (saveIncomingMedia());
+
+    emit saveIncomingMediaChanged();
+}
+
+/**
  * Changes the directory in which the QCCTV recordings are saved.
  *
  * \note If the \a path is empty, then the default directory shall
@@ -401,13 +425,19 @@ void QCCTV_Station::focusCamera (const int camera)
  */
 void QCCTV_Station::setRecordingsPath (const QString& path)
 {
-    if (path == m_recordingsPath)
+    if (!path.isEmpty() && m_recordingsPath == path)
         return;
 
     if (!path.isEmpty())
         m_recordingsPath = QDir (path).absolutePath();
     else
         m_recordingsPath = QDir (QCCTV_RECORDINGS_PATH).absolutePath();
+
+    if (!m_recordingsPath.endsWith ("/QCCTV_Media/") &&
+        !m_recordingsPath.endsWith ("/QCCTV_Media")) {
+        m_recordingsPath += "/QCCTV_Media/";
+        m_recordingsPath = QDir (m_recordingsPath).absolutePath();
+    }
 
     foreach (QCCTV_RemoteCamera* camera, m_cameras)
         if (camera)
@@ -549,5 +579,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);
         camera->setRecordingsPath (recordingsPath());
+        camera->setSaveIncomingMedia (saveIncomingMedia());
     }
 }
