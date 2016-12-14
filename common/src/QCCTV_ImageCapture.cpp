@@ -128,13 +128,11 @@ bool QCCTV_ImageCapture::publishImage()
     const QScreen* screen = QGuiApplication::primaryScreen();
     const int angle = screen->angleBetween (screen->nativeOrientation(), screen->orientation());
 
-    /* Calculate rotation */
-    const int rotation = (360 - m_info.orientation() + angle) % 360;
-
     /* Rotate image */
+    const int rotation = (360 - m_info.orientation() + angle) % 360;
     m_image = m_image.transformed (QTransform().rotate (rotation));
 
-    /* Fix mirrored image issue on Windows */
+    /* Fix mirrored image issues */
 #if defined Q_OS_WIN
     m_image = m_image.mirrored (false, true);
 #endif
@@ -168,11 +166,11 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
                           clone.height(),
                           format);
 
-    /* This is an NV12/NV21 image (happens on Android) */
+    /* This is an NV12/NV21 image (Qt does not support YUV images yet) */
     else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
              clone.pixelFormat() == QVideoFrame::Format_NV21) {
         bool success = false;
-        uchar rgb [clone.mappedBytes() * 4];
+        uchar* rgb = new uchar [clone.mappedBytes() * 4];
 
         /* Perform NV12 to RGB conversion */
         if (clone.pixelFormat() == QVideoFrame::Format_NV12)
@@ -189,7 +187,7 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
                                    clone.height());
 
         /* Conversion finished, generate image */
-        if (success) {
+        if (success && rgb) {
             m_image = QImage (rgb,
                               clone.width(),
                               clone.height(),

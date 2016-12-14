@@ -67,6 +67,7 @@ public slots:
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
+    void setRecordingsPath (const QString& path);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
     void changeAutoRegulate (const bool regulate);
@@ -78,7 +79,7 @@ private slots:
     void onDataReceived();
     void sendCommandPacket();
     void resetFocusRequest();
-    void saveVideoRecording();
+    void saveVideoRecordings();
     void updateFPS (const int fps);
     void updateStatus (const int status);
     void updateName (const QString& name);
@@ -91,7 +92,7 @@ private slots:
 private:
     void readCameraPacket();
     void acknowledgeReception();
-    QImage addCurrentDateTime (QImage& image);
+    void saveImage (QImage& image);
 
 private:
     int m_id;
@@ -108,6 +109,8 @@ private:
 
     bool m_oldAutoRegulate;
     bool m_newAutoRegulate;
+
+    QString m_recordingsPath;
 
     QString m_name;
     QImage m_image;

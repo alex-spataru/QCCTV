@@ -32,6 +32,7 @@ class QCCTV_Station : public QObject
 signals:
     void groupCountChanged();
     void cameraCountChanged();
+    void recordingsPathChanged();
     void connected (const int camera);
     void fpsChanged (const int camera);
     void disconnected (const int camera);
@@ -54,6 +55,7 @@ public:
     Q_INVOKABLE int cameraCount (const int group) const;
 
     Q_INVOKABLE QStringList groups() const;
+    Q_INVOKABLE QString recordingsPath() const;
     Q_INVOKABLE QStringList availableResolutions() const;
 
     Q_INVOKABLE QList<int> getGroupCameraIDs (const int group) const;
@@ -77,7 +79,10 @@ public:
 public slots:
     void updateGroups();
     void removeAllCameras();
+    void openRecordingsPath();
+    void chooseRecordingsPath();
     void focusCamera (const int camera);
+    void setRecordingsPath (const QString& path);
     void changeFPS (const int camera, const int fps);
     void setFlashlightEnabledAll (const bool enabled);
     void changeResolution (const int camera, const int resolution);
@@ -91,6 +96,7 @@ private slots:
 private:
     QImage m_cameraError;
     QStringList m_groups;
+    QString m_recordingsPath;
     QList<QCCTV_RemoteCamera*> m_cameras;
 };
 

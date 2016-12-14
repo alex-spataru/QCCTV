@@ -23,6 +23,7 @@
 import QtMultimedia 5.2
 
 VideoOutput {
+    autoOrientation: true
     source: Camera {
         objectName: "camera"
     }

@@ -23,8 +23,10 @@
 #include "QCCTV.h"
 #include "QCCTV_RemoteCamera.h"
 
+#include <QDir>
 #include <QPen>
 #include <QFont>
+#include <QFile>
 #include <QPainter>
 #include <QDateTime>
 #include <QApplication>
@@ -65,7 +67,8 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
              this,          SLOT (endConnection()));
 
     /* Start saving video to hard disk */
-    saveVideoRecording();
+    setRecordingsPath ("");
+    saveVideoRecordings();
 
     /* Set default image & configure watchdog */
     m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
@@ -78,6 +81,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
     m_socket.close();
+    saveVideoRecordings();
 }
 
 /**
@@ -207,6 +211,14 @@ void QCCTV_RemoteCamera::changeFPS (const int fps)
     m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
 }
 
+void QCCTV_RemoteCamera::setRecordingsPath (const QString& path)
+{
+    if (!path.isEmpty())
+        m_recordingsPath = path;
+    else
+        m_recordingsPath = QDir::homePath() + "/QCCTV/Recordings/";
+}
+
 /**
  * Changes the resoltion of the camera
  */
@@ -326,13 +338,29 @@ void QCCTV_RemoteCamera::sendCommandPacket()
  * Saves a video recording of the camera every 1 second
  * \todo everything
  */
-void QCCTV_RemoteCamera::saveVideoRecording()
+void QCCTV_RemoteCamera::saveVideoRecordings()
 {
-    if (!m_images.isEmpty())
-        m_images.clear();
+    /* Create recordings directory */
+    QDir dir = QDir (m_recordingsPath + "/" + name() + "/");
+    if (!dir.exists())
+        dir.mkpath (".");
 
+    /* Get image count */
+    int count = dir.entryList (QDir::Files).count();
+
+    /* Save every image */
+    foreach (QImage image, m_images) {
+        ++count;
+        QString name = QString ("%1.%2").arg (count).arg (QCCTV_IMAGE_FORMAT);
+        image.save (dir.absoluteFilePath (name.toLower()),
+                    QCCTV_IMAGE_FORMAT,
+                    100);
+    }
+
+    /* Clear the list */
+    m_images.clear();
     QTimer::singleShot (1000, Qt::PreciseTimer,
-                        this, SLOT (saveVideoRecording()));
+                        this, SLOT (saveVideoRecordings()));
 }
 
 /**
@@ -553,11 +581,11 @@ void QCCTV_RemoteCamera::readCameraPacket()
             return;
     }
 
-    /* Decode image */
+    /* Decode the image and save it */
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
-        m_images.append (addCurrentDateTime (img));
+        saveImage (img);
         emit newImage (id());
     }
 
@@ -585,7 +613,7 @@ void QCCTV_RemoteCamera::acknowledgeReception()
 /**
  * Writes the current date and time on the top-left corner of the given image
  */
-QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
+void QCCTV_RemoteCamera::saveImage (QImage& image)
 {
     /* Construct strings */
     QDateTime current = QDateTime::currentDateTimeUtc();
@@ -605,9 +633,9 @@ QImage QCCTV_RemoteCamera::addCurrentDateTime (QImage& image)
     /* Paint text over image */
     QPainter painter (&image);
     painter.setFont (font);
-    painter.setPen (QPen (Qt::white));
+    painter.setPen (QPen (Qt::green));
     painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
 
-    /* Return final image */
-    return image;
+    /* Append image to saved images list */
+    m_images.append (image);
 }

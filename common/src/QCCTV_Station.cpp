@@ -23,6 +23,10 @@
 #include "QCCTV_Station.h"
 #include "QCCTV_Discovery.h"
 
+#include <QDir>
+#include <QFileDialog>
+#include <QDesktopServices>
+
 QCCTV_Station::QCCTV_Station()
 {
     /* Attempt to connect to a camera as we find it */
@@ -100,6 +104,14 @@ int QCCTV_Station::cameraCount (const int group) const
 QStringList QCCTV_Station::groups() const
 {
     return m_groups;
+}
+
+/**
+ * Returns the path in which the QCCTV recordings are saved
+ */
+QString QCCTV_Station::recordingsPath() const
+{
+    return m_recordingsPath;
 }
 
 /**
@@ -347,6 +359,29 @@ void QCCTV_Station::removeAllCameras()
 }
 
 /**
+ * Opens the folder in which we save QCCTV recordings
+ */
+void QCCTV_Station::openRecordingsPath()
+{
+    QDesktopServices::openUrl (QUrl::fromLocalFile (recordingsPath()));
+}
+
+/**
+ * Prompts the user to select where to save the QCCTV recordings
+ */
+void QCCTV_Station::chooseRecordingsPath()
+{
+    QString dir = QFileDialog::getExistingDirectory (NULL,
+                                                     tr ("Select recordings folder"),
+                                                     QDir::homePath(),
+                                                     QFileDialog::ShowDirsOnly |
+                                                     QFileDialog::DontResolveSymlinks);
+
+    if (!dir.isEmpty())
+        setRecordingsPath (dir);
+}
+
+/**
  * Instructs the remote \a camera to perform a focus
  * \note If the \a camera parameter is invalid, then this function
  *       shall have no effect
@@ -355,6 +390,29 @@ void QCCTV_Station::focusCamera (const int camera)
 {
     if (getCamera (camera))
         getCamera (camera)->requestFocus();
+}
+
+/**
+ * Changes the directory in which the QCCTV recordings are saved.
+ *
+ * \note If the \a path is empty, then the default directory shall
+ *       be used to store QCCTV recordings
+ */
+void QCCTV_Station::setRecordingsPath (const QString& path)
+{
+    if (path == m_recordingsPath)
+        return;
+
+    if (!path.isEmpty())
+        m_recordingsPath = QDir (path).absolutePath();
+    else
+        m_recordingsPath = QDir (QCCTV_RECORDINGS_PATH).absolutePath();
+
+    foreach (QCCTV_RemoteCamera* camera, m_cameras)
+        if (camera)
+            camera->setRecordingsPath (recordingsPath());
+
+    emit recordingsPathChanged();
 }
 
 /**
@@ -471,5 +529,6 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);
+        camera->setRecordingsPath (recordingsPath());
     }
 }

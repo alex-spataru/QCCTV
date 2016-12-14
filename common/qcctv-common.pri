@@ -22,6 +22,7 @@
 
 QT += core
 QT += network
+QT += widgets
 QT += multimedia
 
 CONFIG += c++11
