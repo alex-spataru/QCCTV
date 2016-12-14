@@ -45,6 +45,7 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     /* Initialize default variables */
     m_id = 0;
     m_focus = false;
+    m_watchdog = NULL;
     m_group = "Unknown";
     m_connected = false;
     m_oldAutoRegulate = true;
@@ -59,19 +60,13 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
     m_newFlashlightStatus = QCCTV_FLASHLIGHT_OFF;
 
     /* Configure the socket */
-    connect (&m_watchdog, SIGNAL (expired()),
-             this,          SLOT (clearBuffer()));
     connect (&m_socket,   SIGNAL (readyRead()),
              this,          SLOT (onDataReceived()));
     connect (&m_socket,   SIGNAL (disconnected()),
              this,          SLOT (endConnection()));
 
-    /* Start saving video to hard disk */
+    /* Set default recordings path and initial image */
     setRecordingsPath ("");
-    saveVideoRecordings();
-
-    /* Set default image & configure watchdog */
-    m_watchdog.setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
     m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 }
 
@@ -81,7 +76,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera()
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
     m_socket.close();
-    saveVideoRecordings();
 }
 
 /**
@@ -182,6 +176,17 @@ QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
 }
 
 /**
+ * Initializes the watchdog timers after the thread has been created
+ */
+void QCCTV_RemoteCamera::start()
+{
+    m_watchdog = new QCCTV_Watchdog (this);
+    m_watchdog->setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
+
+    connect (m_watchdog, SIGNAL (expired()), this, SLOT (clearBuffer()));
+}
+
+/**
  * Instructs the class to generate a packet that requests the camera to perform
  * a forced focus.
  *
@@ -190,8 +195,9 @@ QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
 void QCCTV_RemoteCamera::requestFocus()
 {
     m_focus = true;
-    QTimer::singleShot (500, Qt::PreciseTimer,
-                        this, SLOT (resetFocusRequest()));
+
+    QTimer timer;
+    timer.singleShot (500, this, SLOT (resetFocusRequest()));
 }
 
 /**
@@ -208,7 +214,9 @@ void QCCTV_RemoteCamera::changeID (const int id)
 void QCCTV_RemoteCamera::changeFPS (const int fps)
 {
     m_newFPS = QCCTV_GET_VALID_FPS (fps);
-    m_watchdog.setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
+
+    if (m_watchdog)
+        m_watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
 }
 
 void QCCTV_RemoteCamera::setRecordingsPath (const QString& path)
@@ -335,35 +343,6 @@ void QCCTV_RemoteCamera::sendCommandPacket()
 }
 
 /**
- * Saves a video recording of the camera every 1 second
- * \todo everything
- */
-void QCCTV_RemoteCamera::saveVideoRecordings()
-{
-    /* Create recordings directory */
-    QDir dir = QDir (m_recordingsPath + "/" + name() + "/");
-    if (!dir.exists())
-        dir.mkpath (".");
-
-    /* Get image count */
-    int count = dir.entryList (QDir::Files).count();
-
-    /* Save every image */
-    foreach (QImage image, m_images) {
-        ++count;
-        QString name = QString ("%1.%2").arg (count).arg (QCCTV_IMAGE_FORMAT);
-        image.save (dir.absoluteFilePath (name.toLower()),
-                    QCCTV_IMAGE_FORMAT,
-                    100);
-    }
-
-    /* Clear the list */
-    m_images.clear();
-    QTimer::singleShot (1000, Qt::PreciseTimer,
-                        this, SLOT (saveVideoRecordings()));
-}
-
-/**
  * Updates the \a fps reported by the camera
  */
 void QCCTV_RemoteCamera::updateFPS (const int fps)
@@ -412,7 +391,7 @@ void QCCTV_RemoteCamera::updateGroup (const QString& group)
         if (m_group.isEmpty())
             m_group = "Default";
 
-        emit newCameraGroup (id());
+        emit newCameraGroup();
     }
 }
 
@@ -603,7 +582,9 @@ void QCCTV_RemoteCamera::readCameraPacket()
  */
 void QCCTV_RemoteCamera::acknowledgeReception()
 {
-    m_watchdog.reset();
+    if (m_watchdog)
+        m_watchdog->reset();
+
     sendCommandPacket();
 
     if (!isConnected())
@@ -616,9 +597,9 @@ void QCCTV_RemoteCamera::acknowledgeReception()
 void QCCTV_RemoteCamera::saveImage (QImage& image)
 {
     /* Construct strings */
-    QDateTime current = QDateTime::currentDateTimeUtc();
-    QString utc = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz UTC");
-    QString str = name() + "\n" + utc;
+    QDateTime current = QDateTime::currentDateTime();
+    QString fmt = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz");
+    QString str = name() + "\n" + fmt;
 
     /* Get font */
     QFont font;
@@ -636,6 +617,28 @@ void QCCTV_RemoteCamera::saveImage (QImage& image)
     painter.setPen (QPen (Qt::green));
     painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
 
-    /* Append image to saved images list */
-    m_images.append (image);
+    /* Get recordings directory */
+    QString path = QString ("%1/%2/%3/%4/%5/Day %6/%7 Hours/Minute %8/")
+                   .arg (m_recordingsPath)
+                   .arg (name())
+                   .arg (address().toString())
+                   .arg (current.toString ("yyyy"))
+                   .arg (current.toString ("MMM"))
+                   .arg (current.toString ("dd"))
+                   .arg (current.toString ("hh"))
+                   .arg (current.toString ("mm"));
+
+    /* Create directory if it does not exist */
+    QDir dir = QDir (path);
+    if (!dir.exists())
+        dir.mkpath (".");
+
+    /* Get image name (based on seconds & msecs) */
+    QString name = QString ("%1 sec %2 ms.%3")
+                   .arg (current.toString ("ss"))
+                   .arg (current.toString ("zzz"))
+                   .arg (QCCTV_IMAGE_FORMAT);
+
+    /* Save image */
+    image.save (dir.absoluteFilePath (name), QCCTV_IMAGE_FORMAT);
 }

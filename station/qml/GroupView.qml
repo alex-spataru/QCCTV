@@ -38,6 +38,12 @@ GridView {
     onHeightChanged: redraw()
 
     //
+    // Scrollbars
+    //
+    ScrollIndicator.vertical: ScrollIndicator { }
+    ScrollIndicator.horizontal: ScrollIndicator { }
+
+    //
     // Update the camera list when a camera is added or removed
     //
     Connections {

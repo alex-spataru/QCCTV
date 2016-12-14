@@ -194,7 +194,11 @@ ApplicationWindow {
         Material.theme: Material.Light
         Universal.theme: Universal.Light
 
+        contentWidth: column.width
+        contentHeight: column.height
+
         ColumnLayout {
+            id: column
             spacing: app.spacing
 
             //

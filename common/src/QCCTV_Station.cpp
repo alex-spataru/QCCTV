@@ -24,6 +24,7 @@
 #include "QCCTV_Discovery.h"
 
 #include <QDir>
+#include <QThread>
 #include <QFileDialog>
 #include <QDesktopServices>
 
@@ -327,7 +328,7 @@ QString QCCTV_Station::getGroupName (const int group)
  */
 QCCTV_RemoteCamera* QCCTV_Station::getCamera (const int camera)
 {
-    if (camera < cameraCount())
+    if (camera >= 0 && camera < cameraCount())
         return m_cameras.at (camera);
 
     return NULL;
@@ -478,7 +479,11 @@ void QCCTV_Station::setAutoRegulateResolution (const int camera,
 void QCCTV_Station::removeCamera (const int camera)
 {
     if (getCamera (camera)) {
-        getCamera (camera)->deleteLater();
+        m_threads.at (camera)->exit();
+        m_cameras.at (camera)->deleteLater();
+        m_threads.at (camera)->deleteLater();
+
+        m_threads.removeAt (camera);
         m_cameras.removeAt (camera);
 
         foreach (QCCTV_RemoteCamera* cam, m_cameras) {
@@ -503,9 +508,22 @@ void QCCTV_Station::removeCamera (const int camera)
 void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
     if (!ip.isNull() && !cameraIPs().contains (ip)) {
+        QThread* thread = new QThread();
         QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
+
+        /* Register thread and camera pointers */
+        m_threads.append (thread);
         m_cameras.append (camera);
 
+        /* Start timers when thread is started */
+        connect (thread, SIGNAL (started()),
+                 camera,   SLOT (start()));
+
+        /* Move remote camera to different thread */
+        thread->start();
+        camera->moveToThread (thread);
+
+        /* Connect equivalent signals between station and camera */
         connect (camera, SIGNAL (connected (int)),
                  this,   SIGNAL (connected (int)));
         connect (camera, SIGNAL (disconnected (int)),
@@ -524,9 +542,10 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (lightStatusChanged (int)));
         connect (camera, SIGNAL (autoRegulateResolutionChanged (int)),
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
-        connect (camera, SIGNAL (newCameraGroup (int)),
+        connect (camera, SIGNAL (newCameraGroup()),
                  this,     SLOT (updateGroups()));
 
+        /* Configure camera */
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);
         camera->setRecordingsPath (recordingsPath());

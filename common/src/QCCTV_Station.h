@@ -25,6 +25,7 @@
 
 #include "QCCTV_RemoteCamera.h"
 
+class QThread;
 class QCCTV_Station : public QObject
 {
     Q_OBJECT
@@ -97,6 +98,7 @@ private:
     QImage m_cameraError;
     QStringList m_groups;
     QString m_recordingsPath;
+    QList<QThread*> m_threads;
     QList<QCCTV_RemoteCamera*> m_cameras;
 };
 

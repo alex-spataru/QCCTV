@@ -35,12 +35,12 @@ class QCCTV_RemoteCamera : public QObject
     Q_OBJECT
 
 signals:
+    void newCameraGroup();
     void newImage (const int id);
     void connected (const int id);
     void fpsChanged (const int id);
     void disconnected (const int id);
     void newCameraName (const int id);
-    void newCameraGroup (const int id);
     void newCameraStatus (const int id);
     void resolutionChanged (const int id);
     void lightStatusChanged (const int id);
@@ -64,6 +64,7 @@ public:
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
 
 public slots:
+    void start();
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
@@ -79,7 +80,6 @@ private slots:
     void onDataReceived();
     void sendCommandPacket();
     void resetFocusRequest();
-    void saveVideoRecordings();
     void updateFPS (const int fps);
     void updateStatus (const int status);
     void updateName (const QString& name);
@@ -123,7 +123,7 @@ private:
     QUdpSocket m_commandSocket;
 
     QCCTV_CRC32 m_crc32;
-    QCCTV_Watchdog m_watchdog;
+    QCCTV_Watchdog* m_watchdog;
 };
 
 #endif
