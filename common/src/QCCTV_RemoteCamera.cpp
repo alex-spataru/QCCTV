@@ -634,7 +634,7 @@ void QCCTV_RemoteCamera::saveImage (QImage& image)
         return;
 
     /* Get recordings directory */
-    QString path = QString ("%1/%2/%3/%4/%5/Day %6/%7 Hours/Minute %8/")
+    QString path = QString ("%1/%2/%3/%4/%5/%5 %6/%7 Hours/Minute %8/")
                    .arg (m_recordingsPath)
                    .arg (name())
                    .arg (address().toString())
