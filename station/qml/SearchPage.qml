@@ -20,11 +20,46 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-import QtMultimedia 5.2
+import QtQuick 2.0
+import QtQuick.Layouts 1.0
+import QtQuick.Controls 2.0
 
-VideoOutput {
-    autoOrientation: true
-    source: Camera {
-        objectName: "camera"
+Page {
+    function focusSearchBox() {
+        searchBox.forceActiveFocus()
+    }
+
+    background: Rectangle {
+        color: "#000"
+
+        ColumnLayout {
+            spacing: app.spacing
+            anchors.fill: parent
+            anchors.margins: app.spacing * 2
+
+            RowLayout {
+                spacing: app.spacing
+                Layout.fillWidth: true
+
+                Image {
+                    fillMode: Image.Pad
+                    sourceSize: Qt.size (48, 48)
+                    source: "qrc:/images/search.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+
+                TextField {
+                    id: searchBox
+                    Layout.fillWidth: true
+                    placeholderText: qsTr ("Search for camera feeds") + "..."
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+        }
     }
 }

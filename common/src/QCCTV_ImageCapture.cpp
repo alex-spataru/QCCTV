@@ -29,14 +29,16 @@
 #include <QCameraInfo>
 #include <QGuiApplication>
 
-/**
- * Initializes the default variables
- */
-QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) : QAbstractVideoSurface (parent)
+QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) :
+    QAbstractVideoSurface (parent),
+    m_probe (NULL),
+    m_camera (NULL),
+    m_enabled (false) {}
+
+QCCTV_ImageCapture::~QCCTV_ImageCapture()
 {
-    m_probe = NULL;
-    m_camera = NULL;
-    m_enabled = false;
+    if (m_probe)
+        delete m_probe;
 }
 
 /**
@@ -95,7 +97,7 @@ void QCCTV_ImageCapture::setSource (QCamera* source)
     if (m_probe)
         delete m_probe;
 
-    m_probe = new QVideoProbe (this);
+    m_probe = new QVideoProbe;
     m_probe->setSource (source);
     connect (m_probe, SIGNAL (videoFrameProbed (QVideoFrame)),
              this,      SLOT (present          (QVideoFrame)));

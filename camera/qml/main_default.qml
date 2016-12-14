@@ -21,7 +21,6 @@
  */
 
 import QtQuick 2.0
-import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Controls.Material 2.0
@@ -31,35 +30,17 @@ import "."
 
 ApplicationWindow {
     id: app
-
+    
     //
-    // Window options
+    // Geometry options
     //
-    width: 840
-    height: 520
+    width: 720
+    height: 480
     color: "#000"
     visible: true
     x: isMobile ? 0 : 100
     y: isMobile ? 0 : 100
     title: AppDspName + " " + AppVersion
-
-    //
-    // Global variables
-    //
-    property int spacing: 8
-
-    //
-    // Show window correctly on mobile devices
-    //
-    Component.onCompleted: {
-        if (isMobile)
-            showMaximized()
-
-        Material.accent = "#8fc859"
-        Universal.accent = "#8fc859"
-        Material.theme = Material.Dark
-        Universal.theme = Universal.Dark
-    }
 
     //
     // Settings
@@ -72,49 +53,47 @@ ApplicationWindow {
     }
 
     //
-    // Application TabBar
+    // Styling options
     //
-    header: TabBar {
-        id: tabBar
+    Material.theme: Material.Dark
+    Material.accent: Material.Teal
 
-        TabButton {
-            text: qsTr ("Live")
-            onClicked: swipeView.currentIndex = 0
-        }
+    //
+    // Show maximized the window on launch
+    //
+    Component.onCompleted: {
+        if (isMobile)
+            showMaximized()
+        else
+            showNormal()
+    }
 
-        TabButton {
-            text: qsTr ("Search")
-            onClicked: {
-                swipeView.currentIndex = 1
-                search.focusSearchBox()
-            }
-        }
+    //
+    // Update the video output image automatically
+    //
+    Connections {
+        target: QCCTVCamera
 
-        TabButton {
-            text: qsTr ("Setup")
-            onClicked: swipeView.currentIndex = 2
+        onImageChanged: {
+            image.source = ""
+            image.source = "image://qcctv/"
         }
     }
 
     //
-    // Pages
+    // Video output image
     //
-    SwipeView {
-        id: swipeView
-        currentIndex: 0
+    Image {
+        id: image
+        cache: false
         anchors.fill: parent
-        onCurrentIndexChanged: tabBar.currentIndex = currentIndex
+        fillMode: Image.PreserveAspectCrop
+    }
 
-        LiveFeed {
-            id: liveFeed
-        }
-
-        SearchPage {
-            id: search
-        }
-
-        SettingsPage {
-            id: settings
-        }
+    //
+    // Common interface
+    //
+    Interface {
+        anchors.fill: parent
     }
 }

@@ -102,6 +102,14 @@ int QCCTV_Station::cameraCount (const int group) const
 }
 
 /**
+ * Returns the image quality (from 0 to 100) applied to saved media
+ */
+int QCCTV_Station::imageQuality() const
+{
+    return m_quality;
+}
+
+/**
  * Returns a list with all available groups
  */
 QStringList QCCTV_Station::groups() const
@@ -405,6 +413,29 @@ void QCCTV_Station::focusCamera (const int camera)
 }
 
 /**
+ * Updates the image quality used for every remote camera
+ */
+void QCCTV_Station::setImageQuality (const int quality)
+{
+    if (m_quality == quality)
+        return;
+
+    if (quality < 0)
+        m_quality = 0;
+
+    else if (quality > 100)
+        m_quality = 100;
+
+    else
+        m_quality = quality;
+
+    foreach (QCCTV_RemoteCamera* camera, m_cameras)
+        camera->setImageQuality (m_quality);
+
+    emit imageQualityChanged();
+}
+
+/**
  * Allows or disallows the QCCTV Station to save incoming media
  */
 void QCCTV_Station::setSaveIncomingMedia (const bool save)
@@ -578,6 +609,7 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         /* Configure camera */
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);
+        camera->setImageQuality (imageQuality());
         camera->setRecordingsPath (recordingsPath());
         camera->setSaveIncomingMedia (saveIncomingMedia());
     }

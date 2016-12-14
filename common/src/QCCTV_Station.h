@@ -33,6 +33,7 @@ class QCCTV_Station : public QObject
 signals:
     void groupCountChanged();
     void cameraCountChanged();
+    void imageQualityChanged();
     void recordingsPathChanged();
     void saveIncomingMediaChanged();
     void connected (const int camera);
@@ -56,6 +57,7 @@ public:
     Q_INVOKABLE int cameraCount() const;
     Q_INVOKABLE int cameraCount (const int group) const;
 
+    Q_INVOKABLE int imageQuality() const;
     Q_INVOKABLE QStringList groups() const;
     Q_INVOKABLE QString recordingsPath() const;
     Q_INVOKABLE bool saveIncomingMedia() const;
@@ -85,6 +87,7 @@ public slots:
     void openRecordingsPath();
     void chooseRecordingsPath();
     void focusCamera (const int camera);
+    void setImageQuality (const int quality);
     void setSaveIncomingMedia (const bool save);
     void setRecordingsPath (const QString& path);
     void changeFPS (const int camera, const int fps);
@@ -98,6 +101,7 @@ private slots:
     void connectToCamera (const QHostAddress& ip);
 
 private:
+    int m_quality;
     QImage m_cameraError;
     QStringList m_groups;
     QString m_recordingsPath;

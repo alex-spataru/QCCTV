@@ -47,7 +47,7 @@ signals:
     void autoRegulateResolutionChanged (const int camera);
 
 public:
-    QCCTV_RemoteCamera();
+    QCCTV_RemoteCamera (QObject* parent = NULL);
     ~QCCTV_RemoteCamera();
 
     Q_INVOKABLE int id() const;
@@ -68,6 +68,7 @@ public slots:
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
+    void setImageQuality (const int quality);
     void setSaveIncomingMedia (const bool save);
     void setRecordingsPath (const QString& path);
     void changeResolution (const int resolution);
@@ -97,35 +98,31 @@ private:
 
 private:
     int m_id;
+    int m_quality;
     bool m_focus;
+    QCCTV_Watchdog* m_watchdog;
+    QString m_group;
     bool m_connected;
-    int m_cameraStatus;
+    bool m_oldAutoRegulate;
+    bool m_newAutoRegulate;
+    QString m_name;
     bool m_saveIncomingMedia;
-
     int m_oldFPS;
     int m_newFPS;
     int m_oldResolution;
     int m_newResolution;
+    int m_cameraStatus;
     int m_oldFlashlightStatus;
     int m_newFlashlightStatus;
-
-    bool m_oldAutoRegulate;
-    bool m_newAutoRegulate;
-
-    QString m_recordingsPath;
-
-    QString m_name;
     QImage m_image;
-    QString m_group;
-    QList<QImage> m_images;
 
     QByteArray m_data;
     QTcpSocket m_socket;
-    QHostAddress m_address;
-    QUdpSocket m_commandSocket;
-
     QCCTV_CRC32 m_crc32;
-    QCCTV_Watchdog* m_watchdog;
+    QList<QImage> m_images;
+    QHostAddress m_address;
+    QString m_recordingsPath;
+    QUdpSocket m_commandSocket;
 };
 
 #endif

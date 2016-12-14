@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>main.qml</file>
-        <file>camera.qml</file>
+        <file>Interface.qml</file>
+        <file>main_android.qml</file>
+        <file>main_default.qml</file>
     </qresource>
 </RCC>

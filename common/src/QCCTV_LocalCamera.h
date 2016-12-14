@@ -33,6 +33,7 @@
 #include "QCCTV_Watchdog.h"
 #include "QCCTV_ImageCapture.h"
 
+class QThread;
 class QCamera;
 class QCameraImageCapture;
 
@@ -53,7 +54,7 @@ signals:
     void autoRegulateResolutionChanged();
 
 public:
-    QCCTV_LocalCamera();
+    QCCTV_LocalCamera (QObject* parent = NULL);
     ~QCCTV_LocalCamera();
 
     Q_INVOKABLE int fps() const;
@@ -104,25 +105,26 @@ private:
     void setFlashlightStatus (const QCCTV_LightStatus status);
 
 private:
+    QImage m_image;
+    QThread* m_thread;
+    QCamera* m_camera;
+    QCameraImageCapture* m_capture;
+    QCCTV_ImageCapture* m_imageCapture;
+
+    bool m_autoRegulateResolution;
+    QCCTV_Resolution m_resolution;
+
     int m_fps;
     int m_cameraStatus;
     int m_flashlightStatus;
-
-    bool m_autoRegulateResolution;
-
-    QImage m_image;
 
     QString m_name;
     QString m_group;
     QByteArray m_data;
     QByteArray m_imageData;
 
-    QCamera* m_camera;
-    QCameraImageCapture* m_capture;
 
     QCCTV_CRC32 m_crc32;
-    QCCTV_Resolution m_resolution;
-    QCCTV_ImageCapture m_imageCapture;
 
     QTcpServer m_server;
     QUdpSocket m_cmdSocket;

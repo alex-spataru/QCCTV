@@ -40,35 +40,32 @@
     #define MONOSPACE_FONT "Monospace"
 #endif
 
-QCCTV_RemoteCamera::QCCTV_RemoteCamera()
+QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) :
+    QObject (parent),
+    m_id (0),
+    m_quality (-1),
+    m_focus (false),
+    m_watchdog (NULL),
+    m_group ("Unknown"),
+    m_connected (false),
+    m_oldAutoRegulate (true),
+    m_newAutoRegulate (true),
+    m_name ("Unknown Camera"),
+    m_saveIncomingMedia (true),
+    m_oldFPS (QCCTV_DEFAULT_FPS),
+    m_newFPS (QCCTV_DEFAULT_FPS),
+    m_oldResolution (QCCTV_DEFAULT_RES),
+    m_newResolution (QCCTV_DEFAULT_RES),
+    m_cameraStatus (QCCTV_CAMSTATUS_DEFAULT),
+    m_oldFlashlightStatus (QCCTV_FLASHLIGHT_OFF),
+    m_newFlashlightStatus (QCCTV_FLASHLIGHT_OFF),
+    m_image (QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE"))
 {
-    /* Initialize default variables */
-    m_id = 0;
-    m_focus = false;
-    m_watchdog = NULL;
-    m_group = "Unknown";
-    m_connected = false;
-    m_oldAutoRegulate = true;
-    m_newAutoRegulate = true;
-    m_name = "Unknown Camera";
-    m_saveIncomingMedia = true;
-    m_newFPS = QCCTV_DEFAULT_FPS;
-    m_oldFPS = QCCTV_DEFAULT_FPS;
-    m_newResolution = QCCTV_DEFAULT_RES;
-    m_oldResolution = QCCTV_DEFAULT_RES;
-    m_cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
-    m_oldFlashlightStatus = QCCTV_FLASHLIGHT_OFF;
-    m_newFlashlightStatus = QCCTV_FLASHLIGHT_OFF;
-
-    /* Configure the socket */
+    setRecordingsPath ("");
     connect (&m_socket,   SIGNAL (readyRead()),
              this,          SLOT (onDataReceived()));
     connect (&m_socket,   SIGNAL (disconnected()),
              this,          SLOT (endConnection()));
-
-    /* Set default recordings path and initial image */
-    setRecordingsPath ("");
-    m_image = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE");
 }
 
 /**
@@ -218,6 +215,17 @@ void QCCTV_RemoteCamera::changeFPS (const int fps)
 
     if (m_watchdog)
         m_watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
+}
+
+/**
+ * Changes the image quality (from 0 to 100) used when saving incoming media
+ */
+void QCCTV_RemoteCamera::setImageQuality (const int quality)
+{
+    if (quality == 0)
+        m_quality = -1;
+    else
+        m_quality = quality;
 }
 
 /**
@@ -656,5 +664,5 @@ void QCCTV_RemoteCamera::saveImage (QImage& image)
                    .arg (QCCTV_IMAGE_FORMAT);
 
     /* Save image */
-    image.save (dir.absoluteFilePath (name), QCCTV_IMAGE_FORMAT);
+    image.save (dir.absoluteFilePath (name), QCCTV_IMAGE_FORMAT, m_quality);
 }

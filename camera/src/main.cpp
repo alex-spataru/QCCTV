@@ -46,11 +46,6 @@ int main (int argc, char* argv[])
     QGuiApplication::setOrganizationDomain (APP_WEBSITE);
     QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 
-    /* Set application attributes */
-    QGuiApplication::setAttribute (Qt::AA_UseOpenGLES);
-    QGuiApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
-    QGuiApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
-
     /* Prevent sleeping in Android */
 #ifdef Q_OS_ANDROID
     AndroidLockHelper helper;
@@ -60,10 +55,7 @@ int main (int argc, char* argv[])
     /* Initialize application */
     QGuiApplication app (argc, argv);
     QQuickStyle::setStyle ("Material");
-
-    /* Initialize QCCTV */
     QCCTV_LocalCamera* qcctvCamera = new QCCTV_LocalCamera();
-    QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
 
     /* Know if we are running on mobile or not */
 #if defined Q_OS_ANDROID || defined Q_OS_IOS
@@ -72,36 +64,39 @@ int main (int argc, char* argv[])
     bool mobile = false;
 #endif
 
-    /* Load QML interface */
+    /* Configure the QML engine */
     QQmlApplicationEngine engine;
-    engine.addImageProvider ("qcctv", provider);
     engine.rootContext()->setContextProperty ("isMobile", mobile);
     engine.rootContext()->setContextProperty ("AppDspName", APP_DSPNAME);
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.rootContext()->setContextProperty ("QCCTVCamera", qcctvCamera);
-    engine.load (QUrl (QStringLiteral ("qrc:/main.qml")));
+
+#ifdef Q_OS_ANDROID
+    /* Load the QML interface */
+    engine.load (QUrl (QStringLiteral ("qrc:/main_android.qml")));
+
+    /* Get camera from QML interface and register it with QCCTV */
+    if (!engine.rootObjects().isEmpty()) {
+        QObject* obj = engine.rootObjects().first()->findChild<QObject*> ("camera");
+        QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
+        qcctvCamera->setCamera (cam);
+    }
+#else
+    /* Add QCCTV image provider */
+    QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
+    engine.addImageProvider ("qcctv", provider);
+
+    /* Load QML interface */
+    engine.load (QUrl (QStringLiteral ("qrc:/main_default.qml")));
+
+    /* Initialize the camera */
+    QCamera camera (QCameraInfo::defaultCamera());
+    qcctvCamera->setCamera (&camera);
+#endif
 
     /* Exit if QML fails to load */
     if (engine.rootObjects().isEmpty())
         return EXIT_FAILURE;
-
-    /* Get the camera from the QML interface (on Android) */
-#ifdef Q_OS_ANDROID
-    QQmlApplicationEngine camEngine;
-    camEngine.load (QUrl (QStringLiteral ("qrc:/camera.qml")));
-
-    if (!camEngine.rootObjects().isEmpty()) {
-        QObject* obj = camEngine.rootObjects().first()->findChild<QObject*> ("camera");
-        QCamera* cam = qvariant_cast<QCamera*> (obj->property ("mediaObject"));
-        qcctvCamera->setCamera (cam);
-    }
-#endif
-
-    /* Get camera directly from the C++ API (non-Android systems) */
-#ifndef Q_OS_ANDROID
-    QCamera camera (QCameraInfo::defaultCamera());
-    qcctvCamera->setCamera (&camera);
-#endif
 
     /* Enter application loop */
     return app.exec();

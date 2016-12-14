@@ -24,6 +24,7 @@
 #include "QCCTV_LocalCamera.h"
 #include "QCCTV_ImageCapture.h"
 
+#include <QThread>
 #include <QBuffer>
 #include <QSysInfo>
 #include <QCameraInfo>
@@ -33,20 +34,19 @@
 
 #define ERROR_IMG QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE")
 
-/**
- * Initializes the class by:
- *     - Configuring the TCP server
- *     - Starting the broadcast service
- *     - Generating the default image
- *     - Configuring the TCP server
- *     - Configuring the frame grabber
- */
-QCCTV_LocalCamera::QCCTV_LocalCamera()
+QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) :
+    QObject (parent),
+    m_image (ERROR_IMG),
+    m_thread (new QThread),
+    m_camera (NULL),
+    m_capture (NULL),
+    m_imageCapture (new QCCTV_ImageCapture),
+    m_autoRegulateResolution (true),
+    m_resolution (QCCTV_DEFAULT_RES),
+    m_fps (QCCTV_DEFAULT_FPS),
+    m_cameraStatus (QCCTV_CAMSTATUS_DEFAULT),
+    m_flashlightStatus (QCCTV_FLASHLIGHT_OFF)
 {
-    /* Initialize pointers */
-    m_camera = NULL;
-    m_capture = NULL;
-
     /* Configure sockets */
     connect (&m_server,    SIGNAL (newConnection()),
              this,           SLOT (acceptConnection()));
@@ -58,18 +58,14 @@ QCCTV_LocalCamera::QCCTV_LocalCamera()
     m_cmdSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ShareAddress);
 
     /* Setup the frame grabber */
-    connect (&m_imageCapture, SIGNAL (newFrame (QImage)),
-             this,              SLOT (changeImage (QImage)));
+    m_thread->start();
+    m_imageCapture->moveToThread (m_thread);
+    connect (m_imageCapture, SIGNAL (newFrame (QImage)),
+             this,             SLOT (changeImage (QImage)));
 
-    /* Set default values (and emit signals) */
+    /* Generate device-based name and group */
     setName ("");
     setGroup ("");
-    changeImage (ERROR_IMG);
-    setFPS (QCCTV_DEFAULT_FPS);
-    setAutoRegulateResolution (true);
-    setResolution (QCCTV_DEFAULT_RES);
-    setCameraStatus (QCCTV_CAMSTATUS_DEFAULT);
-    setFlashlightStatus (QCCTV_FLASHLIGHT_OFF);
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -274,7 +270,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
     if (camera) {
         m_camera = camera;
         m_camera->setCaptureMode (QCamera::CaptureStillImage);
-        m_imageCapture.setSource (m_camera);
+        m_imageCapture->setSource (m_camera);
 
         if (m_capture)
             delete m_capture;
@@ -357,7 +353,7 @@ void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
 void QCCTV_LocalCamera::update()
 {
     /* Enable the frame grabber */
-    m_imageCapture.setEnabled (true);
+    m_imageCapture->setEnabled (true);
 
     /* Generate a new camera status */
     updateStatus();
@@ -514,9 +510,9 @@ void QCCTV_LocalCamera::onWatchdogTimeout()
  */
 void QCCTV_LocalCamera::changeImage (const QImage& image)
 {
-    m_imageCapture.setEnabled (false);
+    m_imageCapture->setEnabled (false);
 
-    /* Change image */
+    /* Re-assign image */
     m_image = image;
     if (m_image.isNull())
         m_image = ERROR_IMG;

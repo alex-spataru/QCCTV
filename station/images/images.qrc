@@ -9,5 +9,8 @@
         <file>focus.svg</file>
         <file>download.svg</file>
         <file>open.svg</file>
+        <file>gradient.svg</file>
+        <file>search.svg</file>
+        <file>qcctv-station.png</file>
     </qresource>
 </RCC>

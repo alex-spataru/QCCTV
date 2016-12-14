@@ -28,16 +28,8 @@ import Qt.labs.settings 1.0
 import QtQuick.Controls.Material 2.0
 import QtQuick.Controls.Universal 2.0
 
-ApplicationWindow {
-    id: app
-    
-    width: 720
-    height: 480
-    color: "#000"
-    visible: true
-    x: isMobile ? 0 : 100
-    y: isMobile ? 0 : 100
-    title: AppDspName + " " + AppVersion
+Item {
+    id: ui
 
     //
     // Global variables
@@ -55,15 +47,11 @@ ApplicationWindow {
     // Settings
     //
     Settings {
-        property alias x: app.x
-        property alias y: app.y
-        property alias fps: app.fps
-        property alias width: app.width
-        property alias height: app.height
-        property alias cameraName: app.cameraName
-        property alias resolution: app.resolution
-        property alias cameraGroup: app.cameraGroup
-        property alias autoRegulate: app.autoRegulate
+        property alias fps: ui.fps
+        property alias cameraName: ui.cameraName
+        property alias resolution: ui.resolution
+        property alias cameraGroup: ui.cameraGroup
+        property alias autoRegulate: ui.autoRegulate
     }
 
     //
@@ -111,12 +99,6 @@ ApplicationWindow {
     // Load the initial camera information during launch
     //
     Component.onCompleted: {
-        if (isMobile)
-            showMaximized()
-
-        Material.theme = Material.Dark
-        Material.accent = Material.Teal
-
         fps = QCCTVCamera.fps()
         cameraName = QCCTVCamera.cameraName()
         resolution = QCCTVCamera.resolution()
@@ -129,12 +111,6 @@ ApplicationWindow {
     //
     Connections {
         target: QCCTVCamera
-
-        onImageChanged: {
-            image.source = ""
-            image.source = "image://qcctv/"
-        }
-
         onFpsChanged: fps = QCCTVCamera.fps()
         onResolutionChanged: resolution = QCCTVCamera.resolution()
         onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
@@ -144,25 +120,15 @@ ApplicationWindow {
     }
 
     //
-    // Video output image
-    //
-    Image {
-        id: image
-        cache: false
-        anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
-    }
-
-    //
     // Camera information labels
     //
     ColumnLayout {
-        spacing: app.spacing / 2
+        spacing: ui.spacing / 2
 
         anchors {
             top: parent.top
             left: parent.left
-            margins: app.spacing
+            margins: ui.spacing
         }
 
         Label {
@@ -192,14 +158,14 @@ ApplicationWindow {
         y: (app.height - height) / 2
 
         Material.theme: Material.Light
-        Universal.theme: Universal.Light
+        Universal.theme: Universal.Dark
 
         contentWidth: column.width
         contentHeight: column.height
 
         ColumnLayout {
             id: column
-            spacing: app.spacing
+            spacing: ui.spacing
 
             //
             // Camera name label
@@ -290,7 +256,7 @@ ApplicationWindow {
             // Spacer
             //
             Item {
-                Layout.minimumHeight: app.spacing * 2
+                Layout.minimumHeight: ui.spacing * 2
             }
 
             //
@@ -309,12 +275,12 @@ ApplicationWindow {
     //
     RowLayout {
         id: row
-        spacing: app.spacing
+        spacing: ui.spacing
 
         anchors {
             left: parent.left
             right: parent.right
-            margins: app.spacing
+            margins: ui.spacing
             bottom: parent.bottom
         }
 
@@ -405,7 +371,6 @@ ApplicationWindow {
         // Focus Button
         //
         Button {
-
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: Qt.size (48, 48)

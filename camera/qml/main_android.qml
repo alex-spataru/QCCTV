@@ -20,45 +20,47 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_IMAGE_CAPTURE_H
-#define _QCCTV_IMAGE_CAPTURE_H
+import QtQuick 2.0
+import QtMultimedia 5.2
+import QtQuick.Controls 2.0
+import QtQuick.Controls.Material 2.0
+import QtQuick.Controls.Universal 2.0
 
-#include <QObject>
-#include <QCameraInfo>
-#include <QAbstractVideoSurface>
+import "."
 
-class QCamera;
-class QVideoProbe;
+ApplicationWindow {
+    id: app
 
-class QCCTV_ImageCapture : public QAbstractVideoSurface
-{
-    Q_OBJECT
+    //
+    // Styling options
+    //
+    color: "#000"
+    visible: true
+    Material.theme: Material.Dark
+    Material.accent: Material.Teal
 
-signals:
-    void newFrame (const QImage& frame);
+    //
+    // Show the window on launch
+    //
+    Component.onCompleted: showMaximized()
 
-public:
-    QCCTV_ImageCapture (QObject* parent = NULL);
-    ~QCCTV_ImageCapture();
+    //
+    // Video output
+    //
+    VideoOutput {
+        anchors.fill: parent
+        autoOrientation: true
+        fillMode: VideoOutput.PreserveAspectCrop
 
-    QList<QVideoFrame::PixelFormat> supportedPixelFormats
-    (QAbstractVideoBuffer::HandleType handleType) const;
+        source: Camera {
+            objectName: "camera"
+        }
+    }
 
-public slots:
-    void setSource (QCamera* source);
-    void setEnabled (const bool enabled);
-
-private slots:
-    bool publishImage();
-    bool present (const QVideoFrame& frame);
-
-private:
-    QVideoProbe* m_probe;
-    QCamera* m_camera;
-    bool m_enabled;
-
-    QImage m_image;
-    QCameraInfo m_info;
-};
-
-#endif
+    //
+    // Common interface
+    //
+    Interface {
+        anchors.fill: parent
+    }
+}

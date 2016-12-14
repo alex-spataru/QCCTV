@@ -44,6 +44,7 @@ Page {
     //
     Connections {
         target: QCCTVStation
+        onImageQualityChanged: quality.value = QCCTVStation.imageQuality()
         onRecordingsPathChanged: {
             if (textField.placeholderText !== QCCTVStation.recordingsPath())
                 textField.placeholderText = QCCTVStation.recordingsPath()
@@ -131,7 +132,7 @@ Page {
                 Image {
                     fillMode: Image.Pad
                     sourceSize: Qt.size (72, 72)
-                    source: "qrc:/images/camera.svg"
+                    source: "qrc:/images/gradient.svg"
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }
@@ -167,11 +168,17 @@ Page {
                             opacity: enabled ? 1 : 0.5
                             snapMode: Slider.SnapAlways
                             enabled: qltyCheckbox.checked
+                            onValueChanged: QCCTVStation.setImageQuality (value)
                         }
 
                         Label {
                             id: indicator
-                            text: Math.round (quality.visualPosition * 100) + " %"
+                            text: {
+                                if (!qltyCheckbox.checked)
+                                    return qsTr ("Auto")
+                                else
+                                    Math.round (quality.visualPosition * 100) + " %"
+                            }
                         }
                     }
                 }
@@ -183,15 +190,91 @@ Page {
             }
 
             Button {
+                Layout.fillWidth: true
+                Layout.maximumWidth: 440
                 text: qsTr ("Open Recordings")
-                width: Math.min (app.width * 0.8, 372)
                 onClicked: QCCTVStation.openRecordingsPath()
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Button {
+                text: qsTr ("About")
+                Layout.fillWidth: true
+                Layout.maximumWidth: 440
+                onClicked: aboutDialog.open()
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+            }
+        }
+    }
+
+    //
+    // About popup
+    //
+    Popup {
+        id: aboutDialog
+
+        dim: true
+        modal: true
+        contentWidth: column.width
+        contentHeight: column.height
+
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        Material.theme: Material.Light
+        Universal.theme: Universal.Light
+
+        ColumnLayout {
+            id: column
+            spacing: app.spacing
+
+            Image {
+                smooth: true
+                sourceSize: Qt.size (96, 96)
+                source: "qrc:/images/qcctv-station.png"
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Label {
+                font.bold: true
+                text: AppDspName
+                font.pixelSize: 24
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Label {
+                font.pixelSize: 20
+                text: qsTr ("Version %1").arg (AppVersion)
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            Button {
+                Layout.fillWidth: true
+                text: qsTr ("Open Website")
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            Button {
+                Layout.fillWidth: true
+                text: qsTr ("Report Bug")
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: Qt.openUrlExternally ("https://github.com/alex-spataru/qcctv/issues")
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumWidth: 260
             }
         }
     }

@@ -7,5 +7,6 @@
         <file>GroupView.qml</file>
         <file>LiveFeed.qml</file>
         <file>SettingsPage.qml</file>
+        <file>SearchPage.qml</file>
     </qresource>
 </RCC>
