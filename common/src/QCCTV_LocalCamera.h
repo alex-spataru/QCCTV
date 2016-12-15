@@ -105,23 +105,24 @@ public:
     QCCTV_LocalCamera (QObject* parent = NULL);
     ~QCCTV_LocalCamera();
 
-    Q_INVOKABLE int fps() const;
-    Q_INVOKABLE int resolution() const;
-    Q_INVOKABLE int minimumFPS() const;
-    Q_INVOKABLE int maximumFPS() const;
-    Q_INVOKABLE int cameraStatus() const;
-    Q_INVOKABLE int flashlightStatus() const;
+    int fps() const;
+    int resolution() const;
+    int minimumFPS() const;
+    int maximumFPS() const;
+    int cameraStatus() const;
+    int flashlightStatus() const;
 
-    Q_INVOKABLE QString name() const;
-    Q_INVOKABLE QString group() const;
-    Q_INVOKABLE QImage currentImage() const;
-    Q_INVOKABLE QString statusString() const;
-    Q_INVOKABLE bool readyForCapture() const;
+    QString name() const;
+    QString group() const;
+    QImage currentImage() const;
+    QString statusString() const;
 
-    Q_INVOKABLE bool flashlightAvailable() const;
-    Q_INVOKABLE QStringList connectedHosts() const;
-    Q_INVOKABLE bool autoRegulateResolution() const;
-    Q_INVOKABLE QStringList availableResolutions() const;
+    bool readyForCapture() const;
+    bool flashlightAvailable() const;
+    bool autoRegulateResolution() const;
+
+    QStringList connectedHosts() const;
+    QStringList availableResolutions() const;
 
 public Q_SLOTS:
     void takePhoto();

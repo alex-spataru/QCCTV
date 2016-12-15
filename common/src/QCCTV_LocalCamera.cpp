@@ -37,10 +37,8 @@
 QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) :
     QObject (parent),
     m_image (ERROR_IMG),
-    m_thread (new QThread),
     m_camera (NULL),
     m_capture (NULL),
-    m_imageCapture (new QCCTV_ImageCapture),
     m_autoRegulateResolution (true),
     m_resolution (QCCTV_DEFAULT_RES),
     m_fps (QCCTV_DEFAULT_FPS),
@@ -59,8 +57,12 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) :
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
     m_cmdSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ShareAddress);
 
+    /* Initialize pointers */
+    m_thread = new QThread (this);
+    m_imageCapture = new QCCTV_ImageCapture();
+
     /* Setup the frame grabber */
-    m_thread->start();
+    m_thread->start (QThread::TimeCriticalPriority);
     m_imageCapture->moveToThread (m_thread);
     connect (m_imageCapture, SIGNAL (newFrame()),
              this,             SLOT (changeImage()));
@@ -191,6 +193,15 @@ bool QCCTV_LocalCamera::flashlightAvailable() const
 }
 
 /**
+ * Returns \c true if the camera is allows to auto-regulate its image
+ * resolution to improve communication times
+ */
+bool QCCTV_LocalCamera::autoRegulateResolution() const
+{
+    return m_autoRegulateResolution;
+}
+
+/**
  * Returns a list with all the connected QCCTV stations to this camera
  */
 QStringList QCCTV_LocalCamera::connectedHosts() const
@@ -201,15 +212,6 @@ QStringList QCCTV_LocalCamera::connectedHosts() const
         list.append (socket->peerAddress().toString());
 
     return list;
-}
-
-/**
- * Returns \c true if the camera is allows to auto-regulate its image
- * resolution to improve communication times
- */
-bool QCCTV_LocalCamera::autoRegulateResolution() const
-{
-    return m_autoRegulateResolution;
 }
 
 /**

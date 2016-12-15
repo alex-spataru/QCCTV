@@ -314,11 +314,11 @@ Item {
             }
 
             onClicked: {
-                flashOn = !flashOn
+                QCCTVCamera.flashlightEnabled = !QCCTVCamera.flashlightEnabled
 
                 if (QCCTVCamera.flashlightAvailable)
-                    row.showTooltip (flashOn ? qsTr ("Flashlight On") :
-                                               qsTr ("Flashlight Off"))
+                    row.showTooltip (QCCTVCamera.flashlightEnabled ? qsTr ("Flashlight On") :
+                                                                     qsTr ("Flashlight Off"))
 
                 else
                     row.showTooltip (qsTr ("Flashlight Error"))

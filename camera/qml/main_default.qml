@@ -59,7 +59,7 @@ ApplicationWindow {
     Material.accent: Material.Teal
 
     //
-    // Show maximized the window on launch
+    // Show the window on launch
     //
     Component.onCompleted: {
         if (isMobile)
