@@ -30,7 +30,7 @@ class QCCTV_Station : public QObject
 {
     Q_OBJECT
 
-signals:
+Q_SIGNALS:
     void groupCountChanged();
     void cameraCountChanged();
     void imageQualityChanged();
@@ -81,7 +81,7 @@ public:
     Q_INVOKABLE QString getGroupName (const int group);
     Q_INVOKABLE QCCTV_RemoteCamera* getCamera (const int camera);
 
-public slots:
+public Q_SLOTS:
     void updateGroups();
     void removeAllCameras();
     void openRecordingsPath();
@@ -96,7 +96,7 @@ public slots:
     void setFlashlightEnabled (const int camera, const bool enabled);
     void setAutoRegulateResolution (const int camera, const bool regulate);
 
-private slots:
+private Q_SLOTS:
     void removeCamera (const int camera);
     void connectToCamera (const QHostAddress& ip);
 

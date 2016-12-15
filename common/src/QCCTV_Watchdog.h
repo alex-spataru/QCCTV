@@ -30,14 +30,14 @@ class QCCTV_Watchdog : public QObject
 {
     Q_OBJECT
 
-signals:
+Q_SIGNALS:
     void expired();
 
 public:
     explicit QCCTV_Watchdog (QObject* parent = Q_NULLPTR);
     int expirationTime() const;
 
-public slots:
+public Q_SLOTS:
     void reset();
     void setExpirationTime (const int time);
 

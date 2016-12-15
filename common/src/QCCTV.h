@@ -107,8 +107,8 @@ extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
 /*
  * Watchdog timings
  */
-#define QCCTV_MIN_WATCHDOG_TIME 1000
-#define QCCTV_MAX_WATCHDOG_TIME 5000
+#define QCCTV_MIN_WATCHDOG_TIME 250
+#define QCCTV_MAX_WATCHDOG_TIME 2000
 
 #endif
 

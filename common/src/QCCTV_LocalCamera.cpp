@@ -45,7 +45,9 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) :
     m_resolution (QCCTV_DEFAULT_RES),
     m_fps (QCCTV_DEFAULT_FPS),
     m_cameraStatus (QCCTV_CAMSTATUS_DEFAULT),
-    m_flashlightStatus (QCCTV_FLASHLIGHT_OFF)
+    m_flashlightStatus (QCCTV_FLASHLIGHT_OFF),
+    m_name (deviceName()),
+    m_group ("Default")
 {
     /* Configure sockets */
     connect (&m_server,    SIGNAL (newConnection()),
@@ -60,12 +62,8 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) :
     /* Setup the frame grabber */
     m_thread->start();
     m_imageCapture->moveToThread (m_thread);
-    connect (m_imageCapture, SIGNAL (newFrame (QImage)),
-             this,             SLOT (changeImage (QImage)));
-
-    /* Generate device-based name and group */
-    setName ("");
-    setGroup ("");
+    connect (m_imageCapture, SIGNAL (newFrame()),
+             this,             SLOT (changeImage()));
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -141,7 +139,7 @@ QStringList QCCTV_LocalCamera::availableResolutions() const
 /**
  * Returns the user-assigned name of the camera
  */
-QString QCCTV_LocalCamera::cameraName() const
+QString QCCTV_LocalCamera::name() const
 {
     return m_name;
 }
@@ -149,7 +147,7 @@ QString QCCTV_LocalCamera::cameraName() const
 /**
  * Returns the user-assigned group of the camera
  */
-QString QCCTV_LocalCamera::cameraGroup() const
+QString QCCTV_LocalCamera::group() const
 {
     return m_group;
 }
@@ -284,24 +282,22 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
  */
 void QCCTV_LocalCamera::setName (const QString& name)
 {
+    /* Names are the same, abort */
+    if (m_name == name)
+        return;
+
+    /* Check if user just gave us empty spaces as input */
     QString no_spaces = name;
     no_spaces = no_spaces.replace (" ", "");
 
-    if (no_spaces.isEmpty()) {
-        QString host = QSysInfo::machineHostName();
-        if (host.isEmpty())
-            host = QSysInfo::prettyProductName();
-        else
-            host = host + " (" + QSysInfo::prettyProductName() + ")";
-
-        m_name = host;
-        emit cameraNameChanged();
-    }
-
-    else if (m_name != name) {
+    /* Re-assign the camera name */
+    if (no_spaces.isEmpty())
+        m_name = deviceName();
+    else
         m_name = name;
-        emit cameraNameChanged();
-    }
+
+    /* Notify UI */
+    emit nameChanged();
 }
 
 /**
@@ -309,10 +305,22 @@ void QCCTV_LocalCamera::setName (const QString& name)
  */
 void QCCTV_LocalCamera::setGroup (const QString& group)
 {
-    if (group.isEmpty())
+    /* Names are the same, abort */
+    if (m_group == group)
+        return;
+
+    /* Check if user just gave us empty spaces as input */
+    QString no_spaces = group;
+    no_spaces = no_spaces.replace (" ", "");
+
+    /* Re-assign group name */
+    if (no_spaces.isEmpty())
         m_group = "Default";
     else
         m_group = group;
+
+    /* Notify UI */
+    emit groupChanged();
 }
 
 /**
@@ -368,6 +376,23 @@ void QCCTV_LocalCamera::update()
 }
 
 /**
+ * Replaces the current image and notifies the application
+ */
+void QCCTV_LocalCamera::changeImage()
+{
+    m_imageCapture->setEnabled (false);
+
+    /* Re-assign image */
+    m_image = m_imageCapture->image();
+    if (m_image.isNull())
+        m_image = ERROR_IMG;
+
+    /* Generate image data bits */
+    m_imageData.clear();
+    m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
+}
+
+/**
  * Creates and sends a new packet that announces the existence of this
  * camera to the local network
  */
@@ -418,10 +443,8 @@ void QCCTV_LocalCamera::acceptConnection()
 
         m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());
-
         m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, 1);
         m_sockets.last()->setSocketOption (QTcpSocket::KeepAliveOption, 1);
-        m_sockets.last()->setSocketOption (QTcpSocket::SendBufferSizeSocketOption, INT_MAX);
 
         connect (m_watchdogs.last(), SIGNAL (expired()),
                  this,                 SLOT (onWatchdogTimeout()));
@@ -506,23 +529,6 @@ void QCCTV_LocalCamera::onWatchdogTimeout()
 }
 
 /**
- * Replaces the current image and notifies the application
- */
-void QCCTV_LocalCamera::changeImage (const QImage& image)
-{
-    m_imageCapture->setEnabled (false);
-
-    /* Re-assign image */
-    m_image = image;
-    if (m_image.isNull())
-        m_image = ERROR_IMG;
-
-    /* Generate image data bits */
-    m_imageData.clear();
-    m_imageData = QCCTV_ENCODE_IMAGE (m_image, (QCCTV_Resolution) resolution());
-}
-
-/**
  * Updates the status code of the camera
  */
 void QCCTV_LocalCamera::updateStatus()
@@ -563,12 +569,12 @@ void QCCTV_LocalCamera::generateData()
     /* Only generate the data stream if the previous one has been sent */
     if (m_data.isEmpty()) {
         /* Add camera name */
-        m_data.append (cameraName().length());
-        m_data.append (cameraName().toLatin1());
+        m_data.append (name().length());
+        m_data.append (name().toLatin1());
 
         /* Add camera group */
-        m_data.append (cameraGroup().length());
-        m_data.append (cameraGroup().toLatin1());
+        m_data.append (group().length());
+        m_data.append (group().toLatin1());
 
         /* Add FPS, light status and camera status */
         m_data.append ((quint8) fps());
@@ -595,6 +601,20 @@ void QCCTV_LocalCamera::generateData()
         m_data.prepend ((crc & 0xff0000) >> 16);
         m_data.prepend ((crc & 0xff000000) >> 24);
     }
+}
+
+/**
+ * Returns the name and operating system of the camera device
+ */
+QString QCCTV_LocalCamera::deviceName()
+{
+    QString device = QSysInfo::machineHostName();
+    if (device.isEmpty())
+        device = QSysInfo::prettyProductName();
+    else
+        device += " (" + QSysInfo::prettyProductName() + ")";
+
+    return device;
 }
 
 /**

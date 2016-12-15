@@ -540,13 +540,16 @@ void QCCTV_Station::setAutoRegulateResolution (const int camera,
 void QCCTV_Station::removeCamera (const int camera)
 {
     if (getCamera (camera)) {
-        m_threads.at (camera)->exit();
-        m_cameras.at (camera)->deleteLater();
-        m_threads.at (camera)->deleteLater();
-
-        m_threads.removeAt (camera);
+        /* Stop the camera */
+        delete m_cameras.at (camera);
         m_cameras.removeAt (camera);
 
+        /* Stop the thread */
+        m_threads.at (camera)->exit();
+        delete m_threads.at (camera);
+        m_threads.removeAt (camera);
+
+        /* Change the ID of cameras following the removed camera */
         foreach (QCCTV_RemoteCamera* cam, m_cameras) {
             if (cam) {
                 if (cam->id() > camera)
@@ -554,6 +557,7 @@ void QCCTV_Station::removeCamera (const int camera)
             }
         }
 
+        /* Notify UI */
         emit cameraCountChanged();
     }
 }
@@ -575,6 +579,13 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         /* Register thread and camera pointers */
         m_threads.append (thread);
         m_cameras.append (camera);
+
+        /* Configure camera */
+        camera->setAddress (ip);
+        camera->changeID (cameraCount() - 1);
+        camera->setImageQuality (imageQuality());
+        camera->setRecordingsPath (recordingsPath());
+        camera->setSaveIncomingMedia (saveIncomingMedia());
 
         /* Start timers when thread is started */
         connect (thread, SIGNAL (started()),
@@ -605,12 +616,5 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
         connect (camera, SIGNAL (newCameraGroup()),
                  this,     SLOT (updateGroups()));
-
-        /* Configure camera */
-        camera->setAddress (ip);
-        camera->changeID (cameraCount() - 1);
-        camera->setImageQuality (imageQuality());
-        camera->setRecordingsPath (recordingsPath());
-        camera->setSaveIncomingMedia (saveIncomingMedia());
     }
 }

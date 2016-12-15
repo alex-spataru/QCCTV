@@ -29,12 +29,13 @@
 #include "QCCTV.h"
 #include "QCCTV_CRC32.h"
 #include "QCCTV_Watchdog.h"
+#include "QCCTV_ImageSaver.h"
 
 class QCCTV_RemoteCamera : public QObject
 {
     Q_OBJECT
 
-signals:
+Q_SIGNALS:
     void newCameraGroup();
     void newImage (const int id);
     void connected (const int id);
@@ -44,7 +45,7 @@ signals:
     void newCameraStatus (const int id);
     void resolutionChanged (const int id);
     void lightStatusChanged (const int id);
-    void autoRegulateResolutionChanged (const int camera);
+    void autoRegulateResolutionChanged (const int id);
 
 public:
     QCCTV_RemoteCamera (QObject* parent = NULL);
@@ -63,7 +64,7 @@ public:
     Q_INVOKABLE QCCTV_Resolution resolution() const;
     Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
 
-public slots:
+public Q_SLOTS:
     void start();
     void requestFocus();
     void changeID (const int id);
@@ -76,7 +77,7 @@ public slots:
     void changeAutoRegulate (const bool regulate);
     void changeFlashlightStatus (const int status);
 
-private slots:
+private Q_SLOTS:
     void clearBuffer();
     void endConnection();
     void onDataReceived();
@@ -94,15 +95,16 @@ private slots:
 private:
     void readCameraPacket();
     void acknowledgeReception();
-    void saveImage (QImage& image);
 
 private:
     int m_id;
     int m_quality;
     bool m_focus;
+    QTcpSocket* m_socket;
     QCCTV_Watchdog* m_watchdog;
     QString m_group;
     bool m_connected;
+    QUdpSocket* m_commandSocket;
     bool m_oldAutoRegulate;
     bool m_newAutoRegulate;
     QString m_name;
@@ -117,12 +119,11 @@ private:
     QImage m_image;
 
     QByteArray m_data;
-    QTcpSocket m_socket;
     QCCTV_CRC32 m_crc32;
     QList<QImage> m_images;
     QHostAddress m_address;
     QString m_recordingsPath;
-    QUdpSocket m_commandSocket;
+    QCCTV_ImageSaver m_saver;
 };
 
 #endif

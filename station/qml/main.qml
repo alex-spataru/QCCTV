@@ -78,7 +78,7 @@ ApplicationWindow {
         id: tabBar
 
         TabButton {
-            text: qsTr ("Live")
+            text: qsTr ("Live Feeds")
             onClicked: swipeView.currentIndex = 0
         }
 

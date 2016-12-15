@@ -145,7 +145,7 @@ Page {
                         id: qltyCheckbox
                         Layout.fillWidth: true
                         checked: quality.value > 0
-                        text: qsTr ("Limit image quality to") + ":"
+                        text: qsTr ("Set image quality level to") + ":"
 
                         onCheckStateChanged: {
                             if (!checked)
@@ -168,6 +168,7 @@ Page {
                             opacity: enabled ? 1 : 0.5
                             snapMode: Slider.SnapAlways
                             enabled: qltyCheckbox.checked
+                            onVisualPositionChanged: hints.updateText()
                             onValueChanged: QCCTVStation.setImageQuality (value)
                         }
 
@@ -180,6 +181,23 @@ Page {
                                     Math.round (quality.visualPosition * 100) + " %"
                             }
                         }
+                    }
+
+                    Label {
+                        id: hints
+
+                        function updateText() {
+                            if (quality.visualPosition < 0.5)
+                                text = qsTr ("Lower quality will result in smaller image size, " +
+                                             "but will also introduce visible compression artifacts")
+                            else if (quality.visualPosition > 0.8)
+                                text = qsTr ("Higher quality will save more image details, " +
+                                             "but will result in a higer image size")
+                        }
+
+                        color: "#ccc"
+                        font.pixelSize: 10
+                        wrapMode: Label.WordWrap
                     }
                 }
             }

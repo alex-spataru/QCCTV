@@ -34,13 +34,11 @@ Item {
     //
     // Global variables
     //
-    property var fps: 0
-    property var spacing: 8
-    property var resolution: 0
-    property bool flashOn: false
-    property string cameraName: ""
-    property string cameraGroup: ""
-    property string cameraStatus: ""
+    property int spacing: 8
+    property int fps: 0
+    property string name: ""
+    property string group: ""
+    property int resolution: 0
     property bool autoRegulate: true
 
     //
@@ -48,75 +46,31 @@ Item {
     //
     Settings {
         property alias fps: ui.fps
-        property alias cameraName: ui.cameraName
+        property alias name: ui.name
+        property alias group: ui.group
         property alias resolution: ui.resolution
-        property alias cameraGroup: ui.cameraGroup
         property alias autoRegulate: ui.autoRegulate
     }
 
     //
-    // Update the UI when the camera name changes
+    // Change QCCTV variables automatically
     //
-    onCameraNameChanged: {
-        nameLabel.text = cameraName
-        nameInput.text = cameraName
-    }
+    onFpsChanged: QCCTVCamera.fps = fps
+    onNameChanged: QCCTVCamera.name = name
+    onGroupChanged: QCCTVCamera.group = group
+    onResolutionChanged: QCCTVCamera.resolution = resolution
+    onAutoRegulateChanged: QCCTVCamera.autoRegulateResolution = autoRegulate
 
     //
-    // Update the UI when the camera group changes
-    //
-    onCameraGroupChanged: groupInput.text = cameraGroup
-
-    //
-    // Update the UI when the FPS changes
-    //
-    onFpsChanged: {
-        fpsSpin.value = fps
-        fpsLabel.text = fps + " " + qsTr ("FPS")
-    }
-
-    //
-    // Update the UI when the auto regulate variable changes
-    //
-    onAutoRegulateChanged: autoRegulateCheck.checked = autoRegulate
-
-    //
-    // Update the UI when the status changes
-    //
-    onCameraStatusChanged: statusLabel.text = cameraStatus
-
-    //
-    // Change the flashlight status when the user clicks on the flashlight
-    //
-    onFlashOnChanged: QCCTVCamera.setFlashlightEnabled (flashOn)
-
-    //
-    // Update the UI when the resolution chages
-    //
-    onResolutionChanged: resolutions.currentIndex = resolution
-
-    //
-    // Load the initial camera information during launch
-    //
-    Component.onCompleted: {
-        fps = QCCTVCamera.fps()
-        cameraName = QCCTVCamera.cameraName()
-        resolution = QCCTVCamera.resolution()
-        cameraGroup = QCCTVCamera.cameraGroup()
-        cameraStatus = QCCTVCamera.statusString()
-    }
-
-    //
-    // QCCTV-to-UI signal processing
+    // Update variables automatically
     //
     Connections {
         target: QCCTVCamera
-        onFpsChanged: fps = QCCTVCamera.fps()
-        onResolutionChanged: resolution = QCCTVCamera.resolution()
-        onCameraNameChanged: cameraName = QCCTVCamera.cameraName()
-        onLightStatusChanged: flashOn = QCCTVCamera.flashlightStatus()
-        onCameraStatusChanged: cameraStatus = QCCTVCamera.statusString()
-        onAutoRegulateResolutionChanged: autoRegulate = QCCTVCamera.autoRegulateResolution()
+        onFpsChanged: ui.fps = QCCTVCamera.fps
+        onNameChanged: ui.name = QCCTVCamera.name
+        onGroupChanged: ui.group = QCCTVCamera.group
+        onResolutionChanged: ui.resolution = QCCTVCamera.resolution
+        onAutoRegulateResolutionChanged: ui.autoRegulate = QCCTVCamera.autoRegulateResolution
     }
 
     //
@@ -132,18 +86,18 @@ Item {
         }
 
         Label {
-            id: nameLabel
             color: "#fff"
+            text: QCCTVCamera.name
         }
 
         Label {
-            id: statusLabel
             color: "#ccc"
+            text: QCCTVCamera.statusString
         }
 
         Label {
-            id: fpsLabel
             color: "#ccc"
+            text: QCCTVCamera.fps + " " + qsTr ("FPS")
         }
     }
 
@@ -179,11 +133,12 @@ Item {
             //
             TextField {
                 id: nameInput
+                text: QCCTVCamera.name
                 Layout.fillWidth: true
                 Layout.minimumWidth: 280
                 onTextChanged: {
                     if (text.length > 0)
-                        QCCTVCamera.setName (text)
+                        QCCTVCamera.name = text
                 }
             }
 
@@ -200,10 +155,11 @@ Item {
             TextField {
                 id: groupInput
                 Layout.fillWidth: true
+                text: QCCTVCamera.group
                 Layout.minimumWidth: 280
                 onTextChanged: {
                     if (text.length > 0)
-                        QCCTVCamera.setGroup (text)
+                        QCCTVCamera.group = text
                 }
             }
 
@@ -219,10 +175,11 @@ Item {
             //
             SpinBox {
                 id: fpsSpin
+                value: QCCTVCamera.fps
                 Layout.fillWidth: true
-                to: QCCTVCamera.maximumFPS()
-                from: QCCTVCamera.minimumFPS()
-                onValueChanged: QCCTVCamera.setFPS (value)
+                to: QCCTVCamera.maximumFps
+                from: QCCTVCamera.minimumFps
+                onValueChanged: QCCTVCamera.fps = value
             }
 
             //
@@ -238,8 +195,9 @@ Item {
             ComboBox {
                 id: resolutions
                 Layout.fillWidth: true
-                model: QCCTVCamera.availableResolutions()
-                onCurrentIndexChanged: QCCTVCamera.setResolution (currentIndex)
+                model: QCCTVCamera.resolutions
+                currentIndex: QCCTVCamera.resolution
+                onCurrentIndexChanged: QCCTVCamera.resolution = currentIndex
             }
 
             //
@@ -247,9 +205,9 @@ Item {
             //
             Switch {
                 id: autoRegulateCheck
-                checked: QCCTVCamera.autoRegulateResolution()
+                checked: QCCTVCamera.autoRegulateResolution
                 text: qsTr ("Auto-regulate video resolution")
-                onCheckedChanged: QCCTVCamera.setAutoRegulateResolution (checked)
+                onCheckedChanged: QCCTVCamera.autoRegulateResolution = checked
             }
 
             //
@@ -332,7 +290,7 @@ Item {
             }
 
             onClicked: {
-                if (QCCTVCamera.readyForCapture()) {
+                if (QCCTVCamera.readyForCapture) {
                     QCCTVCamera.takePhoto()
                     row.showTooltip (qsTr ("Image Captured"))
                 }
@@ -351,14 +309,14 @@ Item {
                 sourceSize: Qt.size (48, 48)
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
-                source: flashOn ? "qrc:/images/flash-on.svg" :
-                                  "qrc:/images/flash-off.svg"
+                source: QCCTVCamera.flashlightEnabled ? "qrc:/images/flash-on.svg" :
+                                                        "qrc:/images/flash-off.svg"
             }
 
             onClicked: {
                 flashOn = !flashOn
 
-                if (QCCTVCamera.flashlightAvailable())
+                if (QCCTVCamera.flashlightAvailable)
                     row.showTooltip (flashOn ? qsTr ("Flashlight On") :
                                                qsTr ("Flashlight Off"))
 

@@ -24,30 +24,17 @@
 #include "QCCTV_RemoteCamera.h"
 
 #include <QDir>
-#include <QPen>
-#include <QFont>
-#include <QFile>
-#include <QPainter>
-#include <QDateTime>
-#include <QApplication>
-#include <QFontDatabase>
-
-#if defined Q_OS_MAC
-    #define MONOSPACE_FONT "Menlo"
-#elif defined Q_OS_WIN
-    #define MONOSPACE_FONT "Consolas"
-#else
-    #define MONOSPACE_FONT "Monospace"
-#endif
 
 QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) :
     QObject (parent),
     m_id (0),
     m_quality (-1),
     m_focus (false),
+    m_socket (NULL),
     m_watchdog (NULL),
     m_group ("Unknown"),
     m_connected (false),
+    m_commandSocket (NULL),
     m_oldAutoRegulate (true),
     m_newAutoRegulate (true),
     m_name ("Unknown Camera"),
@@ -62,10 +49,6 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) :
     m_image (QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE"))
 {
     setRecordingsPath ("");
-    connect (&m_socket,   SIGNAL (readyRead()),
-             this,          SLOT (onDataReceived()));
-    connect (&m_socket,   SIGNAL (disconnected()),
-             this,          SLOT (endConnection()));
 }
 
 /**
@@ -73,7 +56,15 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) :
  */
 QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
 {
-    m_socket.close();
+    if (m_socket) {
+        m_socket->close();
+        delete m_socket;
+    }
+
+    if (m_commandSocket) {
+        m_commandSocket->close();
+        delete m_commandSocket;
+    }
 }
 
 /**
@@ -178,10 +169,24 @@ QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
  */
 void QCCTV_RemoteCamera::start()
 {
+    /* Initialize the watchdog */
     m_watchdog = new QCCTV_Watchdog (this);
     m_watchdog->setExpirationTime (QCCTV_MIN_WATCHDOG_TIME);
+    connect (m_watchdog, SIGNAL (expired()),
+             this,         SLOT (clearBuffer()));
 
-    connect (m_watchdog, SIGNAL (expired()), this, SLOT (clearBuffer()));
+    /* Initialize sockets */
+    m_socket = new QTcpSocket (this);
+    m_commandSocket = new QUdpSocket (this);
+    connect (m_socket, SIGNAL (readyRead()),
+             this,       SLOT (onDataReceived()));
+    connect (m_socket, SIGNAL (disconnected()),
+             this,       SLOT (endConnection()));
+
+    /* Connect to camera */
+    m_socket->connectToHost (m_address, QCCTV_STREAM_PORT);
+    m_socket->setSocketOption (QTcpSocket::LowDelayOption, 1);
+    m_socket->setSocketOption (QTcpSocket::KeepAliveOption, 1);
 }
 
 /**
@@ -193,9 +198,7 @@ void QCCTV_RemoteCamera::start()
 void QCCTV_RemoteCamera::requestFocus()
 {
     m_focus = true;
-
-    QTimer timer;
-    timer.singleShot (500, this, SLOT (resetFocusRequest()));
+    QTimer::singleShot (500, this, SLOT (resetFocusRequest()));
 }
 
 /**
@@ -256,19 +259,15 @@ void QCCTV_RemoteCamera::changeResolution (const int resolution)
 }
 
 /**
- * Changes the camera's remote address
+ * Changes the camera's remote address, this can be done only
+ * once during the instance's runtime
  */
 void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
 {
-    if (m_address == address)
+    if (!m_address.isNull() || address.isNull())
         return;
 
     m_address = address;
-    m_socket.disconnectFromHost();
-    m_socket.connectToHost (address, QCCTV_STREAM_PORT);
-    m_socket.setSocketOption (QTcpSocket::LowDelayOption, 1);
-    m_socket.setSocketOption (QTcpSocket::KeepAliveOption, 1);
-    m_socket.setSocketOption (QTcpSocket::ReceiveBufferSizeSocketOption, INT_MAX);
 }
 
 /**
@@ -305,9 +304,10 @@ void QCCTV_RemoteCamera::clearBuffer()
  */
 void QCCTV_RemoteCamera::endConnection()
 {
-    m_data.clear();
-    m_socket.abort();
+    if (m_socket)
+        m_socket->abort();
 
+    m_data.clear();
     updateConnected (false);
     emit disconnected (id());
 }
@@ -319,13 +319,19 @@ void QCCTV_RemoteCamera::endConnection()
  */
 void QCCTV_RemoteCamera::onDataReceived()
 {
-    m_data.append (m_socket.readAll());
+    if (!m_socket) {
+        clearBuffer();
+        return;
+    }
 
-    if (!m_data.isEmpty())
-        readCameraPacket();
+    else {
+        m_data.append (m_socket->readAll());
 
-    if (m_data.size() >= QCCTV_MAX_BUFFER_SIZE)
-        m_data.clear();
+        if (!m_data.isEmpty())
+            readCameraPacket();
+        if (m_data.size() >= QCCTV_MAX_BUFFER_SIZE)
+            clearBuffer();
+    }
 }
 
 /**
@@ -359,7 +365,8 @@ void QCCTV_RemoteCamera::sendCommandPacket()
     data.append (m_newAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
 
     /* Send the generated data */
-    m_commandSocket.writeDatagram (data, address(), QCCTV_COMMAND_PORT);
+    if (m_commandSocket)
+        m_commandSocket->writeDatagram (data, address(), QCCTV_COMMAND_PORT);
 }
 
 /**
@@ -517,24 +524,24 @@ void QCCTV_RemoteCamera::readCameraPacket()
     stream = qUncompress (stream);
 
     /* Get camera name */
-    QString name;
+    QString c_name;
     int name_len = stream.at (0);
     for (int i = 0; i < name_len; ++i) {
         int pos = 1 + i;
         if (stream.size() > pos)
-            name.append (stream.at (pos));
+            c_name.append (stream.at (pos));
 
         else
             return;
     }
 
     /* Get camera group */
-    QString group;
+    QString c_group;
     int group_len = stream.at (name_len + 1);
     for (int i = 0; i < group_len; ++i) {
         int pos = name_len + 2 + i;
         if (stream.size() > pos)
-            group.append (stream.at (pos));
+            c_group.append (stream.at (pos));
 
         else
             return;
@@ -543,26 +550,36 @@ void QCCTV_RemoteCamera::readCameraPacket()
     /* Set offset value */
     offset = name_len + group_len + 1;
 
+    /* Packet is too small */
+    if (stream.size() < offset + 5)
+        return;
+
     /* Get camera information  */
-    quint8 fps = stream.at (offset + 1);
-    quint8 light = stream.at (offset + 2);
-    quint8 status = stream.at (offset + 3);
-    quint8 resolution = stream.at (offset + 4);
-    quint8 autoregulate = stream.at (offset + 5);
+    else {
+        quint8 c_fps = stream.at (offset + 1);
+        quint8 c_light = stream.at (offset + 2);
+        quint8 c_status = stream.at (offset + 3);
+        quint8 c_resolution = stream.at (offset + 4);
+        quint8 c_autoregulate = stream.at (offset + 5);
 
-    /* Update values */
-    updateFPS (fps);
-    updateName (name);
-    updateGroup (group);
-    updateStatus (status);
-    updateResolution (resolution);
-    updateFlashlightStatus (light);
+        /* Update values */
+        updateFPS (c_fps);
+        updateName (c_name);
+        updateGroup (c_group);
+        updateStatus (c_status);
+        updateResolution (c_resolution);
+        updateFlashlightStatus (c_light);
 
-    /* Update auto-regulate option */
-    if (autoregulate == QCCTV_AUTOREGULATE_RES)
-        updateAutoRegulate (true);
-    else
-        updateAutoRegulate (false);
+        /* Update auto-regulate option */
+        if (c_autoregulate == QCCTV_AUTOREGULATE_RES)
+            updateAutoRegulate (true);
+        else
+            updateAutoRegulate (false);
+    }
+
+    /* Packet is too small to get image length */
+    if (stream.size() < offset + 8)
+        return;
 
     /* Get image length */
     quint8 img_a = stream.at (offset + 6);
@@ -584,8 +601,16 @@ void QCCTV_RemoteCamera::readCameraPacket()
     QImage img = QCCTV_DECODE_IMAGE (raw_image);
     if (!img.isNull()) {
         m_image = img;
-        saveImage (img);
         emit newImage (id());
+
+        /* Save image */
+        if (m_saveIncomingMedia) {
+            m_saver.saveImage (m_recordingsPath,
+                               m_name,
+                               m_address.toString(),
+                               m_image,
+                               m_quality);
+        }
     }
 
     /* Reset data buffer */
@@ -611,58 +636,3 @@ void QCCTV_RemoteCamera::acknowledgeReception()
         updateConnected (true);
 }
 
-/**
- * Writes the current date and time on the top-left corner of the given image
- */
-void QCCTV_RemoteCamera::saveImage (QImage& image)
-{
-    /* Construct strings */
-    QDateTime current = QDateTime::currentDateTime();
-    QString fmt = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz");
-    QString str = name() + "\n" + fmt;
-
-    /* Get font */
-    QFont font;
-    font.setFamily (MONOSPACE_FONT);
-    font.setPixelSize (qMax (image.height() / 24, 9));
-    QFontMetrics fm (font);
-
-    /* Get text location */
-    QRect rect (fm.height() / 2, fm.height() / 2,
-                image.width(), image.height());
-
-    /* Paint text over image */
-    QPainter painter (&image);
-    painter.setFont (font);
-    painter.setPen (QPen (Qt::green));
-    painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
-
-    /* We are not allowed to save the image, we are done for now */
-    if (!m_saveIncomingMedia)
-        return;
-
-    /* Get recordings directory */
-    QString path = QString ("%1/%2/%3/%4/%5/%5 %6/%7 Hours/Minute %8/")
-                   .arg (m_recordingsPath)
-                   .arg (name())
-                   .arg (address().toString())
-                   .arg (current.toString ("yyyy"))
-                   .arg (current.toString ("MMM"))
-                   .arg (current.toString ("dd"))
-                   .arg (current.toString ("hh"))
-                   .arg (current.toString ("mm"));
-
-    /* Create directory if it does not exist */
-    QDir dir = QDir (path);
-    if (!dir.exists())
-        dir.mkpath (".");
-
-    /* Get image name (based on seconds & msecs) */
-    QString name = QString ("%1 sec %2 ms.%3")
-                   .arg (current.toString ("ss"))
-                   .arg (current.toString ("zzz"))
-                   .arg (QCCTV_IMAGE_FORMAT);
-
-    /* Save image */
-    image.save (dir.absoluteFilePath (name), QCCTV_IMAGE_FORMAT, m_quality);
-}

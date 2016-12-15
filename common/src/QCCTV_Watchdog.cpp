@@ -24,7 +24,7 @@
 
 QCCTV_Watchdog::QCCTV_Watchdog (QObject* parent) : QObject (parent)
 {
-    m_timer = new QTimer (parent);
+    m_timer = new QTimer (this);
     connect (m_timer, SIGNAL (timeout()), this, SIGNAL (expired()));
 }
 

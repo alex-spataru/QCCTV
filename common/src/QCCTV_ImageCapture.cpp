@@ -86,6 +86,14 @@ QList<QVideoFrame::PixelFormat> QCCTV_ImageCapture::supportedPixelFormats
 }
 
 /**
+ * Returns the current processed camera frame
+ */
+QImage QCCTV_ImageCapture::image() const
+{
+    return m_image;
+}
+
+/**
  * Changes the source from which we shall obtain (and process) the images
  */
 void QCCTV_ImageCapture::setSource (QCamera* source)
@@ -128,7 +136,8 @@ bool QCCTV_ImageCapture::publishImage()
 
     /* Get current display rotation */
     const QScreen* screen = QGuiApplication::primaryScreen();
-    const int angle = screen->angleBetween (screen->nativeOrientation(), screen->orientation());
+    const int angle = screen->angleBetween (screen->nativeOrientation(),
+                                            screen->orientation());
 
     /* Rotate image */
     const int rotation = (360 - m_info.orientation() + angle) % 360;
@@ -140,7 +149,7 @@ bool QCCTV_ImageCapture::publishImage()
 #endif
 
     /* Notify QCCTV */
-    emit newFrame (m_image);
+    emit newFrame();
     return !m_image.isNull();
 }
 
@@ -171,30 +180,28 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
     /* This is an NV12/NV21 image (Qt does not support YUV images yet) */
     else if (clone.pixelFormat() == QVideoFrame::Format_NV12 ||
              clone.pixelFormat() == QVideoFrame::Format_NV21) {
+        /* Create initial image */
         bool success = false;
-        uchar* rgb = new uchar [clone.mappedBytes() * 4];
+        QImage image (clone.width(), clone.height(), QImage::Format_RGB888);
+        image.fill (Qt::black);
 
         /* Perform NV12 to RGB conversion */
         if (clone.pixelFormat() == QVideoFrame::Format_NV12)
-            success = nv12_to_rgb (rgb,
+            success = nv12_to_rgb (image.bits(),
                                    clone.bits(),
                                    clone.width(),
                                    clone.height());
 
         /* Perform NV21 to RGB conversion */
         else if (clone.pixelFormat() == QVideoFrame::Format_NV21)
-            success = nv21_to_rgb (rgb,
+            success = nv21_to_rgb (image.bits(),
                                    clone.bits(),
                                    clone.width(),
                                    clone.height());
 
-        /* Conversion finished, generate image */
-        if (success && rgb) {
-            m_image = QImage (rgb,
-                              clone.width(),
-                              clone.height(),
-                              QImage::Format_RGB888);
-        }
+        /* Re-assign the image */
+        if (success)
+            m_image = image;
     }
 
     /* Unmap the frame data and process the obtained image */

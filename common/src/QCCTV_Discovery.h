@@ -31,13 +31,13 @@ class QCCTV_Discovery : public QObject
 {
     Q_OBJECT
 
-signals:
+Q_SIGNALS:
     void newCamera (const QHostAddress& camera);
 
 public:
     static QCCTV_Discovery* getInstance();
 
-private slots:
+private Q_SLOTS:
     void readPacket();
 
 protected:
