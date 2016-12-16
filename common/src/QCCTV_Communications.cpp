@@ -98,9 +98,6 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
         data.append ((image));
     }
 
-    /* Compress packet */
-    data = qCompress (data, 9);
-
     /* Add the cheksum at the start of the data */
     quint32 crc = crc32.compute (data);
     data.prepend ((crc & 0xff));
@@ -141,10 +138,6 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
     if (packet->crc32 != crc)
         return false;
 
-    /* Uncompress the stream data */
-    int offset = 0;
-    stream = qUncompress (stream);
-
     /* Get camera name */
     int name_len = stream.at (0);
     for (int i = 0; i < name_len; ++i) {
@@ -166,7 +159,7 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
     }
 
     /* Set offset value */
-    offset = name_len + group_len + 1;
+    int offset = name_len + group_len + 1;
 
     /* Packet is too small to continue */
     if (stream.length() < offset + 5)
