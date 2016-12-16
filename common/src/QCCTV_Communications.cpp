@@ -25,6 +25,9 @@
 
 static QCCTV_CRC32 crc32;
 
+/**
+ * Initializes the default values for the given stream \a packet
+ */
 void QCCTV_InitStream (QCCTV_StreamPacket* packet)
 {
     if (packet) {
@@ -41,6 +44,10 @@ void QCCTV_InitStream (QCCTV_StreamPacket* packet)
     }
 }
 
+/**
+ * Initializes the variables of the given \a command packet with the
+ * values in the given \a stream packet
+ */
 void QCCTV_InitCommand (QCCTV_CommandPacket* command,
                         QCCTV_StreamPacket* stream)
 {
@@ -57,6 +64,10 @@ void QCCTV_InitCommand (QCCTV_CommandPacket* command,
     }
 }
 
+/**
+ * Reads the given stream \a packet and generates the binary data that can be
+ * sent through a network socket to a connected QCCTV Station
+ */
 QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
 {
     /* Create initial byte array */
@@ -101,6 +112,12 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
     return data;
 }
 
+/**
+ * Reads the given \a binary data and updates the values if the given stream
+ * \a packet structure
+ *
+ * This function shall return \c true on success, \c false on failure
+ */
 bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
                              const QByteArray& data)
 {
@@ -195,6 +212,10 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
     return true;
 }
 
+/**
+ * Reads the given command \a packet and generates the binary data that can be
+ * sent through a network socket to a connected QCCTV Camera
+ */
 QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet)
 {
     QByteArray data;
@@ -210,6 +231,12 @@ QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet)
     return data;
 }
 
+/**
+ * Reads the given \a binary data and updates the values if the given command
+ * \a packet structure
+ *
+ * This function shall return \c true on success, \c false on failure
+ */
 bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
                               const QByteArray& data)
 {

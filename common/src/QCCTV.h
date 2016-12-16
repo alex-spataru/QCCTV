@@ -40,9 +40,7 @@
  */
 #define QCCTV_MIN_FPS         5
 #define QCCTV_MAX_FPS         60
-#define QCCTV_DEFAULT_FPS     18
 #define QCCTV_IMAGE_FORMAT    "JPG"
-#define QCCTV_DEFAULT_RES     QCCTV_Original
 #define QCCTV_MAX_BUFFER_SIZE 200 * 1024
 #define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV/"
 
