@@ -28,7 +28,10 @@
 class QCCTV_ImageSaver : public QObject
 {
 public:
-    QCCTV_ImageSaver (QObject* parent = NULL);
+    QCCTV_ImageSaver (QObject* parent = NULL)
+    {
+        setParent (parent);
+    }
 
 public Q_SLOTS:
     void saveImage (const QString& path,

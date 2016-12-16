@@ -28,14 +28,13 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
-#include "QCCTV.h"
-#include "QCCTV_CRC32.h"
-#include "QCCTV_Watchdog.h"
-#include "QCCTV_ImageCapture.h"
-
 class QThread;
 class QCamera;
+class QCCTV_Watchdog;
+class QCCTV_ImageCapture;
 class QCameraImageCapture;
+struct QCCTV_StreamPacket;
+struct QCCTV_CommandPacket;
 
 class QCCTV_LocalCamera : public QObject
 {
@@ -57,7 +56,7 @@ class QCCTV_LocalCamera : public QObject
                 WRITE setResolution
                 NOTIFY resolutionChanged)
     Q_PROPERTY (bool flashlightEnabled
-                READ flashlightStatus
+                READ flashlightEnabled
                 WRITE setFlashlightEnabled
                 NOTIFY lightStatusChanged)
     Q_PROPERTY (bool autoRegulateResolution
@@ -105,22 +104,20 @@ public:
     QCCTV_LocalCamera (QObject* parent = NULL);
     ~QCCTV_LocalCamera();
 
-    int fps() const;
-    int resolution() const;
+    int fps();
+    QString name();
+    QString group();
+    int resolution();
+    int cameraStatus();
+    QImage currentImage();
+    QString statusString();
+    int flashlightEnabled();
+    bool autoRegulateResolution();
+
     int minimumFPS() const;
     int maximumFPS() const;
-    int cameraStatus() const;
-    int flashlightStatus() const;
-
-    QString name() const;
-    QString group() const;
-    QImage currentImage() const;
-    QString statusString() const;
-
     bool readyForCapture() const;
     bool flashlightAvailable() const;
-    bool autoRegulateResolution() const;
-
     QStringList connectedHosts() const;
     QStringList availableResolutions() const;
 
@@ -146,39 +143,27 @@ private Q_SLOTS:
 
 private:
     void updateStatus();
-    void generateData();
     QString deviceName();
-    void sendCameraData();
-    void addStatusFlag (const QCCTV_CameraStatus status);
-    void setCameraStatus (const QCCTV_CameraStatus status);
-    void removeStatusFlag (const QCCTV_CameraStatus status);
-    void setFlashlightStatus (const QCCTV_LightStatus status);
+    QCCTV_StreamPacket* streamPacket();
+    QCCTV_CommandPacket* commandPacket();
+    void addStatusFlag (const int status);
+    void setCameraStatus (const int status);
+    void removeStatusFlag (const int status);
 
 private:
-    QImage m_image;
     QThread* m_thread;
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
-    QCCTV_ImageCapture* m_imageCapture;
 
-    bool m_autoRegulateResolution;
-    QCCTV_Resolution m_resolution;
-
-    int m_fps;
-    int m_cameraStatus;
-    int m_flashlightStatus;
-
-    QString m_name;
-    QString m_group;
-    QByteArray m_data;
-    QByteArray m_imageData;
-
-    QCCTV_CRC32 m_crc32;
     QTcpServer m_server;
     QUdpSocket m_cmdSocket;
     QUdpSocket m_broadcastSocket;
     QList<QTcpSocket*> m_sockets;
     QList<QCCTV_Watchdog*> m_watchdogs;
+
+    QCCTV_ImageCapture* m_imageCapture;
+    QCCTV_StreamPacket* m_streamPacket;
+    QCCTV_CommandPacket* m_commandPacket;
 };
 
 #endif

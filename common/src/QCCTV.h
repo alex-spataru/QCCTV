@@ -28,12 +28,29 @@
 #include <QHostAddress>
 
 /*
- * Flashlight status modes
+ * Set network ports
  */
-enum QCCTV_LightStatus {
-    QCCTV_FLASHLIGHT_ON  = 0x01,
-    QCCTV_FLASHLIGHT_OFF = 0x00,
-};
+#define QCCTV_STREAM_PORT    1100
+#define QCCTV_COMMAND_PORT   1150
+#define QCCTV_REQUEST_PORT   1200
+#define QCCTV_DISCOVERY_PORT 1250
+
+/*
+ * Image encoding
+ */
+#define QCCTV_MIN_FPS         5
+#define QCCTV_MAX_FPS         60
+#define QCCTV_DEFAULT_FPS     18
+#define QCCTV_IMAGE_FORMAT    "JPG"
+#define QCCTV_DEFAULT_RES     QCCTV_Original
+#define QCCTV_MAX_BUFFER_SIZE 200 * 1024
+#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV/"
+
+/*
+ * Watchdog timings
+ */
+#define QCCTV_MIN_WATCHDOG_TIME 500
+#define QCCTV_MAX_WATCHDOG_TIME 3000
 
 /*
  * Camera status flags
@@ -63,52 +80,21 @@ enum QCCTV_Resolution {
 /*
  * Misc functions
  */
-extern int QCCTV_WATCHDOG_TIME (const int fps);
-extern int QCCTV_GET_VALID_FPS (const int fps);
-extern QString QCCTV_STATUS_STRING (const int status);
+extern int QCCTV_ValidFps (const int fps);
+extern int QCCTV_GetWatchdogTime (const int fps);
+extern QString QCCTV_GetStatusString (const int status);
 
 /*
  * Image encoding/decoding functions
  */
-extern QImage QCCTV_DECODE_IMAGE (const QByteArray& data);
-extern QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res);
+extern QImage QCCTV_DecodeImage (const QByteArray& data);
+extern QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res);
 
 /*
  * Image generation function
  */
-extern QStringList QCCTV_AVAILABLE_RESOLUTIONS();
-extern QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text);
-
-/*
- * Additional command flags
- */
-#define QCCTV_FORCE_FOCUS      0x01
-#define QCCTV_AUTOREGULATE_RES 0x01
-
-/*
- * Set network ports
- */
-#define QCCTV_STREAM_PORT    1100
-#define QCCTV_COMMAND_PORT   1150
-#define QCCTV_REQUEST_PORT   1200
-#define QCCTV_DISCOVERY_PORT 1250
-
-/*
- * Image encoding
- */
-#define QCCTV_MIN_FPS         5
-#define QCCTV_MAX_FPS         60
-#define QCCTV_DEFAULT_FPS     18
-#define QCCTV_IMAGE_FORMAT    "JPG"
-#define QCCTV_DEFAULT_RES     QCCTV_Original
-#define QCCTV_MAX_BUFFER_SIZE 200 * 1024
-#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV"
-
-/*
- * Watchdog timings
- */
-#define QCCTV_MIN_WATCHDOG_TIME 250
-#define QCCTV_MAX_WATCHDOG_TIME 2000
+extern QStringList QCCTV_Resolutions();
+extern QImage QCCTV_CreateStatusImage (const QSize& size, const QString& text);
 
 #endif
 

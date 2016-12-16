@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE
  */
 
+#include "QCCTV.h"
 #include "QCCTV_Station.h"
 #include "QCCTV_Discovery.h"
 
@@ -46,7 +47,7 @@ QCCTV_Station::QCCTV_Station()
     /* Set camera error image */
     setRecordingsPath ("");
     setSaveIncomingMedia (true);
-    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
+    m_cameraError = QCCTV_CreateStatusImage (QSize (640, 480), "CAMERA ERROR");
 }
 
 /**
@@ -140,7 +141,7 @@ bool QCCTV_Station::saveIncomingMedia() const
  */
 QStringList QCCTV_Station::availableResolutions() const
 {
-    return QCCTV_AVAILABLE_RESOLUTIONS();
+    return QCCTV_Resolutions();
 }
 
 /**
@@ -280,7 +281,7 @@ QString QCCTV_Station::statusString (const int camera)
 bool QCCTV_Station::flashlightEnabled (const int camera)
 {
     if (flashlightAvailable (camera))
-        return (getCamera (camera)->lightStatus() == QCCTV_FLASHLIGHT_ON);
+        return (getCamera (camera)->flashlightEnabled());
 
     return false;
 }
@@ -472,7 +473,7 @@ void QCCTV_Station::setRecordingsPath (const QString& path)
 
     foreach (QCCTV_RemoteCamera* camera, m_cameras)
         if (camera)
-            camera->setRecordingsPath (recordingsPath());
+            camera->setIncomingMediaPath (recordingsPath());
 
     emit recordingsPathChanged();
 }
@@ -584,7 +585,7 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
         camera->setAddress (ip);
         camera->changeID (cameraCount() - 1);
         camera->setImageQuality (imageQuality());
-        camera->setRecordingsPath (recordingsPath());
+        camera->setIncomingMediaPath (recordingsPath());
         camera->setSaveIncomingMedia (saveIncomingMedia());
 
         /* Start timers when thread is started */

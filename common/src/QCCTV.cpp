@@ -41,26 +41,26 @@ static QString append_str (const QString a, QString b)
 }
 
 /**
+ * Returns a valid FPS value
+ */
+int QCCTV_ValidFps (const int fps)
+{
+    return qMax (qMin (fps, QCCTV_MAX_FPS), QCCTV_MIN_FPS);
+}
+
+/**
  * Returns a valid watchdog timeout value
  */
-int QCCTV_WATCHDOG_TIME (const int fps)
+int QCCTV_GetWatchdogTime (const int fps)
 {
     return qMax (QCCTV_MIN_WATCHDOG_TIME,
                  qMin (fps * 50, QCCTV_MAX_WATCHDOG_TIME));
 }
 
 /**
- * Returns a valid FPS value
- */
-int QCCTV_GET_VALID_FPS (const int fps)
-{
-    return qMax (qMin (fps, QCCTV_MAX_FPS), QCCTV_MIN_FPS);
-}
-
-/**
  * Parses the given status flags as a string
  */
-QString QCCTV_STATUS_STRING (const int status)
+QString QCCTV_GetStatusString (const int status)
 {
     QString str;
 
@@ -85,7 +85,7 @@ QString QCCTV_STATUS_STRING (const int status)
 /**
  * Returns the available image resolutions
  */
-extern QStringList QCCTV_AVAILABLE_RESOLUTIONS()
+extern QStringList QCCTV_Resolutions()
 {
     QStringList list;
 
@@ -104,7 +104,7 @@ extern QStringList QCCTV_AVAILABLE_RESOLUTIONS()
 /**
  * Returns the raw bytes of the encoded \a image
  */
-QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
+QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res)
 {
     /* Obtain image resolution */
     int width = 0;
@@ -166,7 +166,7 @@ QByteArray QCCTV_ENCODE_IMAGE (const QImage& image, QCCTV_Resolution res)
 /**
  * Generates a image from the given \a data
  */
-QImage QCCTV_DECODE_IMAGE (const QByteArray& data)
+QImage QCCTV_DecodeImage (const QByteArray& data)
 {
     return QImage::fromData (data, QCCTV_IMAGE_FORMAT);
 }
@@ -174,7 +174,7 @@ QImage QCCTV_DECODE_IMAGE (const QByteArray& data)
 /**
  * Generates an image with the given \a size and \a text
  */
-QImage QCCTV_GET_STATUS_IMAGE (const QSize& size, const QString& text)
+QImage QCCTV_CreateStatusImage (const QSize& size, const QString& text)
 {
     QPixmap pixmap = QPixmap (size);
     pixmap.fill (QColor ("#000").rgb());

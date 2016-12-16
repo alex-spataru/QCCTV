@@ -21,14 +21,16 @@
  */
 
 #include "ImageProvider.h"
-#include "QCCTV_Station.h"
+
+#include <QCCTV.h>
+#include <QCCTV_Station.h>
 
 QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
     QQuickImageProvider (QQuickImageProvider::Image,
                          QQuickImageProvider::ForceAsynchronousImageLoading)
 {
     m_station = parent;
-    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "CAMERA ERROR");
+    m_cameraError = QCCTV_CreateStatusImage (QSize (640, 480), "CAMERA ERROR");
 }
 
 QImage QCCTV_StationImage::requestImage (const QString& id,

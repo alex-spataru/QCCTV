@@ -26,10 +26,10 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
-#include "QCCTV.h"
-#include "QCCTV_CRC32.h"
-#include "QCCTV_Watchdog.h"
-#include "QCCTV_ImageSaver.h"
+class QCCTV_Watchdog;
+class QCCTV_ImageSaver;
+struct QCCTV_StreamPacket;
+struct QCCTV_CommandPacket;
 
 class QCCTV_RemoteCamera : public QObject
 {
@@ -51,31 +51,35 @@ public:
     QCCTV_RemoteCamera (QObject* parent = NULL);
     ~QCCTV_RemoteCamera();
 
-    Q_INVOKABLE int id() const;
-    Q_INVOKABLE int fps() const;
-    Q_INVOKABLE int status() const;
-    Q_INVOKABLE QImage image() const;
-    Q_INVOKABLE QString name() const;
-    Q_INVOKABLE QString group() const;
-    Q_INVOKABLE bool isConnected() const;
-    Q_INVOKABLE QString statusString() const;
-    Q_INVOKABLE QHostAddress address() const;
-    Q_INVOKABLE bool autoRegulateResolution() const;
-    Q_INVOKABLE QCCTV_Resolution resolution() const;
-    Q_INVOKABLE QCCTV_LightStatus lightStatus() const;
+    int fps();
+    int status();
+    QImage image();
+    QString name();
+    QString group();
+    int resolution();
+    QString statusString();
+    bool flashlightEnabled();
+    bool autoRegulateResolution();
+
+    int id() const;
+    int imageQuality() const;
+    bool isConnected() const;
+    QHostAddress address() const;
+    bool saveIncomingMedia() const;
+    QString incomingMediaPath() const;
 
 public Q_SLOTS:
     void start();
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
-    void setImageQuality (const int quality);
+    void setImageQuality (const int imageQuality);
     void setSaveIncomingMedia (const bool save);
-    void setRecordingsPath (const QString& path);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
     void changeAutoRegulate (const bool regulate);
     void changeFlashlightStatus (const int status);
+    void setIncomingMediaPath (const QString& path);
 
 private Q_SLOTS:
     void clearBuffer();
@@ -90,40 +94,31 @@ private Q_SLOTS:
     void updateConnected (const bool status);
     void updateResolution (const int resolution);
     void updateAutoRegulate (const bool regulate);
-    void updateFlashlightStatus (const int status);
+    void updateFlashlightEnabled (const bool enabled);
 
 private:
     void readCameraPacket();
     void acknowledgeReception();
+    QCCTV_StreamPacket* streamPacket();
+    QCCTV_CommandPacket* commandPacket();
 
 private:
     int m_id;
     int m_quality;
-    bool m_focus;
-    QTcpSocket* m_socket;
-    QCCTV_Watchdog* m_watchdog;
-    QString m_group;
     bool m_connected;
-    QUdpSocket* m_commandSocket;
-    bool m_oldAutoRegulate;
-    bool m_newAutoRegulate;
-    QString m_name;
-    bool m_saveIncomingMedia;
-    int m_oldFPS;
-    int m_newFPS;
-    int m_oldResolution;
-    int m_newResolution;
-    int m_cameraStatus;
-    int m_oldFlashlightStatus;
-    int m_newFlashlightStatus;
-    QImage m_image;
-
     QByteArray m_data;
-    QCCTV_CRC32 m_crc32;
-    QList<QImage> m_images;
     QHostAddress m_address;
-    QString m_recordingsPath;
-    QCCTV_ImageSaver m_saver;
+    QString m_incomingMediaPath;
+    bool m_saveIncomingMedia;
+
+    QTcpSocket* m_socket;
+    QUdpSocket* m_commandSocket;
+
+    QCCTV_ImageSaver* m_saver;
+    QCCTV_Watchdog* m_watchdog;
+
+    QCCTV_StreamPacket* m_streamPacket;
+    QCCTV_CommandPacket* m_commandPacket;
 };
 
 #endif

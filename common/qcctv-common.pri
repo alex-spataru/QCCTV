@@ -48,7 +48,8 @@ HEADERS += \
     $$PWD/src/QCCTV_CRC32.h \
     $$PWD/src/QCCTV_ImageCapture.h \
     $$PWD/lib/yuv2rgb/yuv2rgb.h \
-    $$PWD/src/QCCTV_ImageSaver.h
+    $$PWD/src/QCCTV_ImageSaver.h \
+    $$PWD/src/QCCTV_Communications.h
 
 SOURCES += \
     $$PWD/src/QCCTV_Discovery.cpp \
@@ -60,5 +61,6 @@ SOURCES += \
     $$PWD/src/QCCTV_CRC32.cpp \
     $$PWD/src/QCCTV_ImageCapture.cpp \
     $$PWD/lib/yuv2rgb/yuv2rgb.cpp \
-    $$PWD/src/QCCTV_ImageSaver.cpp
+    $$PWD/src/QCCTV_ImageSaver.cpp \
+    $$PWD/src/QCCTV_Communications.cpp
 

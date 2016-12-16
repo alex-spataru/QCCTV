@@ -20,35 +20,27 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "QCCTV.h"
-#include "QCCTV_RemoteCamera.h"
-
 #include <QDir>
 
-QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) :
-    QObject (parent),
-    m_id (0),
-    m_quality (-1),
-    m_focus (false),
-    m_socket (NULL),
-    m_watchdog (NULL),
-    m_group ("Unknown"),
-    m_connected (false),
-    m_commandSocket (NULL),
-    m_oldAutoRegulate (true),
-    m_newAutoRegulate (true),
-    m_name ("Unknown Camera"),
-    m_saveIncomingMedia (true),
-    m_oldFPS (QCCTV_DEFAULT_FPS),
-    m_newFPS (QCCTV_DEFAULT_FPS),
-    m_oldResolution (QCCTV_DEFAULT_RES),
-    m_newResolution (QCCTV_DEFAULT_RES),
-    m_cameraStatus (QCCTV_CAMSTATUS_DEFAULT),
-    m_oldFlashlightStatus (QCCTV_FLASHLIGHT_OFF),
-    m_newFlashlightStatus (QCCTV_FLASHLIGHT_OFF),
-    m_image (QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "NO CAMERA IMAGE"))
+#include "QCCTV.h"
+#include "QCCTV_Watchdog.h"
+#include "QCCTV_ImageSaver.h"
+#include "QCCTV_RemoteCamera.h"
+#include "QCCTV_Communications.h"
+
+QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) : QObject (parent)
 {
-    setRecordingsPath ("");
+    m_id = 0;
+    m_quality = -1;
+    m_connected = false;
+    m_saveIncomingMedia = false;
+    m_saver = new QCCTV_ImageSaver (this);
+    m_streamPacket = new QCCTV_StreamPacket;
+    m_commandPacket = new QCCTV_CommandPacket;
+
+    setIncomingMediaPath ("");
+    QCCTV_InitStream (streamPacket());
+    QCCTV_InitCommand (commandPacket(), streamPacket());
 }
 
 /**
@@ -65,6 +57,85 @@ QCCTV_RemoteCamera::~QCCTV_RemoteCamera()
         m_commandSocket->close();
         delete m_commandSocket;
     }
+
+    if (m_watchdog)
+        delete m_watchdog;
+
+    delete m_saver;
+    delete m_streamPacket;
+    delete m_commandPacket;
+}
+
+/**
+ * Returns the FPS set by the station or by the camera itself
+ */
+int QCCTV_RemoteCamera::fps()
+{
+    return streamPacket()->fps;
+}
+
+/**
+ * Returns the operation status reported by the camera
+ */
+int QCCTV_RemoteCamera::status()
+{
+    return streamPacket()->cameraStatus;
+}
+
+/**
+ * Returns the latest image captured by the camera
+ */
+QImage QCCTV_RemoteCamera::image()
+{
+    return streamPacket()->image;
+}
+
+/**
+ * Returns the name of the camera
+ */
+QString QCCTV_RemoteCamera::name()
+{
+    return streamPacket()->cameraName;
+}
+
+/**
+ * Returns the group assigned to the camera
+ */
+QString QCCTV_RemoteCamera::group()
+{
+    return streamPacket()->cameraGroup;
+}
+
+/**
+ * Returns the current resolution used by the camera
+ */
+int QCCTV_RemoteCamera::resolution()
+{
+    return streamPacket()->resolution;
+}
+
+/**
+ * Returns the camera status flags as a string
+ */
+QString QCCTV_RemoteCamera::statusString()
+{
+    return QCCTV_GetStatusString (status());
+}
+
+/**
+ * Returns \c true if the flashlight of the camera is turned on
+ */
+bool QCCTV_RemoteCamera::flashlightEnabled()
+{
+    return streamPacket()->flashlightEnabled;
+}
+
+/**
+ * Returns \c true if the camera is allowed to autoregulate its resolution
+ */
+bool QCCTV_RemoteCamera::autoRegulateResolution()
+{
+    return streamPacket()->autoRegulateResolution;
 }
 
 /**
@@ -76,43 +147,13 @@ int QCCTV_RemoteCamera::id() const
 }
 
 /**
- * Returns the FPS set by the station or by the camera itself
+ * Returns the quality level that is applied to saved images from the
+ * camera stream. The quality range is from 0 to 100, or -1 if we should
+ * let Qt decide by itself the image quality
  */
-int QCCTV_RemoteCamera::fps() const
+int QCCTV_RemoteCamera::imageQuality() const
 {
-    return m_oldFPS;
-}
-
-/**
- * Returns the operation status reported by the camera
- */
-int QCCTV_RemoteCamera::status() const
-{
-    return m_cameraStatus;
-}
-
-/**
- * Returns the latest image captured by the camera
- */
-QImage QCCTV_RemoteCamera::image() const
-{
-    return m_image;
-}
-
-/**
- * Returns the name of the camera
- */
-QString QCCTV_RemoteCamera::name() const
-{
-    return m_name;
-}
-
-/**
- * Returns the group assigned to the camera
- */
-QString QCCTV_RemoteCamera::group() const
-{
-    return m_group;
+    return m_quality;
 }
 
 /**
@@ -125,14 +166,6 @@ bool QCCTV_RemoteCamera::isConnected() const
 }
 
 /**
- * Returns the camera status flags as a string
- */
-QString QCCTV_RemoteCamera::statusString() const
-{
-    return QCCTV_STATUS_STRING (m_cameraStatus);
-}
-
-/**
  * Returns the network address of the camera
  */
 QHostAddress QCCTV_RemoteCamera::address() const
@@ -141,27 +174,19 @@ QHostAddress QCCTV_RemoteCamera::address() const
 }
 
 /**
- * Returns \c true if the camera is allowed to autoregulate its resolution
+ * Returns \c true if the class shall save to the disk the received images
  */
-bool QCCTV_RemoteCamera::autoRegulateResolution() const
+bool QCCTV_RemoteCamera::saveIncomingMedia() const
 {
-    return m_oldAutoRegulate;
+    return m_saveIncomingMedia;
 }
 
 /**
- * Returns the current resolution used by the camera
+ * Returns the folder path in which the incoming media is saved
  */
-QCCTV_Resolution QCCTV_RemoteCamera::resolution() const
+QString QCCTV_RemoteCamera::incomingMediaPath() const
 {
-    return (QCCTV_Resolution) m_oldResolution;
-}
-
-/**
- * Returns the light status used by the camera
- */
-QCCTV_LightStatus QCCTV_RemoteCamera::lightStatus() const
-{
-    return (QCCTV_LightStatus) m_oldFlashlightStatus;
+    return m_incomingMediaPath;
 }
 
 /**
@@ -197,7 +222,7 @@ void QCCTV_RemoteCamera::start()
  */
 void QCCTV_RemoteCamera::requestFocus()
 {
-    m_focus = true;
+    m_commandPacket->focusRequest = true;
     QTimer::singleShot (500, this, SLOT (resetFocusRequest()));
 }
 
@@ -214,10 +239,11 @@ void QCCTV_RemoteCamera::changeID (const int id)
  */
 void QCCTV_RemoteCamera::changeFPS (const int fps)
 {
-    m_newFPS = QCCTV_GET_VALID_FPS (fps);
+    int validFps = QCCTV_ValidFps (fps);
+    commandPacket()->newFps = validFps;
 
     if (m_watchdog)
-        m_watchdog->setExpirationTime (QCCTV_WATCHDOG_TIME (m_newFPS));
+        m_watchdog->setExpirationTime (QCCTV_GetWatchdogTime (validFps));
 }
 
 /**
@@ -240,22 +266,11 @@ void QCCTV_RemoteCamera::setSaveIncomingMedia (const bool save)
 }
 
 /**
- * Changes the path in which we should save incoming images
- */
-void QCCTV_RemoteCamera::setRecordingsPath (const QString& path)
-{
-    if (!path.isEmpty())
-        m_recordingsPath = path;
-    else
-        m_recordingsPath = QDir::homePath() + "/QCCTV/Recordings/";
-}
-
-/**
  * Changes the resoltion of the camera
  */
 void QCCTV_RemoteCamera::changeResolution (const int resolution)
 {
-    m_newResolution = resolution;
+    commandPacket()->newResolution = resolution;
 }
 
 /**
@@ -275,7 +290,7 @@ void QCCTV_RemoteCamera::setAddress (const QHostAddress& address)
  */
 void QCCTV_RemoteCamera::changeAutoRegulate (const bool regulate)
 {
-    m_newAutoRegulate = regulate;
+    commandPacket()->newAutoRegulateResolution = regulate;
 }
 
 /**
@@ -283,13 +298,27 @@ void QCCTV_RemoteCamera::changeAutoRegulate (const bool regulate)
  */
 void QCCTV_RemoteCamera::changeFlashlightStatus (const int status)
 {
-    m_newFlashlightStatus = status;
+    commandPacket()->newFlashlightEnabled = status;
+}
+
+/**
+ * Changes the path in which we should save incoming images
+ */
+void QCCTV_RemoteCamera::setIncomingMediaPath (const QString& path)
+{
+    if (!path.isEmpty())
+        m_incomingMediaPath = path;
+    else
+        m_incomingMediaPath = QDir::homePath() + "/QCCTV/QCCTV_Media/";
 }
 
 /**
  * Called when we stop receiving constant packets from the camera, this
  * function deletes the temporary data buffer to avoid storing too much
- * information that we cannot use directly
+ * information that we cannot use directly.
+ *
+ * This function is also called when the class successfully reads a stream
+ * packet from the remote camera.
  */
 void QCCTV_RemoteCamera::clearBuffer()
 {
@@ -307,7 +336,7 @@ void QCCTV_RemoteCamera::endConnection()
     if (m_socket)
         m_socket->abort();
 
-    m_data.clear();
+    clearBuffer();
     updateConnected (false);
     emit disconnected (id());
 }
@@ -329,6 +358,7 @@ void QCCTV_RemoteCamera::onDataReceived()
 
         if (!m_data.isEmpty())
             readCameraPacket();
+
         if (m_data.size() >= QCCTV_MAX_BUFFER_SIZE)
             clearBuffer();
     }
@@ -340,7 +370,7 @@ void QCCTV_RemoteCamera::onDataReceived()
  */
 void QCCTV_RemoteCamera::resetFocusRequest()
 {
-    m_focus = false;
+    commandPacket()->focusRequest = false;
 }
 
 /**
@@ -352,19 +382,8 @@ void QCCTV_RemoteCamera::resetFocusRequest()
  */
 void QCCTV_RemoteCamera::sendCommandPacket()
 {
-    /* Generate the data */
-    QByteArray data;
-    data.append (m_oldFPS);
-    data.append (m_newFPS);
-    data.append (m_oldResolution);
-    data.append (m_newResolution);
-    data.append (m_oldFlashlightStatus);
-    data.append (m_newFlashlightStatus);
-    data.append (m_focus ? QCCTV_FORCE_FOCUS : 0x00);
-    data.append (m_oldAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
-    data.append (m_newAutoRegulate ? QCCTV_AUTOREGULATE_RES : 0x00);
+    QByteArray data = QCCTV_CreateCommandPacket (*commandPacket());
 
-    /* Send the generated data */
     if (m_commandSocket)
         m_commandSocket->writeDatagram (data, address(), QCCTV_COMMAND_PORT);
 }
@@ -374,9 +393,10 @@ void QCCTV_RemoteCamera::sendCommandPacket()
  */
 void QCCTV_RemoteCamera::updateFPS (const int fps)
 {
-    if (m_oldFPS != fps) {
-        m_oldFPS = fps;
-        m_newFPS = fps;
+    if (streamPacket()->fps != fps) {
+        streamPacket()->fps = fps;
+        commandPacket()->oldFps = fps;
+        commandPacket()->newFps = fps;
         emit fpsChanged (id());
     }
 }
@@ -386,8 +406,8 @@ void QCCTV_RemoteCamera::updateFPS (const int fps)
  */
 void QCCTV_RemoteCamera::updateStatus (const int status)
 {
-    if (m_cameraStatus != status) {
-        m_cameraStatus = status;
+    if (streamPacket()->cameraStatus != status) {
+        streamPacket()->cameraStatus = status;
         emit newCameraStatus (id());
     }
 }
@@ -397,11 +417,10 @@ void QCCTV_RemoteCamera::updateStatus (const int status)
  */
 void QCCTV_RemoteCamera::updateName (const QString& name)
 {
-    if (m_name != name) {
-        m_name = name;
-
-        if (m_name.isEmpty())
-            m_name = "Unknown Camera";
+    if (streamPacket()->cameraName != name) {
+        streamPacket()->cameraName = name;
+        if (streamPacket()->cameraName.isEmpty())
+            streamPacket()->cameraName = "Unknown Camera";
 
         emit newCameraName (id());
     }
@@ -412,11 +431,10 @@ void QCCTV_RemoteCamera::updateName (const QString& name)
  */
 void QCCTV_RemoteCamera::updateGroup (const QString& group)
 {
-    if (m_group != group) {
-        m_group = group;
-
-        if (m_group.isEmpty())
-            m_group = "Default";
+    if (streamPacket()->cameraGroup != group) {
+        streamPacket()->cameraGroup = group;
+        if (streamPacket()->cameraGroup.isEmpty())
+            streamPacket()->cameraGroup = "Default";
 
         emit newCameraGroup();
     }
@@ -442,9 +460,10 @@ void QCCTV_RemoteCamera::updateConnected (const bool status)
  */
 void QCCTV_RemoteCamera::updateResolution (const int resolution)
 {
-    if (m_oldResolution != resolution) {
-        m_newResolution = resolution;
-        m_oldResolution = resolution;
+    if (streamPacket()->resolution != resolution) {
+        streamPacket()->resolution = resolution;
+        commandPacket()->oldResolution = resolution;
+        commandPacket()->newResolution = resolution;
         emit resolutionChanged (id());
     }
 }
@@ -454,9 +473,10 @@ void QCCTV_RemoteCamera::updateResolution (const int resolution)
  */
 void QCCTV_RemoteCamera::updateAutoRegulate (const bool regulate)
 {
-    if (m_oldAutoRegulate != regulate) {
-        m_newAutoRegulate = regulate;
-        m_oldAutoRegulate = regulate;
+    if (streamPacket()->autoRegulateResolution != regulate) {
+        streamPacket()->autoRegulateResolution = regulate;
+        commandPacket()->oldAutoRegulateResolution = regulate;
+        commandPacket()->newAutoRegulateResolution = regulate;
         emit autoRegulateResolutionChanged (id());
     }
 }
@@ -464,11 +484,12 @@ void QCCTV_RemoteCamera::updateAutoRegulate (const bool regulate)
 /**
  * Updates the flashlight status flag of the camera
  */
-void QCCTV_RemoteCamera::updateFlashlightStatus (const int status)
+void QCCTV_RemoteCamera::updateFlashlightEnabled (const bool enabled)
 {
-    if (m_oldFlashlightStatus != status) {
-        m_newFlashlightStatus = status;
-        m_oldFlashlightStatus = status;
+    if (streamPacket()->flashlightEnabled != enabled) {
+        streamPacket()->flashlightEnabled = enabled;
+        commandPacket()->oldFlashlightEnabled = enabled;
+        commandPacket()->newFlashlightEnabled = enabled;
         emit lightStatusChanged (id());
     }
 }
@@ -476,146 +497,36 @@ void QCCTV_RemoteCamera::updateFlashlightStatus (const int status)
 /**
  * Called when we receive a datagram from the camera, this function interprets
  * the status bytes and the image data contained in the received packet.
- *
- * The stream packets (the ones that we receive from the camera) have the
- * following structure:
- *
- * - CRC32 (4 bytes)
- * - Length of camera name (1 byte)
- * - Camera name string
- * - Camera FPS (1 byte)
- * - Light status (1 byte)
- * - Operation status (1 byte)
- * - Image length (3 bytes)
- * - Compressed image data
  */
 void QCCTV_RemoteCamera::readCameraPacket()
 {
-    /* Data is invalid */
-    if (m_data.isEmpty())
-        return;
+    QCCTV_StreamPacket packet;
+    if (QCCTV_ReadStreamPacket (&packet, m_data)) {
+        /* Update stream information */
+        updateFPS (packet.fps);
+        updateName (packet.cameraName);
+        updateGroup (packet.cameraGroup);
+        updateStatus (packet.cameraStatus);
+        updateResolution (packet.resolution);
+        updateAutoRegulate (packet.autoRegulateResolution);
+        updateFlashlightEnabled (packet.flashlightEnabled);
 
-    /* Data is too small to read checksum */
-    if (m_data.size() < 4)
-        return;
-
-    /* Get the checksum */
-    quint8 a = m_data.at (0);
-    quint8 b = m_data.at (1);
-    quint8 c = m_data.at (2);
-    quint8 d = m_data.at (3);
-    quint32 checksum = (a << 24) | (b << 16) | (c << 8) | (d & 0xff);
-
-    /* Create byte array without checksum header */
-    QByteArray stream = m_data;
-    stream.remove (0, 4);
-
-    /* Stream is too small */
-    if (stream.isEmpty())
-        return;
-
-    /* Compare checksums */
-    quint32 crc = m_crc32.compute (stream);
-    if (checksum != crc)
-        return;
-
-    /* Uncompress the stream data */
-    int offset = 0;
-    stream = qUncompress (stream);
-
-    /* Get camera name */
-    QString c_name;
-    int name_len = stream.at (0);
-    for (int i = 0; i < name_len; ++i) {
-        int pos = 1 + i;
-        if (stream.size() > pos)
-            c_name.append (stream.at (pos));
-
-        else
-            return;
-    }
-
-    /* Get camera group */
-    QString c_group;
-    int group_len = stream.at (name_len + 1);
-    for (int i = 0; i < group_len; ++i) {
-        int pos = name_len + 2 + i;
-        if (stream.size() > pos)
-            c_group.append (stream.at (pos));
-
-        else
-            return;
-    }
-
-    /* Set offset value */
-    offset = name_len + group_len + 1;
-
-    /* Packet is too small */
-    if (stream.size() < offset + 5)
-        return;
-
-    /* Get camera information  */
-    else {
-        quint8 c_fps = stream.at (offset + 1);
-        quint8 c_light = stream.at (offset + 2);
-        quint8 c_status = stream.at (offset + 3);
-        quint8 c_resolution = stream.at (offset + 4);
-        quint8 c_autoregulate = stream.at (offset + 5);
-
-        /* Update values */
-        updateFPS (c_fps);
-        updateName (c_name);
-        updateGroup (c_group);
-        updateStatus (c_status);
-        updateResolution (c_resolution);
-        updateFlashlightStatus (c_light);
-
-        /* Update auto-regulate option */
-        if (c_autoregulate == QCCTV_AUTOREGULATE_RES)
-            updateAutoRegulate (true);
-        else
-            updateAutoRegulate (false);
-    }
-
-    /* Packet is too small to get image length */
-    if (stream.size() < offset + 8)
-        return;
-
-    /* Get image length */
-    quint8 img_a = stream.at (offset + 6);
-    quint8 img_b = stream.at (offset + 7);
-    quint8 img_c = stream.at (offset + 8);
-    quint32 img_len = (img_a << 16) | (img_b << 8) | (img_c & 0xff);
-
-    /* Get image bytes */
-    QByteArray raw_image;
-    for (quint32 i = 0; i < img_len; ++i) {
-        int pos = offset + 9 + i;
-        if (stream.size() > pos)
-            raw_image.append (stream [pos]);
-        else
-            return;
-    }
-
-    /* Decode the image and save it */
-    QImage img = QCCTV_DECODE_IMAGE (raw_image);
-    if (!img.isNull()) {
-        m_image = img;
+        /* Update image */
+        streamPacket()->image = packet.image;
         emit newImage (id());
 
-        /* Save image */
-        if (m_saveIncomingMedia) {
-            m_saver.saveImage (m_recordingsPath,
-                               m_name,
-                               m_address.toString(),
-                               m_image,
-                               m_quality);
-        }
-    }
+        /* Save the image (if allowed) */
+        if (saveIncomingMedia())
+            m_saver->saveImage (incomingMediaPath(),
+                                name(),
+                                address().toString(),
+                                image(),
+                                imageQuality());
 
-    /* Reset data buffer */
-    m_data.clear();
-    acknowledgeReception();
+        /* Clear buffer and send command packet */
+        clearBuffer();
+        acknowledgeReception();
+    }
 }
 
 /**
@@ -634,5 +545,29 @@ void QCCTV_RemoteCamera::acknowledgeReception()
 
     if (!isConnected())
         updateConnected (true);
+}
+
+/**
+ * Returns the pointer to the stream packet structure
+ */
+QCCTV_StreamPacket* QCCTV_RemoteCamera::streamPacket()
+{
+    if (m_streamPacket)
+        return m_streamPacket;
+
+    m_streamPacket = new QCCTV_StreamPacket;
+    return m_streamPacket;
+}
+
+/**
+ * Returns the pointer to the stream command structure
+ */
+QCCTV_CommandPacket* QCCTV_RemoteCamera::commandPacket()
+{
+    if (m_commandPacket)
+        return m_commandPacket;
+
+    m_commandPacket = new QCCTV_CommandPacket;
+    return m_commandPacket;
 }
 

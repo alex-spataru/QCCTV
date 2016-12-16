@@ -23,6 +23,9 @@
 #ifndef _QCCTV_STATION_H
 #define _QCCTV_STATION_H
 
+#include <QImage>
+#include <QObject>
+
 #include "QCCTV_RemoteCamera.h"
 
 class QThread;

@@ -38,11 +38,19 @@
     #define MONOSPACE_FONT "Monospace"
 #endif
 
-QCCTV_ImageSaver::QCCTV_ImageSaver (QObject* parent) : QObject (parent)
-{
-
-}
-
+/**
+ * Adds some informational text in the upper-right corner of the given
+ * image and saves it in the given \a path
+ *
+ * \param path the path to the folder in which to save the image
+ * \param name the camera name, used for creating a dedicated folder for the
+ *        camera stream in question
+ * \param address the host address of the camera, its used to create an
+ *        additional directory under the name folder to avoid saving
+ *        conflicting streams from two or more cameras with the same name
+ * \param image the image to save
+ * \param quality the JPEG quality level to apply to the saved image [0-100]
+ */
 void QCCTV_ImageSaver::saveImage (const QString& path,
                                   const QString& name,
                                   const QString& address,

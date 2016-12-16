@@ -20,16 +20,17 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "ImageProvider.h"
-#include "QCCTV_LocalCamera.h"
-
+#include <QCCTV.h>
 #include <QPainter>
+#include <QCCTV_LocalCamera.h>
+
+#include "ImageProvider.h"
 
 QCCTV_ImageProvider::QCCTV_ImageProvider (QCCTV_LocalCamera* parent) :
     QQuickImageProvider (QQuickImageProvider::Image)
 {
     m_localCamera = parent;
-    m_cameraError = QCCTV_GET_STATUS_IMAGE (QSize (640, 480), "IMAGE ERROR");
+    m_cameraError = QCCTV_CreateStatusImage (QSize (640, 480), "IMAGE ERROR");
 }
 
 QImage QCCTV_ImageProvider::requestImage (const QString& id, QSize* size,
