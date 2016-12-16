@@ -390,8 +390,9 @@ void QCCTV_LocalCamera::update()
     /* Generate and send camera data */
     QByteArray data = QCCTV_CreateStreamPacket (*streamPacket());
     foreach (QTcpSocket* socket, m_sockets) {
-        if (socket->isWritable())
-            socket->write (data);
+        if (socket)
+            if (socket->isWritable())
+                socket->write (data);
     }
 
     /* Call this function again in several milliseconds */

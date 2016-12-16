@@ -542,12 +542,11 @@ void QCCTV_Station::removeCamera (const int camera)
 {
     if (getCamera (camera)) {
         /* Stop the camera */
-        delete m_cameras.at (camera);
+        m_cameras.at (camera)->deleteLater();
         m_cameras.removeAt (camera);
 
         /* Stop the thread */
         m_threads.at (camera)->exit();
-        delete m_threads.at (camera);
         m_threads.removeAt (camera);
 
         /* Change the ID of cameras following the removed camera */

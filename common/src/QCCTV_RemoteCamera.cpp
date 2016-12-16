@@ -516,7 +516,7 @@ void QCCTV_RemoteCamera::readCameraPacket()
         emit newImage (id());
 
         /* Save the image (if allowed) */
-        if (saveIncomingMedia())
+        if (saveIncomingMedia() && m_saver)
             m_saver->saveImage (incomingMediaPath(),
                                 name(),
                                 address().toString(),
