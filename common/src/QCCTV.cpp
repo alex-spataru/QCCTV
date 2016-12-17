@@ -153,10 +153,13 @@ QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res)
                           Qt::KeepAspectRatio,
                           Qt::FastTransformation);
 
+    /* Make the image quality inversely proportional from its resolution */
+    const int quality = qMax ((10 - ((int) res + 1)) * 10, 40);
+
     /* Save image to byte array */
     QByteArray raw_bytes;
     QBuffer buffer (&raw_bytes);
-    final.save (&buffer, QCCTV_IMAGE_FORMAT);
+    final.save (&buffer, QCCTV_IMAGE_FORMAT, quality);
     buffer.close();
 
     /* Return image bytes */
