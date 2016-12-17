@@ -29,6 +29,26 @@
 
 static QCCTV_CRC32 crc32;
 
+/* Stream packet keys */
+static QString KEY_FPS        = "fps";
+static QString KEY_NAME       = "name";
+static QString KEY_GROUP      = "group";
+static QString KEY_STATUS     = "status";
+static QString KEY_RESOLUTION = "resolution";
+static QString KEY_FLASHLIGHT = "flashlight";
+static QString KEY_AUTOREGRES = "autoRegulateResolution";
+
+/* Command packet keys */
+static QString KEY_OLD_FPS = "o_fps";
+static QString KEY_NEW_FPS = "n_fps";
+static QString KEY_OLD_RESOLUTION = "o_res";
+static QString KEY_NEW_RESOLUTION = "n_res";
+static QString KEY_FOCUS_REQUEST = "focus";
+static QString KEY_OLD_FLASHLIGHT = "o_flashlight";
+static QString KEY_NEW_FLASHLIGHT = "n_flashlight";
+static QString KEY_OLD_AUTOREGRES = "o_autoRegulateResolution";
+static QString KEY_NEW_AUTOREGRES = "n_autoRegulateResolution";
+
 /**
  * Initializes the default values for the given stream \a packet
  */
@@ -78,13 +98,13 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
     QJsonObject json;
 
     /* Add information */
-    json.insert ("fps", packet.fps);
-    json.insert ("name", packet.cameraName);
-    json.insert ("group", packet.cameraGroup);
-    json.insert ("resolution", packet.resolution);
-    json.insert ("cameraStatus", packet.cameraStatus);
-    json.insert ("flashLightEnabled", packet.flashlightEnabled);
-    json.insert ("autoRegulateResolution", packet.autoRegulateResolution);
+    json.insert (KEY_FPS, packet.fps);
+    json.insert (KEY_NAME, packet.cameraName);
+    json.insert (KEY_GROUP, packet.cameraGroup);
+    json.insert (KEY_STATUS, packet.cameraStatus);
+    json.insert (KEY_RESOLUTION, packet.resolution);
+    json.insert (KEY_FLASHLIGHT, packet.flashlightEnabled);
+    json.insert (KEY_AUTOREGRES, packet.autoRegulateResolution);
 
     /* Add raw image bytes */
     QCCTV_Resolution res = (QCCTV_Resolution) packet.resolution;
@@ -141,13 +161,13 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
         return false;
 
     /* Get information from JSON object */
-    packet->fps = json.value ("fps").toInt();
-    packet->cameraName = json.value ("name").toString();
-    packet->cameraGroup = json.value ("group").toString();
-    packet->resolution = json.value ("resolution").toInt();
-    packet->cameraStatus = json.value ("cameraStatus").toInt();
-    packet->flashlightEnabled = json.value ("flashlightEnabled").toBool();
-    packet->autoRegulateResolution = json.value ("autoRegulateResolution").toBool();
+    packet->fps = json.value (KEY_FPS).toInt();
+    packet->cameraName = json.value (KEY_NAME).toString();
+    packet->cameraStatus = json.value (KEY_STATUS).toInt();
+    packet->cameraGroup = json.value (KEY_GROUP).toString();
+    packet->resolution = json.value (KEY_RESOLUTION).toInt();
+    packet->flashlightEnabled = json.value (KEY_FLASHLIGHT).toBool();
+    packet->autoRegulateResolution = json.value (KEY_AUTOREGRES).toBool();
 
     /* Get camera image from object */
     QByteArray base64 = json.value ("image").toString().toUtf8();
@@ -165,15 +185,15 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
 QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet)
 {
     QJsonObject json;
-    json.insert ("oldFps", packet.oldFps);
-    json.insert ("newFps", packet.newFps);
-    json.insert ("focusRequest", packet.focusRequest);
-    json.insert ("oldResolution", packet.oldResolution);
-    json.insert ("newResolution", packet.newResolution);
-    json.insert ("oldFlashlightEnabled", packet.oldFlashlightEnabled);
-    json.insert ("newFlashlightEnabled", packet.newFlashlightEnabled);
-    json.insert ("oldAutoRegulateRes", packet.oldAutoRegulateResolution);
-    json.insert ("newAutoRegulateRes", packet.newAutoRegulateResolution);
+    json.insert (KEY_OLD_FPS, packet.oldFps);
+    json.insert (KEY_NEW_FPS, packet.newFps);
+    json.insert (KEY_FOCUS_REQUEST, packet.focusRequest);
+    json.insert (KEY_OLD_RESOLUTION, packet.oldResolution);
+    json.insert (KEY_NEW_RESOLUTION, packet.newResolution);
+    json.insert (KEY_OLD_FLASHLIGHT, packet.oldFlashlightEnabled);
+    json.insert (KEY_NEW_FLASHLIGHT, packet.newFlashlightEnabled);
+    json.insert (KEY_OLD_AUTOREGRES, packet.oldAutoRegulateResolution);
+    json.insert (KEY_NEW_AUTOREGRES, packet.newAutoRegulateResolution);
     return QJsonDocument (json).toBinaryData();
 }
 
@@ -196,15 +216,15 @@ bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
         return false;
 
     /* Get information from JSON object */
-    packet->oldFps = json.value ("oldFps").toInt();
-    packet->newFps = json.value ("newFps").toInt();
-    packet->focusRequest = json.value ("focusRequest").toBool();
-    packet->oldResolution = json.value ("oldResolution").toInt();
-    packet->newResolution = json.value ("newResolution").toInt();
-    packet->oldFlashlightEnabled = json.value ("oldFlashlightEnabled").toBool();
-    packet->newFlashlightEnabled = json.value ("newFlashlightEnabled").toBool();
-    packet->oldAutoRegulateResolution = json.value ("oldAutoRegulateRes").toBool();
-    packet->newAutoRegulateResolution = json.value ("newAutoRegulateRes").toBool();
+    packet->oldFps = json.value (KEY_OLD_FPS).toInt();
+    packet->newFps = json.value (KEY_NEW_FPS).toInt();
+    packet->focusRequest = json.value (KEY_FOCUS_REQUEST).toBool();
+    packet->oldResolution = json.value (KEY_OLD_RESOLUTION).toInt();
+    packet->newResolution = json.value (KEY_NEW_RESOLUTION).toInt();
+    packet->oldFlashlightEnabled = json.value (KEY_OLD_FLASHLIGHT).toBool();
+    packet->newFlashlightEnabled = json.value (KEY_NEW_FLASHLIGHT).toBool();
+    packet->oldAutoRegulateResolution = json.value (KEY_OLD_AUTOREGRES).toBool();
+    packet->newAutoRegulateResolution = json.value (KEY_NEW_AUTOREGRES).toBool();
 
     /* Check command flags have changed since last packet */
     packet->fpsChanged = (packet->oldFps != packet->newFps);
