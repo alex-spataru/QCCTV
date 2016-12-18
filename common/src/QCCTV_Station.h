@@ -43,9 +43,11 @@ Q_SIGNALS:
     void fpsChanged (const int camera);
     void disconnected (const int camera);
     void newCameraImage (const int camera);
+    void zoomLevelChanged (const int camera);
     void cameraNameChanged (const int camera);
     void resolutionChanged (const int camera);
     void lightStatusChanged (const int camera);
+    void zoomSupportChanged (const int camera);
     void cameraStatusChanged (const int camera);
     void autoRegulateResolutionChanged (const int camera);
 
@@ -70,8 +72,10 @@ public:
     Q_INVOKABLE QList<QCCTV_RemoteCamera*> getGroupCameras (const int group) const;
 
     Q_INVOKABLE int fps (const int camera);
+    Q_INVOKABLE int zoom (const int camera);
     Q_INVOKABLE int resolution (const int camera);
     Q_INVOKABLE int cameraStatus (const int camera);
+    Q_INVOKABLE bool supportsZoom (const int camera);
     Q_INVOKABLE QString cameraName (const int camera);
     Q_INVOKABLE QImage currentImage (const int camera);
     Q_INVOKABLE QHostAddress address (const int camera);
@@ -93,6 +97,7 @@ public Q_SLOTS:
     void setImageQuality (const int quality);
     void setSaveIncomingMedia (const bool save);
     void setRecordingsPath (const QString& path);
+    void setZoom (const int camera, const int zoom);
     void changeFPS (const int camera, const int fps);
     void setFlashlightEnabledAll (const bool enabled);
     void changeResolution (const int camera, const int resolution);

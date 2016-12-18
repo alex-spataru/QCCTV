@@ -30,6 +30,7 @@
 
 class QThread;
 class QCamera;
+class QMediaRecorder;
 class QCCTV_Watchdog;
 class QCCTV_ImageCapture;
 class QCameraImageCapture;
@@ -55,6 +56,10 @@ class QCCTV_LocalCamera : public QObject
                 READ resolution
                 WRITE setResolution
                 NOTIFY resolutionChanged)
+    Q_PROPERTY (int zoomLevel
+                READ zoomLevel
+                WRITE setZoomLevel
+                NOTIFY zoomLevelChanged)
     Q_PROPERTY (bool flashlightEnabled
                 READ flashlightEnabled
                 WRITE setFlashlightEnabled
@@ -69,6 +74,9 @@ class QCCTV_LocalCamera : public QObject
     Q_PROPERTY (int maximumFps
                 READ maximumFPS
                 CONSTANT)
+    Q_PROPERTY (bool supportsZoom
+                READ supportsZoom
+                NOTIFY supportsZoomChanged)
     Q_PROPERTY (int statusCode
                 READ cameraStatus
                 NOTIFY cameraStatusChanged)
@@ -93,10 +101,13 @@ Q_SIGNALS:
     void nameChanged();
     void imageChanged();
     void groupChanged();
+    void cameraChanged();
+    void zoomLevelChanged();
     void hostCountChanged();
     void resolutionChanged();
     void lightStatusChanged();
     void focusStatusChanged();
+    void supportsZoomChanged();
     void cameraStatusChanged();
     void autoRegulateResolutionChanged();
 
@@ -107,8 +118,10 @@ public:
     int fps();
     QString name();
     QString group();
+    int zoomLevel();
     int resolution();
     int cameraStatus();
+    bool supportsZoom();
     QImage currentImage();
     QString statusString();
     int flashlightEnabled();
@@ -127,6 +140,7 @@ public Q_SLOTS:
     void setFPS (const int fps);
     void setCamera (QCamera* camera);
     void setName (const QString& name);
+    void setZoomLevel (const int level);
     void setGroup (const QString& group);
     void setResolution (const int resolution);
     void setFlashlightEnabled (const bool enabled);
@@ -136,6 +150,8 @@ private Q_SLOTS:
     void update();
     void changeImage();
     void broadcastInfo();
+    void stopRecording();
+    void startRecording();
     void onDisconnected();
     void acceptConnection();
     void readCommandPacket();
@@ -153,6 +169,7 @@ private:
 private:
     QThread* m_thread;
     QCamera* m_camera;
+    QMediaRecorder* m_recorder;
     QCameraImageCapture* m_capture;
 
     QTcpServer m_server;

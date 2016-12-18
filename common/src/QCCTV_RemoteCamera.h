@@ -43,8 +43,10 @@ Q_SIGNALS:
     void disconnected (const int id);
     void newCameraName (const int id);
     void newCameraStatus (const int id);
+    void zoomLevelChanged (const int id);
     void resolutionChanged (const int id);
     void lightStatusChanged (const int id);
+    void zoomSupportChanged (const int id);
     void autoRegulateResolutionChanged (const int id);
 
 public:
@@ -52,11 +54,13 @@ public:
     ~QCCTV_RemoteCamera();
 
     int fps();
+    int zoom();
     int status();
     QImage image();
     QString name();
     QString group();
     int resolution();
+    bool supportsZoom();
     QString statusString();
     bool flashlightEnabled();
     bool autoRegulateResolution();
@@ -73,6 +77,7 @@ public Q_SLOTS:
     void requestFocus();
     void changeID (const int id);
     void changeFPS (const int fps);
+    void changeZoom (const int zoom);
     void setImageQuality (const int imageQuality);
     void setSaveIncomingMedia (const bool save);
     void changeResolution (const int resolution);
@@ -88,10 +93,12 @@ private Q_SLOTS:
     void sendCommandPacket();
     void resetFocusRequest();
     void updateFPS (const int fps);
+    void updateZoom (const int zoom);
     void updateStatus (const int status);
     void updateName (const QString& name);
     void updateGroup (const QString& group);
     void updateConnected (const bool status);
+    void updateZoomSupport (const bool support);
     void updateResolution (const int resolution);
     void updateAutoRegulate (const bool regulate);
     void updateFlashlightEnabled (const bool enabled);

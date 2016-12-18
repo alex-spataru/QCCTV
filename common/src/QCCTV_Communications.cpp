@@ -30,24 +30,28 @@
 static QCCTV_CRC32 crc32;
 
 /* Stream packet keys */
-static QString KEY_FPS        = "fps";
-static QString KEY_NAME       = "name";
-static QString KEY_GROUP      = "group";
-static QString KEY_STATUS     = "status";
-static QString KEY_RESOLUTION = "resolution";
-static QString KEY_FLASHLIGHT = "flashlight";
-static QString KEY_AUTOREGRES = "autoRegulateResolution";
+static const QString KEY_FPS        = "fps";
+static const QString KEY_ZOOM       = "zoom";
+static const QString KEY_NAME       = "name";
+static const QString KEY_GROUP      = "group";
+static const QString KEY_STATUS     = "status";
+static const QString KEY_RESOLUTION = "resolution";
+static const QString KEY_FLASHLIGHT = "flashlight";
+static const QString KEY_ZOOM_AVAIL = "zoomSupported";
+static const QString KEY_AUTOREGRES = "autoRegulateResolution";
 
 /* Command packet keys */
-static QString KEY_OLD_FPS = "o_fps";
-static QString KEY_NEW_FPS = "n_fps";
-static QString KEY_OLD_RESOLUTION = "o_res";
-static QString KEY_NEW_RESOLUTION = "n_res";
-static QString KEY_FOCUS_REQUEST = "focus";
-static QString KEY_OLD_FLASHLIGHT = "o_flashlight";
-static QString KEY_NEW_FLASHLIGHT = "n_flashlight";
-static QString KEY_OLD_AUTOREGRES = "o_autoRegulateResolution";
-static QString KEY_NEW_AUTOREGRES = "n_autoRegulateResolution";
+static const QString KEY_OLD_FPS = "o_fps";
+static const QString KEY_NEW_FPS = "n_fps";
+static const QString KEY_OLD_ZOOM = "o_zoom";
+static const QString KEY_NEW_ZOOM = "n_zoom";
+static const QString KEY_FOCUS_REQUEST  = "focus";
+static const QString KEY_OLD_RESOLUTION = "o_res";
+static const QString KEY_NEW_RESOLUTION = "n_res";
+static const QString KEY_OLD_FLASHLIGHT = "o_flashlight";
+static const QString KEY_NEW_FLASHLIGHT = "n_flashlight";
+static const QString KEY_OLD_AUTOREGRES = "o_autoRegulateResolution";
+static const QString KEY_NEW_AUTOREGRES = "n_autoRegulateResolution";
 
 /**
  * Initializes the default values for the given stream \a packet
@@ -57,10 +61,12 @@ void QCCTV_InitStream (QCCTV_StreamPacket* packet)
     if (packet) {
         packet->fps = 18;
         packet->crc32 = 0;
+        packet->zoom = 0;
+        packet->supportsZoom = false;
         packet->cameraName = "Unknown";
         packet->cameraGroup = "Default";
+        packet->resolution = QCCTV_720p;
         packet->flashlightEnabled = false;
-        packet->resolution = QCCTV_Original;
         packet->autoRegulateResolution = true;
         packet->cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
         packet->image = QCCTV_CreateStatusImage (QSize (640, 480),
@@ -79,6 +85,8 @@ void QCCTV_InitCommand (QCCTV_CommandPacket* command,
         command->focusRequest = false;
         command->newFps = stream->fps;
         command->oldFps = stream->fps;
+        command->oldZoom = stream->zoom;
+        command->newZoom = stream->zoom;
         command->oldResolution = stream->resolution;
         command->newResolution = stream->resolution;
         command->oldFlashlightEnabled = stream->flashlightEnabled;
@@ -99,10 +107,12 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
 
     /* Add information */
     json.insert (KEY_FPS, packet.fps);
+    json.insert (KEY_ZOOM, packet.zoom);
     json.insert (KEY_NAME, packet.cameraName);
     json.insert (KEY_GROUP, packet.cameraGroup);
     json.insert (KEY_STATUS, packet.cameraStatus);
     json.insert (KEY_RESOLUTION, packet.resolution);
+    json.insert (KEY_ZOOM_AVAIL, packet.supportsZoom);
     json.insert (KEY_FLASHLIGHT, packet.flashlightEnabled);
     json.insert (KEY_AUTOREGRES, packet.autoRegulateResolution);
 
@@ -162,10 +172,12 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
 
     /* Get information from JSON object */
     packet->fps = json.value (KEY_FPS).toInt();
+    packet->zoom = json.value (KEY_ZOOM).toInt();
     packet->cameraName = json.value (KEY_NAME).toString();
     packet->cameraStatus = json.value (KEY_STATUS).toInt();
     packet->cameraGroup = json.value (KEY_GROUP).toString();
     packet->resolution = json.value (KEY_RESOLUTION).toInt();
+    packet->supportsZoom = json.value (KEY_ZOOM_AVAIL).toBool();
     packet->flashlightEnabled = json.value (KEY_FLASHLIGHT).toBool();
     packet->autoRegulateResolution = json.value (KEY_AUTOREGRES).toBool();
 
@@ -187,6 +199,8 @@ QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet)
     QJsonObject json;
     json.insert (KEY_OLD_FPS, packet.oldFps);
     json.insert (KEY_NEW_FPS, packet.newFps);
+    json.insert (KEY_OLD_ZOOM, packet.oldZoom);
+    json.insert (KEY_NEW_ZOOM, packet.newZoom);
     json.insert (KEY_FOCUS_REQUEST, packet.focusRequest);
     json.insert (KEY_OLD_RESOLUTION, packet.oldResolution);
     json.insert (KEY_NEW_RESOLUTION, packet.newResolution);
@@ -218,6 +232,8 @@ bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
     /* Get information from JSON object */
     packet->oldFps = json.value (KEY_OLD_FPS).toInt();
     packet->newFps = json.value (KEY_NEW_FPS).toInt();
+    packet->oldZoom = json.value (KEY_OLD_ZOOM).toInt();
+    packet->newZoom = json.value (KEY_NEW_ZOOM).toInt();
     packet->focusRequest = json.value (KEY_FOCUS_REQUEST).toBool();
     packet->oldResolution = json.value (KEY_OLD_RESOLUTION).toInt();
     packet->newResolution = json.value (KEY_NEW_RESOLUTION).toInt();
@@ -228,10 +244,11 @@ bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
 
     /* Check command flags have changed since last packet */
     packet->fpsChanged = (packet->oldFps != packet->newFps);
+    packet->zoomChanged = (packet->oldZoom != packet->newZoom);
     packet->resolutionChanged = (packet->oldResolution != packet->newResolution);
     packet->flashlightEnabledChanged = (packet->oldFlashlightEnabled != packet->newFlashlightEnabled);
     packet->autoRegulateResolutionChanged = (packet->oldAutoRegulateResolution !=
-                                             packet->newAutoRegulateResolution);
+            packet->newAutoRegulateResolution);
 
     /* Packet read successfully */
     return true;

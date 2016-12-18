@@ -20,9 +20,13 @@
  * DEALINGS IN THE SOFTWARE
  */
 
+#include <QUrl>
+#include <QFile>
 #include <QThread>
 #include <QSysInfo>
 #include <QCameraInfo>
+#include <QCameraFocus>
+#include <QMediaRecorder>
 #include <QCameraExposure>
 #include <QCameraImageCapture>
 
@@ -97,6 +101,10 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
     if (m_capture)
         delete m_capture;
 
+    /* Delete video recorder */
+    if (m_recorder)
+        delete m_recorder;
+
     /* Delete children */
     delete m_thread;
     delete m_imageCapture;
@@ -129,6 +137,14 @@ QString QCCTV_LocalCamera::group()
 }
 
 /**
+ * Returns the current zoom level of the camera
+ */
+int QCCTV_LocalCamera::zoomLevel()
+{
+    return streamPacket()->zoom;
+}
+
+/**
  * Returns the current resolution as an \c int, which can be used by QML
  * interfaces directly
  */
@@ -143,6 +159,15 @@ int QCCTV_LocalCamera::resolution()
 int QCCTV_LocalCamera::cameraStatus()
 {
     return streamPacket()->cameraStatus;
+}
+
+/**
+ * Returns \c true if the camera is able to perform either optical
+ * or digital zoom operations
+ */
+bool QCCTV_LocalCamera::supportsZoom()
+{
+    return streamPacket()->supportsZoom;
 }
 
 /**
@@ -268,6 +293,13 @@ void QCCTV_LocalCamera::setFPS (const int fps)
 {
     if (streamPacket()->fps != QCCTV_ValidFps (fps)) {
         streamPacket()->fps = QCCTV_ValidFps (fps);
+
+        if (m_recorder) {
+            QVideoEncoderSettings settings (m_recorder->videoSettings());
+            settings.setFrameRate (streamPacket()->fps);
+            m_recorder->setVideoSettings (settings);
+        }
+
         emit fpsChanged();
     }
 }
@@ -279,13 +311,41 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
 {
     if (camera) {
         m_camera = camera;
-        m_camera->setCaptureMode (QCamera::CaptureStillImage);
-        m_imageCapture->setSource (m_camera);
+        m_camera->setCaptureMode (QCamera::CaptureVideo);
 
+        /* Delete old camera modules */
         if (m_capture)
             delete m_capture;
+        if (m_recorder)
+            delete m_recorder;
 
+        /* Determine if camera supports zoom */
+        qreal digital = m_camera->focus()->maximumDigitalZoom();
+        qreal optical = m_camera->focus()->maximumOpticalZoom();
+        streamPacket()->supportsZoom = (digital != 1 || optical != 1);
+
+        /* Re-assign camera modules */
+        m_recorder = new QMediaRecorder (m_camera);
         m_capture = new QCameraImageCapture (m_camera);
+
+        /* Set audio encoding options */
+        QAudioEncoderSettings audioSettings;
+        audioSettings.setChannelCount (1);
+        audioSettings.setCodec ("audio/mpeg");
+        audioSettings.setQuality (QMultimedia::LowQuality);
+
+        /* Set video encoding options */
+        QVideoEncoderSettings videoSettings;
+        videoSettings.setFrameRate (fps());
+        videoSettings.setQuality (QMultimedia::NormalQuality);
+        videoSettings.setResolution (QCCTV_GetResolution (resolution()));
+
+        /* Apply encoding settings */
+        m_recorder->setEncodingSettings (audioSettings, videoSettings);
+
+        /* Notify UI */
+        emit cameraChanged();
+        emit supportsZoomChanged();
     }
 }
 
@@ -310,6 +370,51 @@ void QCCTV_LocalCamera::setName (const QString& name)
 
     /* Notify UI */
     emit nameChanged();
+}
+
+/**
+ * Changes the zoom level of the camera
+ */
+void QCCTV_LocalCamera::setZoomLevel (const int level)
+{
+    /* Current zoom is the same as input zoom */
+    if (zoomLevel() == level)
+        return;
+
+    /* Change the zoom level (from 0 to 100) */
+    streamPacket()->zoom = qMin (qMax (level, 0), 100);
+
+    /* Instruct the camera to zoom in or zoom out */
+    if (m_camera && supportsZoom()) {
+        /* Get maximum zoom values */
+        qreal max_optical = m_camera->focus()->maximumOpticalZoom() - 1;
+        qreal max_digital = m_camera->focus()->maximumDigitalZoom() - 1;
+
+        /* Get adjusted zoom value */
+        qreal range = max_optical + max_digital;
+        qreal value = (qreal) (streamPacket()->zoom * range) / 100;
+
+        /* Initialize zoom levels */
+        qreal optical = 0;
+        qreal digital = 0;
+
+        /* Perform optical zoom first, then digital*/
+        if (max_optical > 0)
+            if (max_optical < value) {
+                optical = max_optical;
+                if (max_digital > 0)
+                    digital = value - max_digital;
+            } else
+                optical = value;
+
+        /* Only apply digital zoom */
+        else if (max_digital > 0)
+            digital = value;
+
+        /* Perform zoom operation */
+        m_camera->focus()->zoomTo (1 + optical, 1 + digital);
+        emit zoomLevelChanged();
+    }
 }
 
 /**
@@ -342,6 +447,13 @@ void QCCTV_LocalCamera::setResolution (const int resolution)
 {
     if (streamPacket()->resolution != resolution) {
         streamPacket()->resolution = resolution;
+
+        if (m_recorder) {
+            QVideoEncoderSettings settings (m_recorder->videoSettings());
+            settings.setResolution (QCCTV_GetResolution (resolution));
+            m_recorder->setVideoSettings (settings);
+        }
+
         emit resolutionChanged();
     }
 }
@@ -380,12 +492,10 @@ void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
  */
 void QCCTV_LocalCamera::update()
 {
-    /* Enable the frame grabber */
-    m_imageCapture->setEnabled (true);
-    emit imageChanged();
-
-    /* Generate a new camera status */
+    /* Get new camera information */
     updateStatus();
+    stopRecording();
+    startRecording();
 
     /* Generate and send camera data */
     QByteArray data = QCCTV_CreateStreamPacket (*streamPacket());
@@ -396,7 +506,7 @@ void QCCTV_LocalCamera::update()
     }
 
     /* Call this function again in several milliseconds */
-    QTimer::singleShot (1000 / fps(), Qt::PreciseTimer, this, SLOT (update()));
+    QTimer::singleShot (1000, this, SLOT (update()));
 }
 
 /**
@@ -423,6 +533,31 @@ void QCCTV_LocalCamera::broadcastInfo()
                                      QCCTV_DISCOVERY_PORT);
 
     QTimer::singleShot (1000, this, SLOT (broadcastInfo()));
+}
+
+/**
+ * Obtains the video data and removes the temporary video file
+ */
+void QCCTV_LocalCamera::stopRecording() {
+    if (m_recorder) {
+        m_recorder->stop();
+
+        QFile file (m_recorder->actualLocation().toString());
+        if (file.open (QFile::ReadWrite)) {
+            streamPacket()->videoData.clear();
+            streamPacket()->videoData = file.readAll();
+            file.close();
+            file.remove();
+        }
+    }
+}
+
+/**
+ * Instructs the media recorder to start recording a new video
+ */
+void QCCTV_LocalCamera::startRecording() {
+    if (m_recorder)
+        m_recorder->record();
 }
 
 /**
@@ -499,6 +634,11 @@ void QCCTV_LocalCamera::readCommandPacket()
     if (commandPacket()->fpsChanged)
         if (commandPacket()->oldFps == fps())
             setFPS (commandPacket()->newFps);
+
+    /* Change zoom */
+    if (commandPacket()->zoomChanged)
+        if (commandPacket()->oldZoom == zoomLevel())
+            setZoomLevel (commandPacket()->newZoom);
 
     /* Set resolution */
     if (commandPacket()->resolutionChanged)

@@ -96,20 +96,18 @@ extern QStringList QCCTV_Resolutions()
     list.append (QObject::tr ("D1 (720x480)"));
     list.append (QObject::tr ("720p (1280x720)"));
     list.append (QObject::tr ("960p (1280x960)"));
-    list.append (QObject::tr ("Original Resolution"));
 
     return list;
 }
 
 /**
- * Returns the raw bytes of the encoded \a image
+ * Gets the frame size for the given \a resolution
  */
-QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res)
-{
-    /* Obtain image resolution */
+QSize QCCTV_GetResolution (const int resolution) {
     int width = 0;
     int height = 0;
-    switch (res) {
+
+    switch ((QCCTV_Resolution) resolution) {
     case QCCTV_QCIF:
         width = 176;
         height = 144;
@@ -138,18 +136,19 @@ QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res)
         width = 1280;
         height = 960;
         break;
-    case QCCTV_Original:
-        width = image.width();
-        height = image.height();
-    default:
-        width = image.width();
-        height = image.height();
-        break;
     }
 
+    return QSize (width, height);
+}
+
+/**
+ * Returns the raw bytes of the encoded \a image
+ */
+QByteArray QCCTV_EncodeImage (const QImage& image, const int res)
+{
     /* Scale the image */
     QImage final = image;
-    final = final.scaled (width, height,
+    final = final.scaled (QCCTV_GetResolution (res),
                           Qt::KeepAspectRatio,
                           Qt::FastTransformation);
 

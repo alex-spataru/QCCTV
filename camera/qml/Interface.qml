@@ -74,6 +74,17 @@ Item {
     }
 
     //
+    // Zoom camera when user double taps the image
+    //
+    MouseArea {
+        anchors.fill: parent
+        onDoubleClicked: {
+            QCCTVCamera.focusCamera()
+            row.showTooltip (qsTr ("Focusing camera") + "...")
+        }
+    }
+
+    //
     // Camera information labels
     //
     ColumnLayout {
@@ -99,6 +110,33 @@ Item {
             color: "#ccc"
             text: QCCTVCamera.fps + " " + qsTr ("FPS")
         }
+    }
+
+    //
+    // Zoom control
+    //
+    Slider {
+        anchors {
+            right: parent.right
+            margins: ui.spacing
+            verticalCenter: parent.verticalCenter
+        }
+
+        to: 100
+        from: 0
+        orientation: Qt.Vertical
+        height: app.height * 0.6
+        opacity: enabled ? 1 : 0
+        enabled: zoomBt.enabled && zoomBt.checked
+
+        onVisualPositionChanged: {
+            if (orientation === Qt.Vertical)
+                QCCTVCamera.zoomLevel = (1 - visualPosition) * 100
+            else
+                QCCTVCamera.zoomLevel = visualPosition * 100
+        }
+
+        Behavior on opacity { NumberAnimation {} }
     }
 
     //
@@ -231,8 +269,7 @@ Item {
     //
     // Camera control buttons
     //
-    RowLayout {
-        id: row
+    ColumnLayout {
         spacing: ui.spacing
 
         anchors {
@@ -242,112 +279,123 @@ Item {
             bottom: parent.bottom
         }
 
-        function showTooltip (text) {
-            tooltip.text = text
-            tooltip.visible = true
-        }
-
         //
-        // Status tooltip
+        // Camera buttons
         //
-        ToolTip {
-            id: tooltip
-            timeout: 2000
-        }
-
-        //
-        // Spacer
-        //
-        Item {
+        RowLayout {
+            id: row
+            spacing: ui.spacing
             Layout.fillWidth: true
-        }
 
-        //
-        // Settings Button
-        //
-        Button {
-            contentItem: Image {
-                fillMode: Image.Pad
-                sourceSize: Qt.size (48, 48)
-                source: "qrc:/images/settings.svg"
-                verticalAlignment: Image.AlignVCenter
-                horizontalAlignment: Image.AlignHCenter
+            property size buttonSize: Qt.size (32, 32)
+
+            function showTooltip (text) {
+                tooltip.text = text
+                tooltip.visible = true
             }
 
-            onClicked: settings.open()
-        }
-
-        //
-        // Camera Capture Button
-        //
-        Button {
-            contentItem: Image {
-                fillMode: Image.Pad
-                sourceSize: Qt.size (48, 48)
-                source: "qrc:/images/camera.svg"
-                verticalAlignment: Image.AlignVCenter
-                horizontalAlignment: Image.AlignHCenter
+            //
+            // Status tooltip
+            //
+            ToolTip {
+                id: tooltip
+                timeout: 2000
             }
 
-            onClicked: {
-                if (QCCTVCamera.readyForCapture) {
-                    QCCTVCamera.takePhoto()
-                    row.showTooltip (qsTr ("Image Captured"))
+            //
+            // Spacer
+            //
+            Item {
+                Layout.fillWidth: true
+            }
+
+            //
+            // Settings Button
+            //
+            Button {
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    sourceSize: row.buttonSize
+                    source: "qrc:/images/settings.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
                 }
 
-                else
-                    row.showTooltip (qsTr ("Camera not ready!"))
-            }
-        }
-
-        //
-        // Flashlight Button
-        //
-        Button {
-            contentItem: Image {
-                fillMode: Image.Pad
-                sourceSize: Qt.size (48, 48)
-                verticalAlignment: Image.AlignVCenter
-                horizontalAlignment: Image.AlignHCenter
-                source: QCCTVCamera.flashlightEnabled ? "qrc:/images/flash-on.svg" :
-                                                        "qrc:/images/flash-off.svg"
+                onClicked: settings.open()
             }
 
-            onClicked: {
-                QCCTVCamera.flashlightEnabled = !QCCTVCamera.flashlightEnabled
+            //
+            // Camera Capture Button
+            //
+            Button {
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    sourceSize: row.buttonSize
+                    source: "qrc:/images/camera.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
 
-                if (QCCTVCamera.flashlightAvailable)
-                    row.showTooltip (QCCTVCamera.flashlightEnabled ? qsTr ("Flashlight On") :
-                                                                     qsTr ("Flashlight Off"))
+                onClicked: {
+                    if (QCCTVCamera.readyForCapture) {
+                        QCCTVCamera.takePhoto()
+                        row.showTooltip (qsTr ("Image Captured"))
+                    }
 
-                else
-                    row.showTooltip (qsTr ("Flashlight Error"))
+                    else
+                        row.showTooltip (qsTr ("Camera not ready!"))
+                }
             }
-        }
 
-        //
-        // Focus Button
-        //
-        Button {
-            contentItem: Image {
-                fillMode: Image.Pad
-                sourceSize: Qt.size (48, 48)
-                source: "qrc:/images/focus.svg"
-                verticalAlignment: Image.AlignVCenter
-                horizontalAlignment: Image.AlignHCenter
+            //
+            // Flashlight Button
+            //
+            Button {
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    sourceSize: row.buttonSize
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                    source: QCCTVCamera.flashlightEnabled ? "qrc:/images/flash-on.svg" :
+                                                            "qrc:/images/flash-off.svg"
+                }
+
+                onClicked: {
+                    QCCTVCamera.flashlightEnabled = !QCCTVCamera.flashlightEnabled
+
+                    if (QCCTVCamera.flashlightAvailable)
+                        row.showTooltip (QCCTVCamera.flashlightEnabled ? qsTr ("Flashlight On") :
+                                                                         qsTr ("Flashlight Off"))
+
+                    else
+                        row.showTooltip (qsTr ("Flashlight Error"))
+                }
             }
 
-            onClicked: {
-                QCCTVCamera.focusCamera()
-                row.showTooltip (qsTr ("Focusing Camera") + "...")
-            }
-        }
+            //
+            // Zoom Button
+            //
+            Button {
+                id: zoomBt
+                checkable: true
+                opacity: enabled ? 1 : 0.65
+                enabled: QCCTVCamera.supportsZoom
 
-        //
-        // Spacer
-        //
-        Item {
-            Layout.fillWidth: true
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    sourceSize: row.buttonSize
+                    source: "qrc:/images/zoom.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+            }
+
+            //
+            // Spacer
+            //
+            Item {
+                Layout.fillWidth: true
+            }
         }
     }
 }

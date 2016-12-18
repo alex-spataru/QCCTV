@@ -29,10 +29,13 @@ struct QCCTV_StreamPacket {
     quint8 fps;
     QImage image;
     quint32 crc32;
+    int zoom;
     int resolution;
     int cameraStatus;
+    bool supportsZoom;
     QString cameraName;
     QString cameraGroup;
+    QByteArray videoData;
     bool flashlightEnabled;
     bool autoRegulateResolution;
 };
@@ -40,6 +43,8 @@ struct QCCTV_StreamPacket {
 struct QCCTV_CommandPacket {
     quint8 oldFps;
     quint8 newFps;
+    quint8 oldZoom;
+    quint8 newZoom;
     bool focusRequest;
     quint8 oldResolution;
     quint8 newResolution;
@@ -49,6 +54,7 @@ struct QCCTV_CommandPacket {
     bool newAutoRegulateResolution;
 
     bool fpsChanged;
+    bool zoomChanged;
     bool resolutionChanged;
     bool flashlightEnabledChanged;
     bool autoRegulateResolutionChanged;

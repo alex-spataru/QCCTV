@@ -131,6 +131,16 @@ Item {
                 resolution = QCCTVStation.resolution (camNumber)
         }
 
+        onZoomSupportChanged: {
+            if (camera === camNumber && enabled)
+                zoomButton.enabled = QCCTVStation.supportsZoom (camNumber)
+        }
+
+        onZoomLevelChanged: {
+            if (camera === camNumber && enabled)
+                zoomControl.value = QCCTVStation.zoom (camNumber)
+        }
+
         onDisconnected: {
             if (camera === cam.camNumber)
                 hideCamera()
@@ -168,6 +178,35 @@ Item {
         asynchronous: true
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
+    }
+
+    //
+    // Zoom control
+    //
+    Slider {
+        id: zoomControl
+
+        anchors {
+            right: parent.right
+            margins: app.spacing
+            verticalCenter: parent.verticalCenter
+        }
+
+        to: 100
+        from: 0
+        orientation: Qt.Vertical
+        height: app.height * 0.6
+        opacity: enabled ? 1 : 0
+        enabled: zoomButton.enabled && zoomButton.checked
+
+        onVisualPositionChanged: {
+            if (orientation === Qt.Vertical)
+                QCCTVStation.setZoom (camNumber, (1 - visualPosition) * 100)
+            else
+                QCCTVStation.setZoom (camNumber, 1 - visualPosition * 100)
+        }
+
+        Behavior on opacity { NumberAnimation {} }
     }
 
     //
@@ -371,6 +410,22 @@ Item {
                 QCCTVStation.focusCamera (camNumber)
                 tooltip.text = qsTr ("Focusing Camera") + "..."
                 tooltip.visible = true
+            }
+        }
+
+        //
+        // Zoom button
+        //
+        Button {
+            id: zoomButton
+            checkable: true
+
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: cam.buttonSize
+                source: "qrc:/images/zoom.svg"
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
             }
         }
 

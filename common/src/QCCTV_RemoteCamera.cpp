@@ -75,6 +75,14 @@ int QCCTV_RemoteCamera::fps()
 }
 
 /**
+ * Returns the current zoom level of the camera
+ */
+int QCCTV_RemoteCamera::zoom()
+{
+    return streamPacket()->zoom;
+}
+
+/**
  * Returns the operation status reported by the camera
  */
 int QCCTV_RemoteCamera::status()
@@ -112,6 +120,14 @@ QString QCCTV_RemoteCamera::group()
 int QCCTV_RemoteCamera::resolution()
 {
     return streamPacket()->resolution;
+}
+
+/**
+ * Returns \c true if the remote camera supports zooming
+ */
+bool QCCTV_RemoteCamera::supportsZoom()
+{
+    return streamPacket()->supportsZoom;
 }
 
 /**
@@ -244,6 +260,13 @@ void QCCTV_RemoteCamera::changeFPS (const int fps)
 
     if (m_watchdog)
         m_watchdog->setExpirationTime (QCCTV_GetWatchdogTime (validFps));
+}
+
+/**
+ * Updates the zoom level used by the remote camera
+ */
+void QCCTV_RemoteCamera::changeZoom (const int zoom) {
+    commandPacket()->newZoom = qMin (qMax (zoom, 0), 100);
 }
 
 /**
@@ -402,6 +425,18 @@ void QCCTV_RemoteCamera::updateFPS (const int fps)
 }
 
 /**
+ * Updates the zoom level of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::updateZoom (const int zoom) {
+    if (streamPacket()->zoom != zoom) {
+        streamPacket()->zoom = zoom;
+        commandPacket()->oldZoom = zoom;
+        commandPacket()->newZoom = zoom;
+        emit zoomLevelChanged (id());
+    }
+}
+
+/**
  * Updates the operation status of the camera and emits the appropiate signals
  */
 void QCCTV_RemoteCamera::updateStatus (const int status)
@@ -456,6 +491,16 @@ void QCCTV_RemoteCamera::updateConnected (const bool status)
 }
 
 /**
+ * Changes the zoom support status of the camera and emits the appropiate signals
+ */
+void QCCTV_RemoteCamera::updateZoomSupport (const bool support) {
+    if (streamPacket()->supportsZoom != support) {
+        streamPacket()->supportsZoom = support;
+        emit zoomSupportChanged (id());
+    }
+}
+
+/**
  * Updates the image resolution status of the camera
  */
 void QCCTV_RemoteCamera::updateResolution (const int resolution)
@@ -504,10 +549,12 @@ void QCCTV_RemoteCamera::readCameraPacket()
     if (QCCTV_ReadStreamPacket (&packet, m_data)) {
         /* Update stream information */
         updateFPS (packet.fps);
+        updateZoom (packet.zoom);
         updateName (packet.cameraName);
         updateGroup (packet.cameraGroup);
         updateStatus (packet.cameraStatus);
         updateResolution (packet.resolution);
+        updateZoomSupport (packet.supportsZoom);
         updateAutoRegulate (packet.autoRegulateResolution);
         updateFlashlightEnabled (packet.flashlightEnabled);
 

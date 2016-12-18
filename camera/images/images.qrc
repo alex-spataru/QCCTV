@@ -5,6 +5,6 @@
         <file>settings.svg</file>
         <file>flash-off.svg</file>
         <file>flash-on.svg</file>
-        <file>focus.svg</file>
+        <file>zoom.svg</file>
     </qresource>
 </RCC>

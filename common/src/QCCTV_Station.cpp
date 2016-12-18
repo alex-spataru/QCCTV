@@ -198,14 +198,34 @@ int QCCTV_Station::fps (const int camera)
 }
 
 /**
+ * Returns the current zoom level used by the given \a camera
+ */
+int QCCTV_Station::zoom (const int camera) {
+    if (getCamera (camera))
+        return getCamera (camera)->zoom();
+
+    return 0;
+}
+
+/**
  * Returns the current resolution used by the camera
  */
 int QCCTV_Station::resolution (const int camera)
 {
     if (getCamera (camera))
-        return (int) getCamera (camera)->resolution();
+        return getCamera (camera)->resolution();
 
     return (int) QCCTV_QCIF;
+}
+
+/**
+ * Returns \c true if the given \a camera supports zooming
+ */
+bool QCCTV_Station::supportsZoom (const int camera) {
+    if (getCamera (camera))
+        return getCamera (camera)->supportsZoom();
+
+    return false;
 }
 
 /**
@@ -466,7 +486,7 @@ void QCCTV_Station::setRecordingsPath (const QString& path)
         m_recordingsPath = QDir (QCCTV_RECORDINGS_PATH).absolutePath();
 
     if (!m_recordingsPath.endsWith ("/QCCTV_Media/") &&
-        !m_recordingsPath.endsWith ("/QCCTV_Media")) {
+            !m_recordingsPath.endsWith ("/QCCTV_Media")) {
         m_recordingsPath += "/QCCTV_Media/";
         m_recordingsPath = QDir (m_recordingsPath).absolutePath();
     }
@@ -476,6 +496,15 @@ void QCCTV_Station::setRecordingsPath (const QString& path)
             camera->setIncomingMediaPath (recordingsPath());
 
     emit recordingsPathChanged();
+}
+
+/**
+ * Changes the zoom status of the given \a camera
+ */
+void QCCTV_Station::setZoom (const int camera, const int zoom)
+{
+    if (getCamera (camera))
+        getCamera (camera)->changeZoom (zoom);
 }
 
 /**
@@ -608,6 +637,10 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (cameraStatusChanged (int)));
         connect (camera, SIGNAL (newImage (int)),
                  this,   SIGNAL (newCameraImage (int)));
+        connect (camera, SIGNAL (zoomLevelChanged (int)),
+                 this,   SIGNAL (zoomLevelChanged (int)));
+        connect (camera, SIGNAL (zoomSupportChanged (int)),
+                 this,   SIGNAL (zoomSupportChanged (int)));
         connect (camera, SIGNAL (resolutionChanged (int)),
                  this,   SIGNAL (resolutionChanged (int)));
         connect (camera, SIGNAL (lightStatusChanged (int)),

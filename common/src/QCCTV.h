@@ -71,27 +71,19 @@ enum QCCTV_Resolution {
     QCCTV_4CIF     = 0x03,
     QCCTV_D1       = 0x04,
     QCCTV_720p     = 0x05,
-    QCCTV_960p     = 0x06,
-    QCCTV_Original = 0x07,
+    QCCTV_960p     = 0x06
 };
 
 /*
  * Misc functions
  */
+extern QStringList QCCTV_Resolutions();
 extern int QCCTV_ValidFps (const int fps);
 extern int QCCTV_GetWatchdogTime (const int fps);
+extern QSize QCCTV_GetResolution (const int resolution);
 extern QString QCCTV_GetStatusString (const int status);
-
-/*
- * Image encoding/decoding functions
- */
 extern QImage QCCTV_DecodeImage (const QByteArray& data);
-extern QByteArray QCCTV_EncodeImage (const QImage& image, QCCTV_Resolution res);
-
-/*
- * Image generation function
- */
-extern QStringList QCCTV_Resolutions();
+extern QByteArray QCCTV_EncodeImage (const QImage& image, const int res);
 extern QImage QCCTV_CreateStatusImage (const QSize& size, const QString& text);
 
 #endif

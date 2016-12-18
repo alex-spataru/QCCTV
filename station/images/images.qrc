@@ -12,5 +12,6 @@
         <file>gradient.svg</file>
         <file>search.svg</file>
         <file>qcctv-station.png</file>
+        <file>zoom.svg</file>
     </qresource>
 </RCC>
