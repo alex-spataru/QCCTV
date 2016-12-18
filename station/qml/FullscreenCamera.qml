@@ -39,6 +39,7 @@ Item {
     property string cameraName: ""
     property string cameraStatus: ""
     property bool autoRegulate: true
+    property bool zoomSupport: false
     property size buttonSize: Qt.size (48, 48)
 
     //
@@ -69,6 +70,7 @@ Item {
         fps = QCCTVStation.fps (camNumber)
         resolution = QCCTVStation.resolution (camNumber)
         cameraName = QCCTVStation.cameraName (camNumber)
+        zoomSupport = QCCTVStation.supportsZoom (camNumber)
         flashOn = QCCTVStation.flashlightEnabled (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
         autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
@@ -133,7 +135,7 @@ Item {
 
         onZoomSupportChanged: {
             if (camera === camNumber && enabled)
-                zoomButton.enabled = QCCTVStation.supportsZoom (camNumber)
+                zoomSupport = QCCTVStation.supportsZoom (camNumber)
         }
 
         onZoomLevelChanged: {
@@ -197,7 +199,7 @@ Item {
         orientation: Qt.Vertical
         height: app.height * 0.6
         opacity: enabled ? 1 : 0
-        enabled: zoomButton.enabled && zoomButton.checked
+        enabled: zoomSupport && zoomButton.checked
 
         onVisualPositionChanged: {
             if (orientation === Qt.Vertical)
@@ -419,6 +421,8 @@ Item {
         Button {
             id: zoomButton
             checkable: true
+            enabled: zoomSupport
+            visible: zoomSupport
 
             contentItem: Image {
                 fillMode: Image.Pad

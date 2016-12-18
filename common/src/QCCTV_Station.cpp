@@ -200,7 +200,8 @@ int QCCTV_Station::fps (const int camera)
 /**
  * Returns the current zoom level used by the given \a camera
  */
-int QCCTV_Station::zoom (const int camera) {
+int QCCTV_Station::zoom (const int camera)
+{
     if (getCamera (camera))
         return getCamera (camera)->zoom();
 
@@ -221,7 +222,8 @@ int QCCTV_Station::resolution (const int camera)
 /**
  * Returns \c true if the given \a camera supports zooming
  */
-bool QCCTV_Station::supportsZoom (const int camera) {
+bool QCCTV_Station::supportsZoom (const int camera)
+{
     if (getCamera (camera))
         return getCamera (camera)->supportsZoom();
 
@@ -486,7 +488,7 @@ void QCCTV_Station::setRecordingsPath (const QString& path)
         m_recordingsPath = QDir (QCCTV_RECORDINGS_PATH).absolutePath();
 
     if (!m_recordingsPath.endsWith ("/QCCTV_Media/") &&
-            !m_recordingsPath.endsWith ("/QCCTV_Media")) {
+        !m_recordingsPath.endsWith ("/QCCTV_Media")) {
         m_recordingsPath += "/QCCTV_Media/";
         m_recordingsPath = QDir (m_recordingsPath).absolutePath();
     }

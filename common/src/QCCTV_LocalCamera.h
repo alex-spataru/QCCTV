@@ -30,7 +30,6 @@
 
 class QThread;
 class QCamera;
-class QMediaRecorder;
 class QCCTV_Watchdog;
 class QCCTV_ImageCapture;
 class QCameraImageCapture;
@@ -150,8 +149,6 @@ private Q_SLOTS:
     void update();
     void changeImage();
     void broadcastInfo();
-    void stopRecording();
-    void startRecording();
     void onDisconnected();
     void acceptConnection();
     void readCommandPacket();
@@ -169,7 +166,6 @@ private:
 private:
     QThread* m_thread;
     QCamera* m_camera;
-    QMediaRecorder* m_recorder;
     QCameraImageCapture* m_capture;
 
     QTcpServer m_server;

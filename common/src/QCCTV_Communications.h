@@ -27,9 +27,9 @@
 
 struct QCCTV_StreamPacket {
     quint8 fps;
+    quint8 zoom;
     QImage image;
     quint32 crc32;
-    int zoom;
     int resolution;
     int cameraStatus;
     bool supportsZoom;

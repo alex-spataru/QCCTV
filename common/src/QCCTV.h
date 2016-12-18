@@ -71,7 +71,8 @@ enum QCCTV_Resolution {
     QCCTV_4CIF     = 0x03,
     QCCTV_D1       = 0x04,
     QCCTV_720p     = 0x05,
-    QCCTV_960p     = 0x06
+    QCCTV_960p     = 0x06,
+    QCCTV_Original = 0x07
 };
 
 /*

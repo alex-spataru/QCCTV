@@ -65,8 +65,8 @@ void QCCTV_InitStream (QCCTV_StreamPacket* packet)
         packet->supportsZoom = false;
         packet->cameraName = "Unknown";
         packet->cameraGroup = "Default";
-        packet->resolution = QCCTV_720p;
         packet->flashlightEnabled = false;
+        packet->resolution = QCCTV_Original;
         packet->autoRegulateResolution = true;
         packet->cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
         packet->image = QCCTV_CreateStatusImage (QSize (640, 480),
@@ -248,7 +248,7 @@ bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
     packet->resolutionChanged = (packet->oldResolution != packet->newResolution);
     packet->flashlightEnabledChanged = (packet->oldFlashlightEnabled != packet->newFlashlightEnabled);
     packet->autoRegulateResolutionChanged = (packet->oldAutoRegulateResolution !=
-            packet->newAutoRegulateResolution);
+                                             packet->newAutoRegulateResolution);
 
     /* Packet read successfully */
     return true;
