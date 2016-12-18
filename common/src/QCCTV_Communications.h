@@ -35,7 +35,6 @@ struct QCCTV_StreamPacket {
     bool supportsZoom;
     QString cameraName;
     QString cameraGroup;
-    QByteArray videoData;
     bool flashlightEnabled;
     bool autoRegulateResolution;
 };

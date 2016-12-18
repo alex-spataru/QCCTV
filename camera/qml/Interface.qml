@@ -70,7 +70,7 @@ Item {
         onNameChanged: ui.name = QCCTVCamera.name
         onGroupChanged: ui.group = QCCTVCamera.group
         onResolutionChanged: ui.resolution = QCCTVCamera.resolution
-        onZoomLevelChanged: zoomControler.value = QCCTVCamera.zoomLevel
+        onZoomLevelChanged: zoomSlider.value = QCCTVCamera.zoomLevel
         onAutoRegulateResolutionChanged: ui.autoRegulate = QCCTVCamera.autoRegulateResolution
     }
 
@@ -117,7 +117,7 @@ Item {
     // Zoom control
     //
     Slider {
-        id: zoomController
+        id: zoomSlider
 
         anchors {
             right: parent.right

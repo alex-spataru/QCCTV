@@ -34,6 +34,7 @@ static const QString KEY_FPS        = "fps";
 static const QString KEY_ZOOM       = "zoom";
 static const QString KEY_NAME       = "name";
 static const QString KEY_GROUP      = "group";
+static const QString KEY_IMAGE      = "image";
 static const QString KEY_STATUS     = "status";
 static const QString KEY_RESOLUTION = "resolution";
 static const QString KEY_FLASHLIGHT = "flashlight";
@@ -120,7 +121,7 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
     QCCTV_Resolution res = (QCCTV_Resolution) packet.resolution;
     QByteArray image = QCCTV_EncodeImage (packet.image, res);
     if (!image.isEmpty())
-        json.insert ("image", QString (image.toBase64()));
+        json.insert (KEY_IMAGE, QString (image.toBase64()));
 
     /* Convert JSON data to binary data */
     QByteArray data = QJsonDocument (json).toBinaryData();
@@ -182,7 +183,7 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
     packet->autoRegulateResolution = json.value (KEY_AUTOREGRES).toBool();
 
     /* Get camera image from object */
-    QByteArray base64 = json.value ("image").toString().toUtf8();
+    QByteArray base64 = json.value (KEY_IMAGE).toString().toUtf8();
     if (!base64.isEmpty())
         packet->image = QCCTV_DecodeImage (QByteArray::fromBase64 (base64));
 
