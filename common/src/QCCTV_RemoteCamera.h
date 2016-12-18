@@ -28,7 +28,8 @@
 
 class QCCTV_Watchdog;
 class QCCTV_ImageSaver;
-struct QCCTV_StreamPacket;
+struct QCCTV_InfoPacket;
+struct QCCTV_ImagePacket;
 struct QCCTV_CommandPacket;
 
 class QCCTV_RemoteCamera : public QObject
@@ -89,9 +90,10 @@ public Q_SLOTS:
 private Q_SLOTS:
     void clearBuffer();
     void endConnection();
-    void onDataReceived();
+    void readInfoPacket();
     void sendCommandPacket();
     void resetFocusRequest();
+    void onImageDataReceived();
     void updateFPS (const int fps);
     void updateZoom (const int zoom);
     void updateStatus (const int status);
@@ -104,9 +106,10 @@ private Q_SLOTS:
     void updateFlashlightEnabled (const bool enabled);
 
 private:
-    void readCameraPacket();
+    void readImagePacket();
     void acknowledgeReception();
-    QCCTV_StreamPacket* streamPacket();
+    QCCTV_InfoPacket* infoPacket();
+    QCCTV_ImagePacket* imagePacket();
     QCCTV_CommandPacket* commandPacket();
 
 private:
@@ -119,12 +122,14 @@ private:
     bool m_saveIncomingMedia;
 
     QTcpSocket* m_socket;
+    QUdpSocket* m_infoSocket;
     QUdpSocket* m_commandSocket;
 
     QCCTV_ImageSaver* m_saver;
     QCCTV_Watchdog* m_watchdog;
 
-    QCCTV_StreamPacket* m_streamPacket;
+    QCCTV_InfoPacket* m_infoPacket;
+    QCCTV_ImagePacket* m_imagePacket;
     QCCTV_CommandPacket* m_commandPacket;
 };
 

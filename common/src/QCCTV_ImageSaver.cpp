@@ -105,8 +105,8 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     QString f_name = QString ("%1 sec %2 ms.%3")
                      .arg (current.toString ("ss"))
                      .arg (current.toString ("zzz"))
-                     .arg (QCCTV_IMAGE_FORMAT);
+                     .arg ("jpg");
 
     /* Save image */
-    copy.save (dir.absoluteFilePath (f_name), QCCTV_IMAGE_FORMAT, quality);
+    copy.save (dir.absoluteFilePath (f_name), "jpg", quality);
 }

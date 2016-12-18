@@ -30,6 +30,7 @@
 /*
  * Set network ports
  */
+#define QCCTV_INFO_PORT      1050
 #define QCCTV_STREAM_PORT    1100
 #define QCCTV_COMMAND_PORT   1150
 #define QCCTV_REQUEST_PORT   1200
@@ -39,9 +40,8 @@
  * Image encoding
  */
 #define QCCTV_MIN_FPS         5
-#define QCCTV_MAX_FPS         60
-#define QCCTV_IMAGE_FORMAT    "JPG"
-#define QCCTV_MAX_BUFFER_SIZE 200 * 1024
+#define QCCTV_MAX_FPS         30
+#define QCCTV_MAX_BUFFER_SIZE 250 * 1024
 #define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV/"
 
 /*
@@ -55,10 +55,8 @@
  */
 enum QCCTV_CameraStatus {
     QCCTV_CAMSTATUS_DEFAULT       = 0b0,
-    QCCTV_CAMSTATUS_LOW_BATTERY   = 0b1,
-    QCCTV_CAMSTATUS_DISCHARING    = 0b10,
-    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0b100,
-    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b1000,
+    QCCTV_CAMSTATUS_VIDEO_FAILURE = 0b10,
+    QCCTV_CAMSTATUS_LIGHT_FAILURE = 0b100,
 };
 
 /*

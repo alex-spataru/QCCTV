@@ -27,6 +27,8 @@
 #include <QPixmap>
 #include <QPainter>
 
+static const char* QCCTV_IMG_FORMAT = "jpg";
+
 /**
  * If a is not empty, the function appends \a b to \a a and adds a separator.
  * Otherwise, this function shall return \a b
@@ -63,12 +65,6 @@ int QCCTV_GetWatchdogTime (const int fps)
 QString QCCTV_GetStatusString (const int status)
 {
     QString str;
-
-    if (status & QCCTV_CAMSTATUS_LOW_BATTERY)
-        str = append_str (str, QObject::tr ("Low Battery"));
-
-    if (status & QCCTV_CAMSTATUS_DISCHARING)
-        str = append_str (str, QObject::tr ("Discharging"));
 
     if (status & QCCTV_CAMSTATUS_LIGHT_FAILURE)
         str = append_str (str, QObject::tr ("Flashlight Failure"));
@@ -158,18 +154,14 @@ QByteArray QCCTV_EncodeImage (const QImage& image, const int res)
         size = image.size();
 
     /* Scale the image */
-    QImage final = image;
-    final = final.scaled (size,
-                          Qt::KeepAspectRatio,
-                          Qt::FastTransformation);
-
-    /* Make the image quality inversely proportional from its resolution */
-    const int quality = qMax ((10 - ((int) res + 1)) * 10, 40);
+    QImage final = image.scaled (size,
+                                 Qt::KeepAspectRatio,
+                                 Qt::FastTransformation);
 
     /* Save image to byte array */
     QByteArray raw_bytes;
     QBuffer buffer (&raw_bytes);
-    final.save (&buffer, QCCTV_IMAGE_FORMAT, quality);
+    final.save (&buffer, QCCTV_IMG_FORMAT, 40);
     buffer.close();
 
     /* Return image bytes */
@@ -181,7 +173,7 @@ QByteArray QCCTV_EncodeImage (const QImage& image, const int res)
  */
 QImage QCCTV_DecodeImage (const QByteArray& data)
 {
-    return QImage::fromData (data, QCCTV_IMAGE_FORMAT);
+    return QImage::fromData (data, QCCTV_IMG_FORMAT);
 }
 
 /**

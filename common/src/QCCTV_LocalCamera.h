@@ -27,13 +27,15 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUdpSocket>
+#include <QFutureWatcher>
 
-class QThread;
 class QCamera;
 class QCCTV_Watchdog;
 class QCCTV_ImageCapture;
 class QCameraImageCapture;
-struct QCCTV_StreamPacket;
+
+struct QCCTV_InfoPacket;
+struct QCCTV_ImagePacket;
 struct QCCTV_CommandPacket;
 
 class QCCTV_LocalCamera : public QObject
@@ -147,35 +149,43 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void update();
+    void sendInfo();
+    void sendImage();
     void changeImage();
     void broadcastInfo();
     void onDisconnected();
     void acceptConnection();
     void readCommandPacket();
     void onWatchdogTimeout();
+    void onBytesWritten (const qint64 bytes);
 
 private:
     void updateStatus();
-    QString deviceName();
-    QCCTV_StreamPacket* streamPacket();
-    QCCTV_CommandPacket* commandPacket();
     void addStatusFlag (const int status);
     void setCameraStatus (const int status);
     void removeStatusFlag (const int status);
 
+    QString deviceName();
+    QCCTV_InfoPacket* infoPacket();
+    QCCTV_ImagePacket* imagePacket();
+    QCCTV_CommandPacket* commandPacket();
+
 private:
-    QThread* m_thread;
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
+    QFutureWatcher<QByteArray> m_futureWatcher;
 
     QTcpServer m_server;
     QUdpSocket m_cmdSocket;
+    QUdpSocket m_infoSocket;
     QUdpSocket m_broadcastSocket;
     QList<QTcpSocket*> m_sockets;
     QList<QCCTV_Watchdog*> m_watchdogs;
 
     QCCTV_ImageCapture* m_imageCapture;
-    QCCTV_StreamPacket* m_streamPacket;
+
+    QCCTV_InfoPacket* m_infoPacket;
+    QCCTV_ImagePacket* m_imagePacket;
     QCCTV_CommandPacket* m_commandPacket;
 };
 

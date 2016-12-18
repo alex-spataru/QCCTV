@@ -23,6 +23,7 @@
 #ifndef _QCCTV_IMAGE_CAPTURE_H
 #define _QCCTV_IMAGE_CAPTURE_H
 
+#include <QThread>
 #include <QObject>
 #include <QCameraInfo>
 #include <QAbstractVideoSurface>
@@ -55,12 +56,12 @@ private Q_SLOTS:
     bool present (const QVideoFrame& frame);
 
 private:
-    QVideoProbe* m_probe;
-    QCamera* m_camera;
     bool m_enabled;
-
     QImage m_image;
+    QThread m_thread;
+    QCamera* m_camera;
     QCameraInfo m_info;
+    QVideoProbe* m_probe;
 };
 
 #endif

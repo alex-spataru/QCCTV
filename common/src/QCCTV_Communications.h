@@ -25,11 +25,9 @@
 
 #include "QCCTV.h"
 
-struct QCCTV_StreamPacket {
+struct QCCTV_InfoPacket {
     quint8 fps;
     quint8 zoom;
-    QImage image;
-    quint32 crc32;
     int resolution;
     int cameraStatus;
     bool supportsZoom;
@@ -37,6 +35,11 @@ struct QCCTV_StreamPacket {
     QString cameraGroup;
     bool flashlightEnabled;
     bool autoRegulateResolution;
+};
+
+struct QCCTV_ImagePacket {
+    QImage image;
+    quint32 crc32;
 };
 
 struct QCCTV_CommandPacket {
@@ -59,14 +62,18 @@ struct QCCTV_CommandPacket {
     bool autoRegulateResolutionChanged;
 };
 
-extern void QCCTV_InitStream (QCCTV_StreamPacket* packet);
-extern void QCCTV_InitCommand (QCCTV_CommandPacket* command, QCCTV_StreamPacket* stream);
-extern QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet);
-extern bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
-                                    const QByteArray& data);
 
-extern QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet);
-extern bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
-                                     const QByteArray& data);
+extern void QCCTV_InitInfo (QCCTV_InfoPacket* packet);
+extern void QCCTV_InitImage (QCCTV_ImagePacket* packet);
+extern void QCCTV_InitCommand (QCCTV_CommandPacket* command, QCCTV_InfoPacket* stream);
+
+extern QByteArray QCCTV_CreateInfoPacket (const QCCTV_InfoPacket* packet);
+extern QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket* packet);
+extern QByteArray QCCTV_CreateImagePacket (const QCCTV_ImagePacket* packet,
+                                           const QCCTV_InfoPacket* info);
+
+extern bool QCCTV_ReadInfoPacket (QCCTV_InfoPacket* packet, const QByteArray& data);
+extern bool QCCTV_ReadImagePacket (QCCTV_ImagePacket* packet, const QByteArray& data);
+extern bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet, const QByteArray& data);
 
 #endif

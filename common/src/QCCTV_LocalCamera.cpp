@@ -26,6 +26,7 @@
 #include <QCameraFocus>
 #include <QCameraExposure>
 #include <QCameraImageCapture>
+#include <QtConcurrent/QtConcurrent>
 
 #include "QCCTV.h"
 #include "QCCTV_Watchdog.h"
@@ -33,17 +34,25 @@
 #include "QCCTV_ImageCapture.h"
 #include "QCCTV_Communications.h"
 
-#define ERROR_IMG QCCTV_CreateStatusImage (QSize (640, 480), "NO CAMERA IMAGE")
-
 QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) : QObject (parent)
 {
     /* Initialize pointers */
     m_camera = Q_NULLPTR;
     m_capture = Q_NULLPTR;
-    m_thread = new QThread (this);
     m_imageCapture = new QCCTV_ImageCapture;
-    m_streamPacket = new QCCTV_StreamPacket;
+
+    /* Initialzie packet pointers */
+    m_infoPacket = new QCCTV_InfoPacket;
+    m_imagePacket = new QCCTV_ImagePacket;
     m_commandPacket = new QCCTV_CommandPacket;
+
+    /* Set initial packet information */
+    QCCTV_InitInfo (infoPacket());
+    QCCTV_InitImage (imagePacket());
+    QCCTV_InitCommand (commandPacket(), infoPacket());
+
+    /* Set device name as camera name */
+    infoPacket()->cameraName = deviceName();
 
     /* Configure sockets */
     connect (&m_server,    SIGNAL (newConnection()),
@@ -51,19 +60,17 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) : QObject (parent)
     connect (&m_cmdSocket, SIGNAL (readyRead()),
              this,           SLOT (readCommandPacket()));
 
+    /* Send image data when it has been created */
+    connect (&m_futureWatcher, SIGNAL (finished()),
+             this,               SLOT (sendImage()));
+
     /* Configure listener sockets */
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
     m_cmdSocket.bind (QCCTV_COMMAND_PORT, QUdpSocket::ShareAddress);
 
     /* Setup the frame grabber */
-    m_thread->start (QThread::TimeCriticalPriority);
-    m_imageCapture->moveToThread (m_thread);
     connect (m_imageCapture, SIGNAL (newFrame()),
              this,             SLOT (changeImage()));
-
-    /* Set default camera information */
-    QCCTV_InitStream (streamPacket());
-    streamPacket()->cameraName = deviceName();
 
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
@@ -75,9 +82,6 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) : QObject (parent)
  */
 QCCTV_LocalCamera::~QCCTV_LocalCamera()
 {
-    /* Stop image processing thread */
-    m_thread->exit();
-
     /* Close all TCP connections */
     foreach (QTcpSocket* socket, m_sockets) {
         socket->close();
@@ -98,10 +102,12 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
     if (m_capture)
         delete m_capture;
 
+    /* Stop image sending */
+    m_futureWatcher.cancel();
+
     /* Delete children */
-    delete m_thread;
     delete m_imageCapture;
-    delete m_streamPacket;
+    delete m_infoPacket;
     delete m_commandPacket;
 }
 
@@ -110,7 +116,7 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
  */
 int QCCTV_LocalCamera::fps()
 {
-    return streamPacket()->fps;
+    return infoPacket()->fps;
 }
 
 /**
@@ -118,7 +124,7 @@ int QCCTV_LocalCamera::fps()
  */
 QString QCCTV_LocalCamera::name()
 {
-    return streamPacket()->cameraName;
+    return infoPacket()->cameraName;
 }
 
 /**
@@ -126,7 +132,7 @@ QString QCCTV_LocalCamera::name()
  */
 QString QCCTV_LocalCamera::group()
 {
-    return streamPacket()->cameraGroup;
+    return infoPacket()->cameraGroup;
 }
 
 /**
@@ -134,7 +140,7 @@ QString QCCTV_LocalCamera::group()
  */
 int QCCTV_LocalCamera::zoomLevel()
 {
-    return streamPacket()->zoom;
+    return infoPacket()->zoom;
 }
 
 /**
@@ -143,7 +149,7 @@ int QCCTV_LocalCamera::zoomLevel()
  */
 int QCCTV_LocalCamera::resolution()
 {
-    return streamPacket()->resolution;
+    return infoPacket()->resolution;
 }
 
 /**
@@ -151,7 +157,7 @@ int QCCTV_LocalCamera::resolution()
  */
 int QCCTV_LocalCamera::cameraStatus()
 {
-    return streamPacket()->cameraStatus;
+    return infoPacket()->cameraStatus;
 }
 
 /**
@@ -160,7 +166,7 @@ int QCCTV_LocalCamera::cameraStatus()
  */
 bool QCCTV_LocalCamera::supportsZoom()
 {
-    return streamPacket()->supportsZoom;
+    return infoPacket()->supportsZoom;
 }
 
 /**
@@ -168,7 +174,7 @@ bool QCCTV_LocalCamera::supportsZoom()
  */
 QImage QCCTV_LocalCamera::currentImage()
 {
-    return streamPacket()->image;
+    return imagePacket()->image;
 }
 
 /**
@@ -185,7 +191,7 @@ QString QCCTV_LocalCamera::statusString()
  */
 int QCCTV_LocalCamera::flashlightEnabled()
 {
-    return streamPacket()->flashlightEnabled;
+    return infoPacket()->flashlightEnabled;
 }
 
 /**
@@ -194,7 +200,7 @@ int QCCTV_LocalCamera::flashlightEnabled()
  */
 bool QCCTV_LocalCamera::autoRegulateResolution()
 {
-    return streamPacket()->autoRegulateResolution;
+    return infoPacket()->autoRegulateResolution;
 }
 
 /**
@@ -284,8 +290,12 @@ void QCCTV_LocalCamera::focusCamera()
  */
 void QCCTV_LocalCamera::setFPS (const int fps)
 {
-    if (streamPacket()->fps != QCCTV_ValidFps (fps)) {
-        streamPacket()->fps = QCCTV_ValidFps (fps);
+    if (infoPacket()->fps != QCCTV_ValidFps (fps)) {
+        infoPacket()->fps = QCCTV_ValidFps (fps);
+
+        foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
+            watchdog->setExpirationTime (QCCTV_GetWatchdogTime (infoPacket()->fps));
+
         emit fpsChanged();
     }
 }
@@ -308,7 +318,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
         /* Determine if camera supports zoom */
         qreal digital = m_camera->focus()->maximumDigitalZoom();
         qreal optical = m_camera->focus()->maximumOpticalZoom();
-        streamPacket()->supportsZoom = (digital != 1 || optical != 1);
+        infoPacket()->supportsZoom = (digital != 1 || optical != 1);
 
         /* Re-assign camera modules */
         m_capture = new QCameraImageCapture (m_camera);
@@ -325,7 +335,7 @@ void QCCTV_LocalCamera::setCamera (QCamera* camera)
 void QCCTV_LocalCamera::setName (const QString& name)
 {
     /* Names are the same, abort */
-    if (streamPacket()->cameraName == name)
+    if (infoPacket()->cameraName == name)
         return;
 
     /* Check if user just gave us empty spaces as input */
@@ -334,9 +344,9 @@ void QCCTV_LocalCamera::setName (const QString& name)
 
     /* Re-assign the camera name */
     if (no_spaces.isEmpty())
-        streamPacket()->cameraName = deviceName();
+        infoPacket()->cameraName = deviceName();
     else
-        streamPacket()->cameraName = name;
+        infoPacket()->cameraName = name;
 
     /* Notify UI */
     emit nameChanged();
@@ -352,7 +362,7 @@ void QCCTV_LocalCamera::setZoomLevel (const int level)
         return;
 
     /* Change the zoom level (from 0 to 100) */
-    streamPacket()->zoom = qMin (qMax (level, 0), 100);
+    infoPacket()->zoom = qMin (qMax (level, 0), 100);
 
     /* Instruct the camera to zoom in or zoom out */
     if (m_camera && supportsZoom()) {
@@ -362,7 +372,7 @@ void QCCTV_LocalCamera::setZoomLevel (const int level)
 
         /* Get adjusted zoom value */
         qreal range = max_optical + max_digital;
-        qreal value = (qreal) (streamPacket()->zoom * range) / 100;
+        qreal value = (qreal) (infoPacket()->zoom * range) / 100;
 
         /* Initialize zoom levels */
         qreal optical = 0;
@@ -393,7 +403,7 @@ void QCCTV_LocalCamera::setZoomLevel (const int level)
 void QCCTV_LocalCamera::setGroup (const QString& group)
 {
     /* Names are the same, abort */
-    if (streamPacket()->cameraGroup == group)
+    if (infoPacket()->cameraGroup == group)
         return;
 
     /* Check if user just gave us empty spaces as input */
@@ -402,9 +412,9 @@ void QCCTV_LocalCamera::setGroup (const QString& group)
 
     /* Re-assign group name */
     if (no_spaces.isEmpty())
-        streamPacket()->cameraGroup = "Default";
+        infoPacket()->cameraGroup = "Default";
     else
-        streamPacket()->cameraGroup = group;
+        infoPacket()->cameraGroup = group;
 
     /* Notify UI */
     emit groupChanged();
@@ -415,8 +425,8 @@ void QCCTV_LocalCamera::setGroup (const QString& group)
  */
 void QCCTV_LocalCamera::setResolution (const int resolution)
 {
-    if (streamPacket()->resolution != resolution) {
-        streamPacket()->resolution = resolution;
+    if (infoPacket()->resolution != resolution) {
+        infoPacket()->resolution = resolution;
         emit resolutionChanged();
     }
 }
@@ -427,9 +437,9 @@ void QCCTV_LocalCamera::setResolution (const int resolution)
  */
 void QCCTV_LocalCamera::setFlashlightEnabled (const bool enabled)
 {
-    streamPacket()->flashlightEnabled = enabled;
+    infoPacket()->flashlightEnabled = enabled && flashlightAvailable();
 
-    if (flashlightAvailable() && flashlightEnabled())
+    if (flashlightEnabled())
         m_camera->exposure()->setFlashMode (QCameraExposure::FlashVideoLight);
 
     else
@@ -444,8 +454,8 @@ void QCCTV_LocalCamera::setFlashlightEnabled (const bool enabled)
  */
 void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
 {
-    if (streamPacket()->autoRegulateResolution != regulate) {
-        streamPacket()->autoRegulateResolution = regulate;
+    if (infoPacket()->autoRegulateResolution != regulate) {
+        infoPacket()->autoRegulateResolution = regulate;
         emit autoRegulateResolutionChanged();
     }
 }
@@ -455,20 +465,42 @@ void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
  */
 void QCCTV_LocalCamera::update()
 {
-    /* Get new camera information */
-    m_imageCapture->setEnabled (true);
+    /* Update camera info and send it */
     updateStatus();
+    sendInfo();
 
-    /* Generate and send camera data */
-    QByteArray data = QCCTV_CreateStreamPacket (*streamPacket());
-    foreach (QTcpSocket* socket, m_sockets) {
-        if (socket)
-            if (socket->isWritable())
-                socket->write (data);
-    }
+    /* Create the image data in another thread */
+    m_imageCapture->setEnabled (true);
+    m_futureWatcher.waitForFinished();
+    QFuture<QByteArray> future = QtConcurrent::run (QCCTV_CreateImagePacket,
+                                                    imagePacket(),
+                                                    infoPacket());
+    m_futureWatcher.setFuture (future);
 
-    /* Call this function again in several milliseconds */
+    /* Call this function again in the future */
     QTimer::singleShot (1000 / fps(), this, SLOT (update()));
+}
+
+/**
+ * Sends a camera information packet to all connected hosts
+ */
+void QCCTV_LocalCamera::sendInfo()
+{
+    QByteArray info = QCCTV_CreateInfoPacket (infoPacket());
+    foreach (QString address, connectedHosts())
+        m_infoSocket.writeDatagram (info,
+                                    QHostAddress (address),
+                                    QCCTV_INFO_PORT);
+}
+
+/**
+ * Sends an image packet to all connected hosts
+ */
+void QCCTV_LocalCamera::sendImage()
+{
+    foreach (QTcpSocket* socket, m_sockets)
+        if (socket->isWritable())
+            socket->write (m_futureWatcher.result());
 }
 
 /**
@@ -477,10 +509,7 @@ void QCCTV_LocalCamera::update()
 void QCCTV_LocalCamera::changeImage()
 {
     m_imageCapture->setEnabled (false);
-    streamPacket()->image = m_imageCapture->image();
-    if (streamPacket()->image.isNull())
-        streamPacket()->image = ERROR_IMG;
-
+    imagePacket()->image = m_imageCapture->image();
     emit imageChanged();
 }
 
@@ -531,7 +560,7 @@ void QCCTV_LocalCamera::acceptConnection()
 {
     while (m_server.hasPendingConnections()) {
         QCCTV_Watchdog* watchdog = new QCCTV_Watchdog (this);
-        watchdog->setExpirationTime (500);
+        watchdog->setExpirationTime (QCCTV_GetWatchdogTime (infoPacket()->fps));
 
         m_watchdogs.append (watchdog);
         m_sockets.append (m_server.nextPendingConnection());
@@ -542,6 +571,8 @@ void QCCTV_LocalCamera::acceptConnection()
                  this,                 SLOT (onWatchdogTimeout()));
         connect (m_sockets.last(),   SIGNAL (disconnected()),
                  this,                 SLOT (onDisconnected()));
+        connect (m_sockets.last(),   SIGNAL (bytesWritten (qint64)),
+                 this,                 SLOT (onBytesWritten (qint64)));
 
         emit hostCountChanged();
     }
@@ -597,12 +628,6 @@ void QCCTV_LocalCamera::readCommandPacket()
     /* Focus the camera */
     if (commandPacket()->focusRequest)
         focusCamera();
-
-    /* Feed the watchdog for this connection */
-    foreach (QTcpSocket* socket, m_sockets) {
-        if (socket->peerAddress() == address)
-            m_watchdogs.at (m_sockets.indexOf (socket))->reset();
-    }
 }
 
 /**
@@ -617,6 +642,17 @@ void QCCTV_LocalCamera::onWatchdogTimeout()
         return;
 
     setResolution ((QCCTV_Resolution) qMax ((int) QCCTV_CIF, resolution() - 1));
+}
+
+/**
+ * Resets the watchdog for the socket that called this function
+ */
+void QCCTV_LocalCamera::onBytesWritten (const qint64 bytes)
+{
+    QTcpSocket* socket = qobject_cast<QTcpSocket*> (sender());
+
+    if (socket && bytes > 0)
+        m_watchdogs.at (m_sockets.indexOf (socket))->reset();
 }
 
 /**
@@ -641,6 +677,38 @@ void QCCTV_LocalCamera::updateStatus()
         removeStatusFlag (QCCTV_CAMSTATUS_LIGHT_FAILURE);
 }
 
+
+/**
+ * Registers the given \a status flag to the operation status flags
+ */
+void QCCTV_LocalCamera::addStatusFlag (const int status)
+{
+    if (! (infoPacket()->cameraStatus & status)) {
+        infoPacket()->cameraStatus |= status;
+        emit cameraStatusChanged();
+    }
+}
+
+/**
+ * Overrides the camera status flags with the given \a status
+ */
+void QCCTV_LocalCamera::setCameraStatus (const int status)
+{
+    infoPacket()->cameraStatus = status;
+    emit cameraStatusChanged();
+}
+
+/**
+ * Removes the given \a status flag from the operation status of the camera
+ */
+void QCCTV_LocalCamera::removeStatusFlag (const int status)
+{
+    if (infoPacket()->cameraStatus & status) {
+        infoPacket()->cameraStatus ^= status;
+        emit cameraStatusChanged();
+    }
+}
+
 /**
  * Returns the name and operating system of the camera device
  */
@@ -658,14 +726,27 @@ QString QCCTV_LocalCamera::deviceName()
 /**
  * Returns the pointer to the stream packet structure
  */
-QCCTV_StreamPacket* QCCTV_LocalCamera::streamPacket()
+QCCTV_InfoPacket* QCCTV_LocalCamera::infoPacket()
 {
-    if (m_streamPacket)
-        return m_streamPacket;
+    if (m_infoPacket)
+        return m_infoPacket;
 
-    m_streamPacket = new QCCTV_StreamPacket;
-    return m_streamPacket;
+    m_infoPacket = new QCCTV_InfoPacket;
+    return m_infoPacket;
 }
+
+/**
+ * Returns the pointer to the image packet structure
+ */
+QCCTV_ImagePacket* QCCTV_LocalCamera::imagePacket()
+{
+    if (m_imagePacket)
+        return m_imagePacket;
+
+    m_imagePacket = new QCCTV_ImagePacket;
+    return m_imagePacket;
+}
+
 
 /**
  * Returns the pointer to the command packet structure
@@ -677,35 +758,4 @@ QCCTV_CommandPacket* QCCTV_LocalCamera::commandPacket()
 
     m_commandPacket = new QCCTV_CommandPacket;
     return m_commandPacket;
-}
-
-/**
- * Registers the given \a status flag to the operation status flags
- */
-void QCCTV_LocalCamera::addStatusFlag (const int status)
-{
-    if (! (streamPacket()->cameraStatus & status)) {
-        streamPacket()->cameraStatus |= status;
-        emit cameraStatusChanged();
-    }
-}
-
-/**
- * Overrides the camera status flags with the given \a status
- */
-void QCCTV_LocalCamera::setCameraStatus (const int status)
-{
-    streamPacket()->cameraStatus = status;
-    emit cameraStatusChanged();
-}
-
-/**
- * Removes the given \a status flag from the operation status of the camera
- */
-void QCCTV_LocalCamera::removeStatusFlag (const int status)
-{
-    if (streamPacket()->cameraStatus & status) {
-        streamPacket()->cameraStatus ^= status;
-        emit cameraStatusChanged();
-    }
 }

@@ -38,7 +38,6 @@ Item {
         cameraName = QCCTVStation.cameraName (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
 
-        image.source = ""
         image.source = "image://qcctv/" + camNumber
     }
 

@@ -370,8 +370,10 @@ Item {
                         row.showTooltip (QCCTVCamera.flashlightEnabled ? qsTr ("Flashlight On") :
                                                                          qsTr ("Flashlight Off"))
 
-                    else
+                    else {
+                        QCCTVCamera.flashlightEnabled = false
                         row.showTooltip (qsTr ("Flashlight Error"))
+                    }
                 }
             }
 

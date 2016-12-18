@@ -23,6 +23,8 @@
 #include "yuv2rgb/yuv2rgb.h"
 #include "QCCTV_ImageCapture.h"
 
+#include "QCCTV.h"
+
 #include <QScreen>
 #include <QCamera>
 #include <QVideoProbe>
@@ -30,10 +32,16 @@
 #include <QGuiApplication>
 
 QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) :
-    QAbstractVideoSurface (parent),
-    m_probe (NULL),
-    m_camera (NULL),
-    m_enabled (false) {}
+    QAbstractVideoSurface (parent)
+{
+    m_probe = Q_NULLPTR;
+    m_camera = Q_NULLPTR;
+
+    if (!parent) {
+        m_thread.start (QThread::HighPriority);
+        moveToThread (&m_thread);
+    }
+}
 
 QCCTV_ImageCapture::~QCCTV_ImageCapture()
 {
@@ -130,23 +138,26 @@ void QCCTV_ImageCapture::setEnabled (const bool enabled)
  */
 bool QCCTV_ImageCapture::publishImage()
 {
-    /* Image is invalid */
+    /* Image is invalid or camera not loaded */
     if (m_image.isNull() || !m_camera)
-        return false;
+        m_image = QCCTV_CreateStatusImage (QSize (640, 480), "NO CAMERA IMAGE");
 
-    /* Get current display rotation */
-    const QScreen* screen = QGuiApplication::primaryScreen();
-    const int angle = screen->angleBetween (screen->nativeOrientation(),
-                                            screen->orientation());
+    /* Image is valid, rotate image to compensate camera orientation */
+    else {
+        /* Get current display rotation */
+        const QScreen* screen = QGuiApplication::primaryScreen();
+        const int angle = screen->angleBetween (screen->nativeOrientation(),
+                                                screen->orientation());
 
-    /* Rotate image */
-    const int rotation = (360 - m_info.orientation() + angle) % 360;
-    m_image = m_image.transformed (QTransform().rotate (rotation));
+        /* Rotate image */
+        const int rotation = (360 - m_info.orientation() + angle) % 360;
+        m_image = m_image.transformed (QTransform().rotate (rotation));
 
-    /* Fix mirrored image issues */
+        /* Fix upside-down image on Windows */
 #if defined Q_OS_WIN
-    m_image = m_image.mirrored (false, true);
+        m_image = m_image.mirrored (false, true);
 #endif
+    }
 
     /* Notify QCCTV */
     emit newFrame();

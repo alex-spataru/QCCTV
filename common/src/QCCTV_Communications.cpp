@@ -34,7 +34,6 @@ static const QString KEY_FPS        = "fps";
 static const QString KEY_ZOOM       = "zoom";
 static const QString KEY_NAME       = "name";
 static const QString KEY_GROUP      = "group";
-static const QString KEY_IMAGE      = "image";
 static const QString KEY_STATUS     = "status";
 static const QString KEY_RESOLUTION = "resolution";
 static const QString KEY_FLASHLIGHT = "flashlight";
@@ -57,19 +56,28 @@ static const QString KEY_NEW_AUTOREGRES = "n_autoRegulateResolution";
 /**
  * Initializes the default values for the given stream \a packet
  */
-void QCCTV_InitStream (QCCTV_StreamPacket* packet)
+void QCCTV_InitInfo (QCCTV_InfoPacket* packet)
 {
     if (packet) {
         packet->fps = 18;
-        packet->crc32 = 0;
         packet->zoom = 0;
+        packet->resolution = QCCTV_D1;
         packet->supportsZoom = false;
         packet->cameraName = "Unknown";
         packet->cameraGroup = "Default";
         packet->flashlightEnabled = false;
-        packet->resolution = QCCTV_Original;
         packet->autoRegulateResolution = true;
         packet->cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
+    }
+}
+
+/**
+ * Initializes the default values for the given image \a packet
+ */
+void QCCTV_InitImage (QCCTV_ImagePacket* packet)
+{
+    if (packet) {
+        packet->crc32 = 0;
         packet->image = QCCTV_CreateStatusImage (QSize (640, 480),
                                                  "NO CAMERA IMAGE");
     }
@@ -80,7 +88,7 @@ void QCCTV_InitStream (QCCTV_StreamPacket* packet)
  * values in the given \a stream packet
  */
 void QCCTV_InitCommand (QCCTV_CommandPacket* command,
-                        QCCTV_StreamPacket* stream)
+                        QCCTV_InfoPacket* stream)
 {
     if (command && stream) {
         command->focusRequest = false;
@@ -101,30 +109,51 @@ void QCCTV_InitCommand (QCCTV_CommandPacket* command,
  * Reads the given stream \a packet and generates the binary data that can be
  * sent through a network socket to a connected QCCTV Station
  */
-QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
+QByteArray QCCTV_CreateInfoPacket (const QCCTV_InfoPacket* packet)
 {
-    /* Create initial JSON object */
     QJsonObject json;
+    json.insert (KEY_FPS, packet->fps);
+    json.insert (KEY_ZOOM, packet->zoom);
+    json.insert (KEY_NAME, packet->cameraName);
+    json.insert (KEY_GROUP, packet->cameraGroup);
+    json.insert (KEY_STATUS, packet->cameraStatus);
+    json.insert (KEY_RESOLUTION, packet->resolution);
+    json.insert (KEY_ZOOM_AVAIL, packet->supportsZoom);
+    json.insert (KEY_FLASHLIGHT, packet->flashlightEnabled);
+    json.insert (KEY_AUTOREGRES, packet->autoRegulateResolution);
+    return QJsonDocument (json).toBinaryData();
+}
 
-    /* Add information */
-    json.insert (KEY_FPS, packet.fps);
-    json.insert (KEY_ZOOM, packet.zoom);
-    json.insert (KEY_NAME, packet.cameraName);
-    json.insert (KEY_GROUP, packet.cameraGroup);
-    json.insert (KEY_STATUS, packet.cameraStatus);
-    json.insert (KEY_RESOLUTION, packet.resolution);
-    json.insert (KEY_ZOOM_AVAIL, packet.supportsZoom);
-    json.insert (KEY_FLASHLIGHT, packet.flashlightEnabled);
-    json.insert (KEY_AUTOREGRES, packet.autoRegulateResolution);
+/**
+ * Reads the given command \a packet and generates the binary data that can be
+ * sent through a network socket to a connected QCCTV Camera
+ */
+QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket* packet)
+{
+    QJsonObject json;
+    json.insert (KEY_OLD_FPS, packet->oldFps);
+    json.insert (KEY_NEW_FPS, packet->newFps);
+    json.insert (KEY_OLD_ZOOM, packet->oldZoom);
+    json.insert (KEY_NEW_ZOOM, packet->newZoom);
+    json.insert (KEY_FOCUS_REQUEST, packet->focusRequest);
+    json.insert (KEY_OLD_RESOLUTION, packet->oldResolution);
+    json.insert (KEY_NEW_RESOLUTION, packet->newResolution);
+    json.insert (KEY_OLD_FLASHLIGHT, packet->oldFlashlightEnabled);
+    json.insert (KEY_NEW_FLASHLIGHT, packet->newFlashlightEnabled);
+    json.insert (KEY_OLD_AUTOREGRES, packet->oldAutoRegulateResolution);
+    json.insert (KEY_NEW_AUTOREGRES, packet->newAutoRegulateResolution);
+    return QJsonDocument (json).toBinaryData();
+}
 
-    /* Add raw image bytes */
-    QCCTV_Resolution res = (QCCTV_Resolution) packet.resolution;
-    QByteArray image = QCCTV_EncodeImage (packet.image, res);
-    if (!image.isEmpty())
-        json.insert (KEY_IMAGE, QString (image.toBase64()));
-
-    /* Convert JSON data to binary data */
-    QByteArray data = QJsonDocument (json).toBinaryData();
+/**
+ * Reads the given image \a packet and \a info packet and generates a
+ * binary image and its respective CRC32 bits
+ */
+QByteArray QCCTV_CreateImagePacket (const QCCTV_ImagePacket* packet,
+                                    const QCCTV_InfoPacket* info)
+{
+    /* Add image data */
+    QByteArray data = QCCTV_EncodeImage (packet->image, info->resolution);
 
     /* Add the cheksum at the start of the data */
     quint32 crc = crc32.compute (data);
@@ -143,10 +172,37 @@ QByteArray QCCTV_CreateStreamPacket (const QCCTV_StreamPacket& packet)
  *
  * This function shall return \c true on success, \c false on failure
  */
-bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
-                             const QByteArray& data)
+bool QCCTV_ReadInfoPacket (QCCTV_InfoPacket* packet, const QByteArray& data)
 {
-    /* Packet pointer is invalid and/or data is empty */
+    /* Packet pointer is invalid and/or data incomplete */
+    if (!packet || data.isEmpty())
+        return false;
+
+    /* Get JSON object from data */
+    QJsonObject json = QJsonDocument::fromBinaryData (data).object();
+    if (json.isEmpty())
+        return false;
+
+    /* Get information from JSON object */
+    packet->fps = json.value (KEY_FPS).toInt();
+    packet->zoom = json.value (KEY_ZOOM).toInt();
+    packet->cameraName = json.value (KEY_NAME).toString();
+    packet->cameraStatus = json.value (KEY_STATUS).toInt();
+    packet->cameraGroup = json.value (KEY_GROUP).toString();
+    packet->resolution = json.value (KEY_RESOLUTION).toInt();
+    packet->supportsZoom = json.value (KEY_ZOOM_AVAIL).toBool();
+    packet->flashlightEnabled = json.value (KEY_FLASHLIGHT).toBool();
+    packet->autoRegulateResolution = json.value (KEY_AUTOREGRES).toBool();
+
+    /* Packet read successfully */
+    return true;
+}
+
+/**
+ * Obtains the image from the given \a data (only if CRC32 codes match)
+ */
+bool QCCTV_ReadImagePacket (QCCTV_ImagePacket* packet, const QByteArray& data)
+{
     if (!packet || data.length() < 4)
         return false;
 
@@ -166,50 +222,9 @@ bool QCCTV_ReadStreamPacket (QCCTV_StreamPacket* packet,
     if (packet->crc32 != crc)
         return false;
 
-    /* Get JSON object from data */
-    QJsonObject json = QJsonDocument::fromBinaryData (stream).object();
-    if (json.isEmpty())
-        return false;
-
-    /* Get information from JSON object */
-    packet->fps = json.value (KEY_FPS).toInt();
-    packet->zoom = json.value (KEY_ZOOM).toInt();
-    packet->cameraName = json.value (KEY_NAME).toString();
-    packet->cameraStatus = json.value (KEY_STATUS).toInt();
-    packet->cameraGroup = json.value (KEY_GROUP).toString();
-    packet->resolution = json.value (KEY_RESOLUTION).toInt();
-    packet->supportsZoom = json.value (KEY_ZOOM_AVAIL).toBool();
-    packet->flashlightEnabled = json.value (KEY_FLASHLIGHT).toBool();
-    packet->autoRegulateResolution = json.value (KEY_AUTOREGRES).toBool();
-
-    /* Get camera image from object */
-    QByteArray base64 = json.value (KEY_IMAGE).toString().toUtf8();
-    if (!base64.isEmpty())
-        packet->image = QCCTV_DecodeImage (QByteArray::fromBase64 (base64));
-
-    /* Return the status of the image */
+    /* Read image */
+    packet->image = QCCTV_DecodeImage (stream);
     return !packet->image.isNull();
-}
-
-/**
- * Reads the given command \a packet and generates the binary data that can be
- * sent through a network socket to a connected QCCTV Camera
- */
-QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket& packet)
-{
-    QJsonObject json;
-    json.insert (KEY_OLD_FPS, packet.oldFps);
-    json.insert (KEY_NEW_FPS, packet.newFps);
-    json.insert (KEY_OLD_ZOOM, packet.oldZoom);
-    json.insert (KEY_NEW_ZOOM, packet.newZoom);
-    json.insert (KEY_FOCUS_REQUEST, packet.focusRequest);
-    json.insert (KEY_OLD_RESOLUTION, packet.oldResolution);
-    json.insert (KEY_NEW_RESOLUTION, packet.newResolution);
-    json.insert (KEY_OLD_FLASHLIGHT, packet.oldFlashlightEnabled);
-    json.insert (KEY_NEW_FLASHLIGHT, packet.newFlashlightEnabled);
-    json.insert (KEY_OLD_AUTOREGRES, packet.oldAutoRegulateResolution);
-    json.insert (KEY_NEW_AUTOREGRES, packet.newAutoRegulateResolution);
-    return QJsonDocument (json).toBinaryData();
 }
 
 /**
