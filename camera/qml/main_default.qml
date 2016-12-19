@@ -54,12 +54,6 @@ ApplicationWindow {
     }
 
     //
-    // Styling options
-    //
-    Material.theme: Material.Dark
-    Material.accent: Material.Teal
-
-    //
     // Show the window on launch
     //
     Component.onCompleted: {
@@ -67,6 +61,11 @@ ApplicationWindow {
             showMaximized()
         else
             showNormal()
+
+        Material.accent = "#8fc859"
+        Universal.accent = "#8fc859"
+        Material.theme = Material.Dark
+        Universal.theme = Universal.Dark
     }
 
     //

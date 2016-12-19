@@ -72,6 +72,8 @@ Rectangle {
     ColumnLayout {
         id: noConnectedHosts
         spacing: app.spacing
+        opacity: list.model < 1 ? 1 : 0
+        Behavior on opacity { NumberAnimation{} }
 
         anchors {
             fill: parent
@@ -95,21 +97,15 @@ Rectangle {
             color: "#fff"
             font.bold: true
             font.pixelSize: 18
-            opacity: list.model < 1 ? 1 : 0
             text: qsTr ("No QCCTV Stations connected")
             anchors.horizontalCenter: parent.horizontalCenter
-
-            Behavior on opacity { NumberAnimation{} }
         }
 
         Label {
             color: "#ccc"
             font.pixelSize: 12
-            opacity: list.model < 1 ? 1 : 0
             text: qsTr ("Check your network configuration")
             anchors.horizontalCenter: parent.horizontalCenter
-
-            Behavior on opacity { NumberAnimation{} }
         }
 
         Item {

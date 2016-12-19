@@ -37,13 +37,18 @@ ApplicationWindow {
     //
     color: "#000"
     visible: true
-    Material.theme: Material.Dark
-    Material.accent: Material.Teal
 
     //
     // Show the window on launch
     //
-    Component.onCompleted: showMaximized()
+    Component.onCompleted: {
+        showMaximized()
+
+        Material.accent = "#8fc859"
+        Universal.accent = "#8fc859"
+        Material.theme = Material.Dark
+        Universal.theme = Universal.Dark
+    }
 
     //
     // Tab selector

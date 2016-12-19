@@ -270,7 +270,8 @@ Page {
             // Spacer
             //
             Item {
-                Layout.minimumHeight: app.spacing * 2
+                Layout.fillWidth: true
+                Layout.minimumWidth: app.spacing
             }
 
             //
