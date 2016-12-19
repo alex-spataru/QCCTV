@@ -293,8 +293,9 @@ void QCCTV_LocalCamera::setFPS (const int fps)
     if (infoPacket()->fps != QCCTV_ValidFps (fps)) {
         infoPacket()->fps = QCCTV_ValidFps (fps);
 
+        int time = QCCTV_GetWatchdogTime (infoPacket()->fps) / 2;
         foreach (QCCTV_Watchdog* watchdog, m_watchdogs)
-            watchdog->setExpirationTime (QCCTV_GetWatchdogTime (infoPacket()->fps));
+            watchdog->setExpirationTime (time);
 
         emit fpsChanged();
     }

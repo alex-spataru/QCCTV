@@ -23,6 +23,7 @@
 #ifndef _QCCTV_CAMERA_H
 #define _QCCTV_CAMERA_H
 
+#include <QTime>
 #include <QTcpSocket>
 #include <QUdpSocket>
 
@@ -130,6 +131,8 @@ private:
     QCCTV_InfoPacket* m_infoPacket;
     QCCTV_ImagePacket* m_imagePacket;
     QCCTV_CommandPacket* m_commandPacket;
+
+    QTime m_time;
 };
 
 #endif

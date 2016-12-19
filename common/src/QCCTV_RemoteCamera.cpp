@@ -365,14 +365,25 @@ void QCCTV_RemoteCamera::setIncomingMediaPath (const QString& path)
 /**
  * Called when we stop receiving constant packets from the camera, this
  * function deletes the temporary data buffer to avoid storing too much
- * information that we cannot use directly.
+ * information that we cannot use directly. Also, this function will reduce
+ * the FPS-value if the camera or the network cannot keep up with the desired
+ * FPS set by the user/camera.
  *
  * This function is also called when the class successfully reads a stream
  * packet from the remote camera.
  */
 void QCCTV_RemoteCamera::clearBuffer()
 {
+    /* Clear the temp. buffer */
     m_data.clear();
+
+    /* Reduce FPS if they cannot be achieved by camera or network */
+    int elapsed = m_time.elapsed();
+    if (elapsed > ((1000 / fps()) * 3) && fps() > 18)
+        changeFPS (fps() - 1);
+
+    /* Re-start the FPS timer */
+    m_time.restart();
 }
 
 /**
@@ -576,14 +587,19 @@ void QCCTV_RemoteCamera::readImagePacket()
 {
     QCCTV_ImagePacket packet;
     if (QCCTV_ReadImagePacket (&packet, m_data)) {
+        /* Clear buffer and send another command packet */
         clearBuffer();
         acknowledgeReception();
+
+        /* Re-assign image */
         imagePacket()->image = packet.image;
         emit newImage (id());
 
+        /* Reset the watchdog */
         if (m_watchdog)
             m_watchdog->reset();
 
+        /* Save image to disk */
         if (saveIncomingMedia()) {
             QtConcurrent::run (m_saver, &QCCTV_ImageSaver::saveImage,
                                incomingMediaPath(),
