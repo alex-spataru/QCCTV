@@ -100,16 +100,28 @@ Item {
         Label {
             color: "#fff"
             text: QCCTVCamera.name
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
 
         Label {
             color: "#ccc"
             text: QCCTVCamera.statusString
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
 
         Label {
             color: "#ccc"
             text: QCCTVCamera.fps + " " + qsTr ("FPS")
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
     }
 

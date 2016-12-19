@@ -13,5 +13,6 @@
         <file>search.svg</file>
         <file>qcctv-station.png</file>
         <file>zoom.svg</file>
+        <file>fullscreen.svg</file>
     </qresource>
 </RCC>

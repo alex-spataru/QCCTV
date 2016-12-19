@@ -35,6 +35,7 @@ Page {
     //
     Settings {
         property alias quality: quality.value
+        property alias fullscreen: fullscreen.checked
         property alias saveRecordings: saveIncomingMedia.checked
         property alias recordingsPath: textField.placeholderText
     }
@@ -202,6 +203,40 @@ Page {
                 }
             }
 
+            //
+            // Fullscreen checkbox
+            //
+            RowLayout {
+                spacing: app.spacing * 2
+                Layout.fillWidth: true
+
+                Image {
+                    fillMode: Image.Pad
+                    sourceSize: Qt.size (72, 72)
+                    source: "qrc:/images/fullscreen.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+
+                CheckBox {
+                    function update() {
+                        if (checked) {
+                            app.showNormal()
+                            app.showFullScreen()
+                        }
+                        else
+                            app.showNormal()
+                    }
+
+                    id: fullscreen
+                    checked: false
+                    Layout.fillWidth: true
+                    onCheckedChanged: update()
+                    text: qsTr ("Show Fullscreen")
+                    Component.onCompleted: update()
+                }
+            }
+
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -276,17 +311,21 @@ Page {
                 Layout.fillHeight: true
             }
 
-            Button {
+            RowLayout {
+                spacing: app.spacing
                 Layout.fillWidth: true
-                text: qsTr ("Open Website")
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
+                Layout.fillHeight: true
 
-            Button {
-                Layout.fillWidth: true
-                text: qsTr ("Report Bug")
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked: Qt.openUrlExternally ("https://github.com/alex-spataru/qcctv/issues")
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr ("Open Website")
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr ("Report Bug")
+                    onClicked: Qt.openUrlExternally ("https://github.com/alex-spataru/qcctv/issues")
+                }
             }
 
             Item {

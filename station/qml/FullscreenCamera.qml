@@ -226,16 +226,28 @@ Item {
         Label {
             color: "#fff"
             text: cameraName
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
 
         Label {
             color: "#ccc"
             text: cameraStatus
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
 
         Label {
             id: fpsText
             color: "#ccc"
+            background: Rectangle {
+                color: "#000"
+                opacity: 0.65
+            }
         }
     }
 
