@@ -79,8 +79,9 @@ public Q_SLOTS:
     void changeID (const int id);
     void changeFPS (const int fps);
     void changeZoom (const int zoom);
-    void setImageQuality (const int imageQuality);
     void setSaveIncomingMedia (const bool save);
+    void readInfoPacket (const QByteArray& data);
+    void setImageQuality (const int imageQuality);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
     void changeAutoRegulate (const bool regulate);
@@ -90,7 +91,6 @@ public Q_SLOTS:
 private Q_SLOTS:
     void clearBuffer();
     void endConnection();
-    void readInfoPacket();
     void sendCommandPacket();
     void resetFocusRequest();
     void onImageDataReceived();
@@ -122,7 +122,6 @@ private:
     bool m_saveIncomingMedia;
 
     QTcpSocket* m_socket;
-    QUdpSocket* m_infoSocket;
     QUdpSocket* m_commandSocket;
 
     QCCTV_ImageSaver* m_saver;

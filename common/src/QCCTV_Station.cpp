@@ -33,8 +33,10 @@ QCCTV_Station::QCCTV_Station()
 {
     /* Attempt to connect to a camera as we find it */
     QCCTV_Discovery* discovery = QCCTV_Discovery::getInstance();
-    connect (discovery, SIGNAL (newCamera (QHostAddress)),
+    connect (discovery, SIGNAL (newCamera       (QHostAddress)),
              this,        SLOT (connectToCamera (QHostAddress)));
+    connect (discovery, SIGNAL (newInfoPacket   (QHostAddress, QByteArray)),
+             this,        SLOT (readInfoPacket  (QHostAddress, QByteArray)));
 
     /* Remove a camera when we disconnect from it */
     connect (this, SIGNAL (connected (int)),
@@ -651,5 +653,19 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  this,   SIGNAL (autoRegulateResolutionChanged (int)));
         connect (camera, SIGNAL (newCameraGroup()),
                  this,     SLOT (updateGroups()));
+    }
+}
+
+/**
+ * Figures out from which remote camera did the \a data come from and instructs
+ * the remote camera manager assigned to that \a address to read the \a data
+ */
+void QCCTV_Station::readInfoPacket (const QHostAddress& address,
+                                    const QByteArray& data)
+{
+    if (cameraIPs().contains (address)) {
+        int camera = cameraIPs().indexOf (address);
+        if (getCamera (camera))
+            getCamera (camera)->readInfoPacket (data);
     }
 }

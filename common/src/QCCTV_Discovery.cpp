@@ -25,12 +25,15 @@
 
 /**
  * Initializes the class by connecting the signals/slots between the UDP
- * receiver socket and the datagram handler function of this class
+ * receiver sockets and the datagram handlers function of this class
  */
 QCCTV_Discovery::QCCTV_Discovery()
 {
-    m_socket.bind (QCCTV_DISCOVERY_PORT, QUdpSocket::ShareAddress);
-    connect (&m_socket, SIGNAL (readyRead()), this, SLOT (readPacket()));
+    m_infoSocket.bind (QCCTV_INFO_PORT, QUdpSocket::ShareAddress);
+    m_discoverySocket.bind (QCCTV_DISCOVERY_PORT, QUdpSocket::ShareAddress);
+
+    connect (&m_infoSocket, SIGNAL (readyRead()), this, SLOT (readInfoPacket()));
+    connect (&m_discoverySocket, SIGNAL (readyRead()), this, SLOT (readDiscoveryPacket()));
 }
 
 /**
@@ -43,17 +46,33 @@ QCCTV_Discovery* QCCTV_Discovery::getInstance()
 }
 
 /**
+ * Obtains the information datagram from a remote camera and notifies the
+ * \a QCCTV_Station about the new packet
+ */
+void QCCTV_Discovery::readInfoPacket()
+{
+    while (m_infoSocket.hasPendingDatagrams()) {
+        QByteArray data;
+        QHostAddress address;
+        data.resize (m_infoSocket.pendingDatagramSize());
+        m_infoSocket.readDatagram (data.data(), data.size(), &address);
+
+        emit newInfoPacket (QHostAddress (address.toIPv4Address()), data);
+    }
+}
+
+/**
  * Obtains the remote host IP from which we received a packet, if the datagram
  * is valid, then the function will notify the rest of the QCCTV library
  */
-void QCCTV_Discovery::readPacket()
+void QCCTV_Discovery::readDiscoveryPacket()
 {
-    while (m_socket.hasPendingDatagrams()) {
+    while (m_discoverySocket.hasPendingDatagrams()) {
         QByteArray data;
         QHostAddress address;
-        data.resize (m_socket.pendingDatagramSize());
-        int bytes = m_socket.readDatagram (data.data(), data.size(),
-                                           &address, NULL);
+        data.resize (m_discoverySocket.pendingDatagramSize());
+        int bytes = m_discoverySocket.readDatagram (data.data(), data.size(),
+                                                    &address, NULL);
 
         if (bytes > 0)
             emit newCamera (QHostAddress (address.toIPv4Address()));

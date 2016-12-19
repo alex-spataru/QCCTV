@@ -33,18 +33,21 @@ class QCCTV_Discovery : public QObject
 
 Q_SIGNALS:
     void newCamera (const QHostAddress& camera);
+    void newInfoPacket (const QHostAddress& camera, const QByteArray& data);
 
 public:
     static QCCTV_Discovery* getInstance();
 
 private Q_SLOTS:
-    void readPacket();
+    void readInfoPacket();
+    void readDiscoveryPacket();
 
 protected:
     QCCTV_Discovery();
 
 private:
-    QUdpSocket m_socket;
+    QUdpSocket m_infoSocket;
+    QUdpSocket m_discoverySocket;
 };
 
 #endif

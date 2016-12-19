@@ -107,6 +107,7 @@ public Q_SLOTS:
 private Q_SLOTS:
     void removeCamera (const int camera);
     void connectToCamera (const QHostAddress& ip);
+    void readInfoPacket (const QHostAddress& address, const QByteArray& data);
 
 private:
     int m_quality;

@@ -222,14 +222,11 @@ void QCCTV_RemoteCamera::start()
 
     /* Initialize sockets */
     m_socket = new QTcpSocket (this);
-    m_infoSocket = new QUdpSocket (this);
     m_commandSocket = new QUdpSocket (this);
 
     /* Configure signals/slots */
     connect (m_socket,     SIGNAL (readyRead()),
              this,           SLOT (onImageDataReceived()));
-    connect (m_infoSocket, SIGNAL (readyRead()),
-             this,           SLOT (readInfoPacket()));
     connect (m_socket,     SIGNAL (disconnected()),
              this,           SLOT (endConnection()));
 
@@ -237,7 +234,6 @@ void QCCTV_RemoteCamera::start()
     m_socket->connectToHost (m_address, QCCTV_STREAM_PORT);
     m_socket->setSocketOption (QTcpSocket::LowDelayOption, 1);
     m_socket->setSocketOption (QTcpSocket::KeepAliveOption, 1);
-    m_infoSocket->bind (QCCTV_INFO_PORT, QUdpSocket::ShareAddress);
 }
 
 /**
@@ -281,6 +277,34 @@ void QCCTV_RemoteCamera::changeZoom (const int zoom)
 }
 
 /**
+ * Allows or disallows saving the incoming images to the disk
+ */
+void QCCTV_RemoteCamera::setSaveIncomingMedia (const bool save)
+{
+    m_saveIncomingMedia = save;
+}
+
+/**
+ * Reads and interprets an information packet coming from the camera
+ */
+void QCCTV_RemoteCamera::readInfoPacket (const QByteArray& data)
+{
+    QCCTV_InfoPacket packet;
+    if (QCCTV_ReadInfoPacket (&packet, data)) {
+        updateFPS (packet.fps);
+        updateZoom (packet.zoom);
+        updateName (packet.cameraName);
+        updateGroup (packet.cameraGroup);
+        updateStatus (packet.cameraStatus);
+        updateResolution (packet.resolution);
+        updateZoomSupport (packet.supportsZoom);
+        updateAutoRegulate (packet.autoRegulateResolution);
+        updateFlashlightEnabled (packet.flashlightEnabled);
+        acknowledgeReception();
+    }
+}
+
+/**
  * Changes the image quality (from 0 to 100) used when saving incoming media
  */
 void QCCTV_RemoteCamera::setImageQuality (const int quality)
@@ -289,14 +313,6 @@ void QCCTV_RemoteCamera::setImageQuality (const int quality)
         m_quality = -1;
     else
         m_quality = qMax (qMin (quality, 100), 0);
-}
-
-/**
- * Allows or disallows saving the incoming images to the disk
- */
-void QCCTV_RemoteCamera::setSaveIncomingMedia (const bool save)
-{
-    m_saveIncomingMedia = save;
 }
 
 /**
@@ -373,42 +389,6 @@ void QCCTV_RemoteCamera::endConnection()
     clearBuffer();
     updateConnected (false);
     emit disconnected (id());
-}
-
-/**
- * Reads and interprets an information packet coming from the camera
- */
-void QCCTV_RemoteCamera::readInfoPacket()
-{
-    if (!m_infoSocket)
-        return;
-
-    while (m_infoSocket->hasPendingDatagrams()) {
-        /* Obtain datagram data */
-        QByteArray data;
-        QHostAddress host;
-        data.resize (m_infoSocket->pendingDatagramSize());
-        m_infoSocket->readDatagram (data.data(), data.size(), &host);
-
-        /* This packet is meant for another remote camera class */
-        if (QHostAddress (host.toIPv4Address()) != address())
-            return;
-
-        /* Read the packet */
-        QCCTV_InfoPacket packet;
-        if (QCCTV_ReadInfoPacket (&packet, data)) {
-            updateFPS (packet.fps);
-            updateZoom (packet.zoom);
-            updateName (packet.cameraName);
-            updateGroup (packet.cameraGroup);
-            updateStatus (packet.cameraStatus);
-            updateResolution (packet.resolution);
-            updateZoomSupport (packet.supportsZoom);
-            updateAutoRegulate (packet.autoRegulateResolution);
-            updateFlashlightEnabled (packet.flashlightEnabled);
-            acknowledgeReception();
-        }
-    }
 }
 
 /**
@@ -597,8 +577,12 @@ void QCCTV_RemoteCamera::readImagePacket()
     QCCTV_ImagePacket packet;
     if (QCCTV_ReadImagePacket (&packet, m_data)) {
         clearBuffer();
+        acknowledgeReception();
         imagePacket()->image = packet.image;
         emit newImage (id());
+
+        if (m_watchdog)
+            m_watchdog->reset();
 
         if (saveIncomingMedia()) {
             QtConcurrent::run (m_saver, &QCCTV_ImageSaver::saveImage,
@@ -620,9 +604,6 @@ void QCCTV_RemoteCamera::readImagePacket()
  */
 void QCCTV_RemoteCamera::acknowledgeReception()
 {
-    if (m_watchdog)
-        m_watchdog->reset();
-
     sendCommandPacket();
 
     if (!isConnected())
