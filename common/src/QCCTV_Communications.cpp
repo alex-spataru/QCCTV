@@ -41,6 +41,7 @@ static const QString KEY_ZOOM_AVAIL = "zoomSupported";
 static const QString KEY_AUTOREGRES = "autoRegulateResolution";
 
 /* Command packet keys */
+static const QString KEY_HOST = "host";
 static const QString KEY_OLD_FPS = "o_fps";
 static const QString KEY_NEW_FPS = "n_fps";
 static const QString KEY_OLD_ZOOM = "o_zoom";
@@ -131,6 +132,7 @@ QByteArray QCCTV_CreateInfoPacket (const QCCTV_InfoPacket* packet)
 QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket* packet)
 {
     QJsonObject json;
+    json.insert (KEY_HOST, packet->host);
     json.insert (KEY_OLD_FPS, packet->oldFps);
     json.insert (KEY_NEW_FPS, packet->newFps);
     json.insert (KEY_OLD_ZOOM, packet->oldZoom);
@@ -167,7 +169,7 @@ QByteArray QCCTV_CreateImagePacket (const QCCTV_ImagePacket* packet,
 }
 
 /**
- * Reads the given \a binary data and updates the values if the given stream
+ * Reads the given \a binary data and updates the values of the given stream
  * \a packet structure
  *
  * This function shall return \c true on success, \c false on failure
@@ -228,7 +230,7 @@ bool QCCTV_ReadImagePacket (QCCTV_ImagePacket* packet, const QByteArray& data)
 }
 
 /**
- * Reads the given \a binary data and updates the values if the given command
+ * Reads the given \a binary data and updates the values of the given command
  * \a packet structure
  *
  * This function shall return \c true on success, \c false on failure
@@ -246,6 +248,7 @@ bool QCCTV_ReadCommandPacket (QCCTV_CommandPacket* packet,
         return false;
 
     /* Get information from JSON object */
+    packet->host = json.value (KEY_HOST).toString();
     packet->oldFps = json.value (KEY_OLD_FPS).toInt();
     packet->newFps = json.value (KEY_NEW_FPS).toInt();
     packet->oldZoom = json.value (KEY_OLD_ZOOM).toInt();

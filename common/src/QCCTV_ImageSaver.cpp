@@ -26,9 +26,12 @@
 #include <QDir>
 #include <QPen>
 #include <QFont>
+#include <QImage>
 #include <QPainter>
 #include <QDateTime>
 #include <QFontDatabase>
+
+#define IMAGE_FORMAT "jpg"
 
 #if defined Q_OS_MAC
     #define MONOSPACE_FONT "Menlo"
@@ -37,6 +40,16 @@
 #else
     #define MONOSPACE_FONT "Monospace"
 #endif
+
+/**
+ * Initializes the class
+ */
+QCCTV_ImageSaver::QCCTV_ImageSaver (QObject* parent) : QObject (parent)
+{
+    QDateTime current = QDateTime::currentDateTime();
+    m_hour = current.time().hour();
+    m_minute = current.time().minute();
+}
 
 /**
  * Adds some informational text in the upper-right corner of the given
@@ -86,15 +99,9 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
 
     /* Get recordings directory */
-    QString f_path = QString ("%1/%2/%3/%4/%5/%5 %6/%7 Hours/Minute %8/")
-                     .arg (path)
-                     .arg (name)
-                     .arg (address)
-                     .arg (current.toString ("yyyy"))
-                     .arg (current.toString ("MMM"))
-                     .arg (current.toString ("dd"))
-                     .arg (current.toString ("hh"))
-                     .arg (current.toString ("mm"));
+    int hour = current.time().hour();
+    int minute = current.time().minute();
+    QString f_path = getPath (path, name, address, hour, minute);
 
     /* Create directory if it does not exist */
     QDir dir = QDir (f_path);
@@ -105,8 +112,85 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     QString f_name = QString ("%1 sec %2 ms.%3")
                      .arg (current.toString ("ss"))
                      .arg (current.toString ("zzz"))
-                     .arg ("jpg");
+                     .arg (IMAGE_FORMAT);
 
     /* Save image */
-    copy.save (dir.absoluteFilePath (f_name), "jpg", quality);
+    copy.save (dir.absoluteFilePath (f_name), IMAGE_FORMAT, quality);
+
+    /* If the minute was changed, generate video from all saved images */
+    if (minute != m_minute) {
+        createMinuteVideo (getPath (path, name, address, m_hour, m_minute));
+        m_minute = minute;
+    }
+
+    /* If hour was changed, join all one-minute videos into a one-hour video */
+    if (hour != m_hour) {
+        createHourVideo (getPath (path, name, address, m_hour, m_minute));
+        m_hour = hour;
+    }
+}
+
+/**
+ * Generates a MP4 video from all the JPEG images in the given \a path
+ */
+void QCCTV_ImageSaver::createMinuteVideo (const QString& path)
+{
+    /* Directory does not exist */
+    QDir dir (path);
+    if (!dir.exists())
+        return;
+
+    /* Get list of JPEG files */
+    QStringList validImages;
+    QStringList nameFilter = QStringList() << "*." IMAGE_FORMAT;
+    QStringList images = dir.entryList (nameFilter,
+                                        QDir::Files,
+                                        QDir::Name);
+
+    /* Get times between frames */
+    QList<QPair<int, int>> times;
+    foreach (QString image, images) {
+        /* Strip extension from image name */
+        QString name = image;
+        name = name.replace ("." IMAGE_FORMAT, "");
+
+        /* Get seconds and milliseconds from image name */
+        QStringList information = name.split ("_");
+        if (information.count() == 2) {
+            validImages.append (image);
+            times.append (qMakePair (information.at (0).toInt(),
+                                     information.at (1).toInt()));
+        }
+    }
+
+    /* Encode video */
+}
+
+/**
+ * Joins all the one-minute videos into a one-hour video
+ */
+void QCCTV_ImageSaver::createHourVideo (const QString& path)
+{
+
+}
+
+/**
+ * Returns the file path for the given options
+ */
+QString QCCTV_ImageSaver::getPath (const QString& path,
+                                   const QString& name,
+                                   const QString& address,
+                                   const int hour,
+                                   const int minute)
+{
+    QDateTime current = QDateTime::currentDateTime();
+    return QString ("%1/%2/%3/%4/%5/%5 %6/%7 Hours/Minute %8/")
+           .arg (path)
+           .arg (name)
+           .arg (address)
+           .arg (current.toString ("yyyy"))
+           .arg (current.toString ("MMM"))
+           .arg (current.toString ("dd"))
+           .arg (hour)
+           .arg (minute);
 }

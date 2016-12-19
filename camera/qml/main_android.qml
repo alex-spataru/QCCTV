@@ -30,6 +30,7 @@ import "."
 
 ApplicationWindow {
     id: app
+    property int spacing: 8
 
     //
     // Styling options
@@ -45,22 +46,46 @@ ApplicationWindow {
     Component.onCompleted: showMaximized()
 
     //
-    // Video output
+    // Tab selector
     //
-    VideoOutput {
-        anchors.fill: parent
-        autoOrientation: true
-        fillMode: VideoOutput.PreserveAspectCrop
+    header: TabBar {
+        id: tabBar
 
-        source: Camera {
-            objectName: "camera"
+        TabButton {
+            text: qsTr ("Camera")
+            onClicked: stack.currentIndex = 0
+        }
+
+        TabButton {
+            text: qsTr ("Stations")
+            onClicked: stack.currentIndex = 1
         }
     }
 
     //
-    // Common interface
+    // Pages
     //
-    Interface {
+    SwipeView {
+        id: stack
+        currentIndex: 0
         anchors.fill: parent
+        onCurrentIndexChanged: tabBar.currentIndex = currentIndex
+
+        Controls {
+            id: controls
+            background: VideoOutput {
+                anchors.fill: parent
+                autoOrientation: true
+                fillMode: VideoOutput.PreserveAspectCrop
+
+                source: Camera {
+                    objectName: "camera"
+                }
+            }
+        }
+
+        Stations {
+            id: stations
+        }
     }
 }

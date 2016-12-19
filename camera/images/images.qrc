@@ -6,5 +6,7 @@
         <file>flash-off.svg</file>
         <file>flash-on.svg</file>
         <file>zoom.svg</file>
+        <file>focus.svg</file>
+        <file>computer.svg</file>
     </qresource>
 </RCC>

@@ -72,6 +72,10 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) : QObject (parent)
     connect (m_imageCapture, SIGNAL (newFrame()),
              this,             SLOT (changeImage()));
 
+    /* Setup additional notifiers */
+    connect (this, SIGNAL (hostCountChanged()),
+             this, SIGNAL (hostNamesChanged()));
+
     /* Start the event loops */
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (update()));
     QTimer::singleShot (1000, Qt::CoarseTimer, this, SLOT (broadcastInfo()));
@@ -244,14 +248,24 @@ bool QCCTV_LocalCamera::flashlightAvailable() const
 }
 
 /**
+ * Returns the user-friendly host names of the connected QCCTV Stations
+ */
+QStringList QCCTV_LocalCamera::hostNames() const
+{
+    return m_hostNames;
+}
+
+/**
  * Returns a list with all the connected QCCTV stations to this camera
  */
 QStringList QCCTV_LocalCamera::connectedHosts() const
 {
     QStringList list;
 
-    foreach (QTcpSocket* socket, m_sockets)
-        list.append (socket->peerAddress().toString());
+    foreach (QTcpSocket* socket, m_sockets) {
+        QHostAddress address (socket->peerAddress().toIPv4Address());
+        list.append (address.toString());
+    }
 
     return list;
 }
@@ -564,6 +578,7 @@ void QCCTV_LocalCamera::acceptConnection()
         watchdog->setExpirationTime (QCCTV_GetWatchdogTime (infoPacket()->fps));
 
         m_watchdogs.append (watchdog);
+        m_hostNames.append ("Unknown");
         m_sockets.append (m_server.nextPendingConnection());
         m_sockets.last()->setSocketOption (QTcpSocket::LowDelayOption, 1);
         m_sockets.last()->setSocketOption (QTcpSocket::KeepAliveOption, 1);
@@ -600,6 +615,16 @@ void QCCTV_LocalCamera::readCommandPacket()
     bool success = QCCTV_ReadCommandPacket (commandPacket(), data);
     if (!success)
         return;
+
+    /* Change host name */
+    QString ip = QHostAddress (address.toIPv4Address()).toString();
+    if (connectedHosts().contains (ip)) {
+        int index = connectedHosts().indexOf (ip);
+        if (m_hostNames.at (index) != commandPacket()->host) {
+            m_hostNames.replace (index, commandPacket()->host);
+            emit hostNamesChanged();
+        }
+    }
 
     /* Change FPS */
     if (commandPacket()->fpsChanged)

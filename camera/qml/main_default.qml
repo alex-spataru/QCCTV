@@ -30,6 +30,7 @@ import "."
 
 ApplicationWindow {
     id: app
+    property int spacing: 8
     
     //
     // Geometry options
@@ -81,19 +82,43 @@ ApplicationWindow {
     }
 
     //
-    // Video output image
+    // Tab selector
     //
-    Image {
-        id: image
-        cache: false
-        anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
+    header: TabBar {
+        id: tabBar
+
+        TabButton {
+            text: qsTr ("Camera")
+            onClicked: stack.currentIndex = 0
+        }
+
+        TabButton {
+            text: qsTr ("Stations")
+            onClicked: stack.currentIndex = 1
+        }
     }
 
     //
-    // Common interface
+    // Pages
     //
-    Interface {
+    SwipeView {
+        id: stack
+        currentIndex: 0
         anchors.fill: parent
+        onCurrentIndexChanged: tabBar.currentIndex = currentIndex
+
+        Controls {
+            id: controls
+            background: Image {
+                id: image
+                cache: false
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
+            }
+        }
+
+        Stations {
+            id: stations
+        }
     }
 }

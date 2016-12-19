@@ -77,6 +77,9 @@ android {
 # Import libraries
 #-------------------------------------------------------------------------------
 
+CONFIG += QCCTV_CAMERA
+CONFIG -= QCCTV_STATION
+
 include ($$PWD/../common/qcctv-common.pri)
 
 #-------------------------------------------------------------------------------

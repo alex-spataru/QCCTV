@@ -20,8 +20,8 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#ifndef _QCCTV_CAMERA_H
-#define _QCCTV_CAMERA_H
+#ifndef _QCCTV_REMOTE_CAMERA_H
+#define _QCCTV_REMOTE_CAMERA_H
 
 #include <QTime>
 #include <QTcpSocket>

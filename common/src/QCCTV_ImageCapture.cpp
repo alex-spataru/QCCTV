@@ -20,7 +20,7 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include "yuv2rgb/yuv2rgb.h"
+#include "yuv2rgb.h"
 #include "QCCTV_ImageCapture.h"
 
 #include "QCCTV.h"

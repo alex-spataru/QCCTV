@@ -21,6 +21,7 @@
  */
 
 #include <QDir>
+#include <QSysInfo>
 #include <QtConcurrent/QtConcurrent>
 
 #include "QCCTV.h"
@@ -28,6 +29,17 @@
 #include "QCCTV_ImageSaver.h"
 #include "QCCTV_RemoteCamera.h"
 #include "QCCTV_Communications.h"
+
+static const QString hostName()
+{
+    QString host = QSysInfo::machineHostName();
+    if (host.isEmpty())
+        host = QSysInfo::prettyProductName();
+    else
+        host += " (" + QSysInfo::prettyProductName() + ")";
+
+    return host;
+}
 
 QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) : QObject (parent)
 {
@@ -44,6 +56,8 @@ QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) : QObject (parent)
     QCCTV_InitInfo (infoPacket());
     QCCTV_InitImage (imagePacket());
     QCCTV_InitCommand (commandPacket(), infoPacket());
+
+    commandPacket()->host = hostName();
 }
 
 /**

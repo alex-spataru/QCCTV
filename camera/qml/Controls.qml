@@ -28,13 +28,12 @@ import Qt.labs.settings 1.0
 import QtQuick.Controls.Material 2.0
 import QtQuick.Controls.Universal 2.0
 
-Item {
-    id: ui
+Page {
+    id: controls
 
     //
     // Global variables
     //
-    property int spacing: 8
     property int fps: 0
     property string name: ""
     property string group: ""
@@ -45,11 +44,19 @@ Item {
     // Settings
     //
     Settings {
-        property alias fps: ui.fps
-        property alias name: ui.name
-        property alias group: ui.group
-        property alias resolution: ui.resolution
-        property alias autoRegulate: ui.autoRegulate
+        property alias fps: controls.fps
+        property alias name: controls.name
+        property alias group: controls.group
+        property alias resolution: controls.resolution
+        property alias autoRegulate: controls.autoRegulate
+    }
+
+    //
+    // Instructs QCCTV to focus the camera and updates the UI
+    //
+    function focusCamera() {
+        QCCTVCamera.focusCamera()
+        row.showTooltip (qsTr ("Focusing camera") + "...")
     }
 
     //
@@ -66,12 +73,12 @@ Item {
     //
     Connections {
         target: QCCTVCamera
-        onFpsChanged: ui.fps = QCCTVCamera.fps
-        onNameChanged: ui.name = QCCTVCamera.name
-        onGroupChanged: ui.group = QCCTVCamera.group
-        onResolutionChanged: ui.resolution = QCCTVCamera.resolution
+        onFpsChanged: controls.fps = QCCTVCamera.fps
+        onNameChanged: controls.name = QCCTVCamera.name
+        onGroupChanged: controls.group = QCCTVCamera.group
+        onResolutionChanged: controls.resolution = QCCTVCamera.resolution
         onZoomLevelChanged: zoomSlider.value = QCCTVCamera.zoomLevel
-        onAutoRegulateResolutionChanged: ui.autoRegulate = QCCTVCamera.autoRegulateResolution
+        onAutoRegulateResolutionChanged: controls.autoRegulate = QCCTVCamera.autoRegulateResolution
     }
 
     //
@@ -79,22 +86,19 @@ Item {
     //
     MouseArea {
         anchors.fill: parent
-        onDoubleClicked: {
-            QCCTVCamera.focusCamera()
-            row.showTooltip (qsTr ("Focusing camera") + "...")
-        }
+        onDoubleClicked: controls.focusCamera()
     }
 
     //
     // Camera information labels
     //
     ColumnLayout {
-        spacing: ui.spacing / 2
+        spacing: app.spacing / 2
 
         anchors {
             top: parent.top
             left: parent.left
-            margins: ui.spacing
+            margins: app.spacing
         }
 
         Label {
@@ -133,7 +137,7 @@ Item {
 
         anchors {
             right: parent.right
-            margins: ui.spacing
+            margins: app.spacing
             verticalCenter: parent.verticalCenter
         }
 
@@ -162,7 +166,6 @@ Item {
 
         modal: true
         x: (app.width - width) / 2
-        y: (app.height - height) / 2
 
         Material.theme: Material.Light
         Universal.theme: Universal.Dark
@@ -172,7 +175,7 @@ Item {
 
         ColumnLayout {
             id: column
-            spacing: ui.spacing
+            spacing: app.spacing
 
             //
             // Camera name label
@@ -267,7 +270,7 @@ Item {
             // Spacer
             //
             Item {
-                Layout.minimumHeight: ui.spacing * 2
+                Layout.minimumHeight: app.spacing * 2
             }
 
             //
@@ -285,12 +288,12 @@ Item {
     // Camera control buttons
     //
     ColumnLayout {
-        spacing: ui.spacing
+        spacing: app.spacing
 
         anchors {
             left: parent.left
             right: parent.right
-            margins: ui.spacing
+            margins: app.spacing
             bottom: parent.bottom
         }
 
@@ -299,10 +302,10 @@ Item {
         //
         RowLayout {
             id: row
-            spacing: ui.spacing
+            spacing: app.spacing
             Layout.fillWidth: true
 
-            property size buttonSize: Qt.size (32, 32)
+            property size buttonSize: Qt.size (36, 36)
 
             function showTooltip (text) {
                 tooltip.text = text
@@ -395,13 +398,30 @@ Item {
             Button {
                 id: zoomBt
                 checkable: true
-                opacity: enabled ? 1 : 0.65
+                visible: enabled
                 enabled: QCCTVCamera.supportsZoom
 
                 contentItem: Image {
                     fillMode: Image.Pad
                     sourceSize: row.buttonSize
                     source: "qrc:/images/zoom.svg"
+                    verticalAlignment: Image.AlignVCenter
+                    horizontalAlignment: Image.AlignHCenter
+                }
+            }
+
+            //
+            // Focus button (only visible when zoom button is not)
+            //
+            Button {
+                visible: enabled
+                enabled: !zoomBt.enabled
+                onClicked: controls.focusCamera()
+
+                contentItem: Image {
+                    fillMode: Image.Pad
+                    sourceSize: row.buttonSize
+                    source: "qrc:/images/focus.svg"
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }

@@ -28,10 +28,7 @@
 class QCCTV_ImageSaver : public QObject
 {
 public:
-    QCCTV_ImageSaver (QObject* parent = NULL)
-    {
-        setParent (parent);
-    }
+    QCCTV_ImageSaver (QObject* parent = NULL);
 
 public Q_SLOTS:
     void saveImage (const QString& path,
@@ -39,6 +36,19 @@ public Q_SLOTS:
                     const QString& address,
                     const QImage& image,
                     const int quality);
+
+private:
+    void createHourVideo (const QString& path);
+    void createMinuteVideo (const QString& path);
+    QString getPath (const QString& path,
+                     const QString& name,
+                     const QString& address,
+                     const int hour,
+                     const int minute);
+
+private:
+    int m_hour;
+    int m_minute;
 };
 
 #endif

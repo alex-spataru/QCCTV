@@ -43,6 +43,7 @@ struct QCCTV_ImagePacket {
 };
 
 struct QCCTV_CommandPacket {
+    QString host;
     quint8 oldFps;
     quint8 newFps;
     quint8 oldZoom;

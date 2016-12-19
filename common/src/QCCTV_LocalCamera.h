@@ -93,6 +93,9 @@ class QCCTV_LocalCamera : public QObject
     Q_PROPERTY (QStringList connectedHosts
                 READ connectedHosts
                 NOTIFY hostCountChanged)
+    Q_PROPERTY (QStringList hostNames
+                READ hostNames
+                NOTIFY hostNamesChanged)
     Q_PROPERTY (QStringList resolutions
                 READ availableResolutions
                 NOTIFY hostCountChanged)
@@ -103,6 +106,7 @@ Q_SIGNALS:
     void imageChanged();
     void groupChanged();
     void cameraChanged();
+    void hostNamesChanged();
     void zoomLevelChanged();
     void hostCountChanged();
     void resolutionChanged();
@@ -132,6 +136,7 @@ public:
     int maximumFPS() const;
     bool readyForCapture() const;
     bool flashlightAvailable() const;
+    QStringList hostNames() const;
     QStringList connectedHosts() const;
     QStringList availableResolutions() const;
 
@@ -179,6 +184,8 @@ private:
     QUdpSocket m_cmdSocket;
     QUdpSocket m_infoSocket;
     QUdpSocket m_broadcastSocket;
+
+    QStringList m_hostNames;
     QList<QTcpSocket*> m_sockets;
     QList<QCCTV_Watchdog*> m_watchdogs;
 
