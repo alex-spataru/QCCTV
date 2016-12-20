@@ -34,11 +34,12 @@
 QCCTV_ImageCapture::QCCTV_ImageCapture (QObject* parent) :
     QAbstractVideoSurface (parent)
 {
+    m_enabled = false;
     m_probe = Q_NULLPTR;
     m_camera = Q_NULLPTR;
 
     if (!parent) {
-        m_thread.start (QThread::HighPriority);
+        m_thread.start();
         moveToThread (&m_thread);
     }
 }
@@ -99,6 +100,15 @@ QList<QVideoFrame::PixelFormat> QCCTV_ImageCapture::supportedPixelFormats
 QImage QCCTV_ImageCapture::image() const
 {
     return m_image;
+}
+
+/**
+ * Returns \c true if the capturer is allowed to process image frames from
+ * the media source (camera)
+ */
+bool QCCTV_ImageCapture::isEnabled() const
+{
+    return m_enabled;
 }
 
 /**
@@ -170,7 +180,7 @@ bool QCCTV_ImageCapture::publishImage()
 bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
 {
     /* Frame is invalid or grabber is disabled */
-    if (!frame.isValid() || !m_enabled)
+    if (!frame.isValid() || !isEnabled())
         return false;
 
     /* Clone the frame (so that we can use it) */
@@ -194,7 +204,6 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
         /* Create initial image */
         bool success = false;
         QImage image (clone.width(), clone.height(), QImage::Format_RGB888);
-        image.fill (Qt::black);
 
         /* Perform NV12 to RGB conversion */
         if (clone.pixelFormat() == QVideoFrame::Format_NV12)

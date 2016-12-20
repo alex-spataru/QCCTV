@@ -68,6 +68,10 @@ extern void QCCTV_InitInfo (QCCTV_InfoPacket* packet);
 extern void QCCTV_InitImage (QCCTV_ImagePacket* packet);
 extern void QCCTV_InitCommand (QCCTV_CommandPacket* command, QCCTV_InfoPacket* stream);
 
+extern void QCCTV_WriteImagePacket (QByteArray* out,
+                                    const QCCTV_ImagePacket* image,
+                                    const QCCTV_InfoPacket* info);
+
 extern QByteArray QCCTV_CreateInfoPacket (const QCCTV_InfoPacket* packet);
 extern QByteArray QCCTV_CreateCommandPacket (const QCCTV_CommandPacket* packet);
 extern QByteArray QCCTV_CreateImagePacket (const QCCTV_ImagePacket* packet,

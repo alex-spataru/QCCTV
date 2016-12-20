@@ -24,6 +24,7 @@
 #include <QSysInfo>
 #include <QCameraInfo>
 #include <QCameraFocus>
+#include <QFutureWatcher>
 #include <QCameraExposure>
 #include <QCameraImageCapture>
 #include <QtConcurrent/QtConcurrent>
@@ -59,10 +60,6 @@ QCCTV_LocalCamera::QCCTV_LocalCamera (QObject* parent) : QObject (parent)
              this,           SLOT (acceptConnection()));
     connect (&m_cmdSocket, SIGNAL (readyRead()),
              this,           SLOT (readCommandPacket()));
-
-    /* Send image data when it has been created */
-    connect (&m_futureWatcher, SIGNAL (finished()),
-             this,               SLOT (sendImage()));
 
     /* Configure listener sockets */
     m_server.listen (QHostAddress::Any, QCCTV_STREAM_PORT);
@@ -105,9 +102,6 @@ QCCTV_LocalCamera::~QCCTV_LocalCamera()
     /* Delete camera capture object */
     if (m_capture)
         delete m_capture;
-
-    /* Stop image sending */
-    m_futureWatcher.cancel();
 
     /* Delete children */
     delete m_imageCapture;
@@ -480,19 +474,15 @@ void QCCTV_LocalCamera::setAutoRegulateResolution (const bool regulate)
  */
 void QCCTV_LocalCamera::update()
 {
+    /* Get another image from the camera */
+    if (!m_imageCapture->isEnabled())
+        m_imageCapture->setEnabled (true);
+
     /* Update camera info and send it */
-    updateStatus();
     sendInfo();
+    updateStatus();
 
-    /* Create the image data in another thread */
-    m_imageCapture->setEnabled (true);
-    m_futureWatcher.waitForFinished();
-    QFuture<QByteArray> future = QtConcurrent::run (QCCTV_CreateImagePacket,
-                                                    imagePacket(),
-                                                    infoPacket());
-    m_futureWatcher.setFuture (future);
-
-    /* Call this function again in the future */
+    /* Call the update function again */
     QTimer::singleShot (1000 / fps(), this, SLOT (update()));
 }
 
@@ -513,9 +503,11 @@ void QCCTV_LocalCamera::sendInfo()
  */
 void QCCTV_LocalCamera::sendImage()
 {
-    foreach (QTcpSocket* socket, m_sockets)
-        if (socket->isWritable())
-            socket->write (m_futureWatcher.result());
+    if (!m_data.isEmpty()) {
+        foreach (QTcpSocket* socket, m_sockets)
+            if (socket->isWritable())
+                socket->write (m_data);
+    }
 }
 
 /**
@@ -523,9 +515,21 @@ void QCCTV_LocalCamera::sendImage()
  */
 void QCCTV_LocalCamera::changeImage()
 {
+    /* Disable the capturer */
     m_imageCapture->setEnabled (false);
+
+    /* Re-assign image */
     imagePacket()->image = m_imageCapture->image();
     emit imageChanged();
+
+    /* Generate the socket data and send it */
+    QFutureWatcher<void>* watcher = new QFutureWatcher<void> (this);
+    connect (watcher, SIGNAL (finished()), this,    SLOT (sendImage()));
+    connect (watcher, SIGNAL (finished()), watcher, SLOT (deleteLater()));
+    watcher->setFuture (QtConcurrent::run (QCCTV_WriteImagePacket,
+                                           &m_data, imagePacket(),
+                                           infoPacket()));
+
 }
 
 /**

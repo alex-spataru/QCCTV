@@ -27,7 +27,6 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUdpSocket>
-#include <QFutureWatcher>
 
 class QCamera;
 class QCCTV_Watchdog;
@@ -178,12 +177,13 @@ private:
 private:
     QCamera* m_camera;
     QCameraImageCapture* m_capture;
-    QFutureWatcher<QByteArray> m_futureWatcher;
 
     QTcpServer m_server;
     QUdpSocket m_cmdSocket;
     QUdpSocket m_infoSocket;
     QUdpSocket m_broadcastSocket;
+
+    QByteArray m_data;
 
     QStringList m_hostNames;
     QList<QTcpSocket*> m_sockets;

@@ -46,6 +46,7 @@ public:
     (QAbstractVideoBuffer::HandleType handleType) const;
 
     QImage image() const;
+    bool isEnabled() const;
 
 public Q_SLOTS:
     void setSource (QCamera* source);

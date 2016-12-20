@@ -38,6 +38,8 @@ Rectangle {
             margins: app.spacing
         }
 
+        ScrollBar.vertical: ScrollBar { }
+
         delegate: RowLayout {
             spacing: app.spacing
 

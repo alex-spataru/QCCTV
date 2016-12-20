@@ -60,7 +60,7 @@ static const QString KEY_NEW_AUTOREGRES = "n_autoRegulateResolution";
 void QCCTV_InitInfo (QCCTV_InfoPacket* packet)
 {
     if (packet) {
-        packet->fps = 18;
+        packet->fps = 10;
         packet->zoom = 0;
         packet->cameraName = "";
         packet->resolution = QCCTV_D1;
@@ -104,6 +104,18 @@ void QCCTV_InitCommand (QCCTV_CommandPacket* command,
         command->oldAutoRegulateResolution = stream->autoRegulateResolution;
         command->newAutoRegulateResolution = stream->autoRegulateResolution;
     }
+}
+
+/**
+ * Generates an image packet using \c QCCTV_CreateImagePacket and writes it
+ * on the given \a output byte array
+ */
+void QCCTV_WriteImagePacket (QByteArray* output,
+                             const QCCTV_ImagePacket* image,
+                             const QCCTV_InfoPacket* info)
+{
+    output->clear();
+    *output = QCCTV_CreateImagePacket (image, info);
 }
 
 /**
@@ -165,7 +177,7 @@ QByteArray QCCTV_CreateImagePacket (const QCCTV_ImagePacket* packet,
     data.prepend ((crc & 0xff000000) >> 24);
 
     /* Return obtained data */
-    return data;
+    return qCompress (data, 9);
 }
 
 /**
@@ -208,15 +220,20 @@ bool QCCTV_ReadImagePacket (QCCTV_ImagePacket* packet, const QByteArray& data)
     if (!packet || data.length() < 4)
         return false;
 
+    /* Uncompress the data */
+    QByteArray uncompressed = qUncompress (data);
+    if (uncompressed.isEmpty())
+        return false;
+
     /* Get the checksum */
-    quint8 a = data.at (0);
-    quint8 b = data.at (1);
-    quint8 c = data.at (2);
-    quint8 d = data.at (3);
+    quint8 a = uncompressed.at (0);
+    quint8 b = uncompressed.at (1);
+    quint8 c = uncompressed.at (2);
+    quint8 d = uncompressed.at (3);
     packet->crc32 = (a << 24) | (b << 16) | (c << 8) | (d & 0xff);
 
     /* Create byte array without checksum header */
-    QByteArray stream = data;
+    QByteArray stream = uncompressed;
     stream.remove (0, 4);
 
     /* Compare checksums (abort if they are different) */
