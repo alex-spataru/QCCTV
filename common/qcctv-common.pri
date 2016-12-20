@@ -26,7 +26,6 @@ QT += widgets
 QT += multimedia
 
 CONFIG += c++11
-CONFIG += console
 INCLUDEPATH += $$PWD/src
 
 QMAKE_CXXFLAGS_RELEASE -= -O1
