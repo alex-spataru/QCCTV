@@ -14,5 +14,7 @@
         <file>qcctv-station.png</file>
         <file>zoom.svg</file>
         <file>fullscreen.svg</file>
+        <file>fill.svg</file>
+        <file>fit.svg</file>
     </qresource>
 </RCC>

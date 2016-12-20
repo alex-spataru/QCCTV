@@ -73,8 +73,8 @@ GridView {
         }
 
         /* Get available size */
-        var w = app.width
-        var h = app.height
+        var w = width
+        var h = height
 
         /* Set initial size */
         cellWidth = w / Math.max (rows, 1)

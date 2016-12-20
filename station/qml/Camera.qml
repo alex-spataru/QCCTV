@@ -37,20 +37,11 @@ Item {
         fps = QCCTVStation.fps (camNumber) + " FPS"
         cameraName = QCCTVStation.cameraName (camNumber)
         cameraStatus = QCCTVStation.statusString (camNumber)
-
-        image.source = "image://qcctv/" + camNumber
     }
 
     Connections {
         enabled: true
         target: QCCTVStation
-
-        onNewCameraImage: {
-            if (camera === camNumber & enabled) {
-                image.source = ""
-                image.source = "image://qcctv/" + camNumber
-            }
-        }
 
         onFpsChanged: {
             if (camera === camNumber)
@@ -68,12 +59,9 @@ Item {
         }
     }
 
-    Image {
-        id: image
-        cache: false
-        asynchronous: true
+    CameraVideo {
+        cameraId: camNumber
         anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
     }
 
     ColumnLayout {

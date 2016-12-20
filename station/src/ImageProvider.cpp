@@ -33,18 +33,23 @@ QCCTV_StationImage::QCCTV_StationImage (QCCTV_Station* parent) :
     m_cameraError = QCCTV_CreateStatusImage (QSize (640, 480), "CAMERA ERROR");
 }
 
-QImage QCCTV_StationImage::requestImage (const QString& id,
-                                         QSize* size,
+QImage QCCTV_StationImage::requestImage (const QString& id, QSize* size,
                                          const QSize& requestedSize)
 {
-    Q_UNUSED (size);
-    Q_UNUSED (requestedSize);
+    QImage result;
 
     if (m_station && !id.isEmpty()) {
         QImage image = m_station->currentImage (id.toInt());
         if (!image.isNull())
-            return image;
+            result = image;
     }
 
-    return m_cameraError;
+    if (result.isNull())
+        result = m_cameraError;
+
+    if (requestedSize.isValid())
+        result = result.scaled (requestedSize);
+
+    *size = result.size();
+    return result;
 }

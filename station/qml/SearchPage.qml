@@ -29,6 +29,11 @@ Page {
         searchBox.forceActiveFocus()
     }
 
+    Connections {
+        target: QCCTVStation
+        onCameraCountChanged: listView.loadAllCameras()
+    }
+
     background: Rectangle {
         color: "#000"
 
@@ -37,7 +42,11 @@ Page {
             anchors.fill: parent
             anchors.margins: app.spacing * 2
 
+            //
+            // Search box
+            //
             RowLayout {
+                id: row
                 spacing: app.spacing
                 Layout.fillWidth: true
 
@@ -52,13 +61,73 @@ Page {
                 TextField {
                     id: searchBox
                     Layout.fillWidth: true
+                    onTextChanged: listView.search (text)
                     placeholderText: qsTr ("Search for camera feeds") + "..."
                 }
             }
 
-            Item {
+            //
+            // Search results
+            //
+            ListView {
+                z: 0
+                clip: true
+                id: listView
+                spacing: app.spacing
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+
+                property variant allowedCameras: []
+
+                //
+                // Shows all the cameras in the search results
+                //
+                function loadAllCameras() {
+                    allowedCameras = []
+                    model = 0
+                    model = QCCTVStation.cameraCount()
+                    for (var i = 0; i < model; ++i)
+                        allowedCameras.push (i)
+                }
+
+                //
+                // Only allows the cameras that contain the given \a text
+                // to appear in the search result
+                //
+                function search (text) {
+                    allowedCameras = []
+                    for (var i = 0; i < model; ++i) {
+                        var name = QCCTVStation.cameraName (i).toLowerCase()
+                        var filter = text.toLowerCase()
+                        if (name.search (filter) > -1 || filter === "")
+                            allowedCameras.push (i)
+                    }
+
+                    allowedCamerasChanged()
+                }
+
+                //
+                // Scrollbars
+                //
+                ScrollBar.vertical: ScrollBar { }
+
+                //
+                // Search result item
+                //
+                delegate: CameraElement {
+                    camNumber: index
+                    Layout.fillWidth: true
+
+                    Connections {
+                        target: listView
+                        onAllowedCamerasChanged: {
+                            if (listView.allowedCameras.indexOf (index) > -1)
+                                opacity = 1
+                            else
+                                opacity = 0
+                        }
+                    }
+                }
             }
         }
     }

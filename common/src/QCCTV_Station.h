@@ -80,6 +80,7 @@ public:
     Q_INVOKABLE QImage currentImage (const int camera);
     Q_INVOKABLE QHostAddress address (const int camera);
     Q_INVOKABLE QString statusString (const int camera);
+    Q_INVOKABLE QString addressString (const int camera);
     Q_INVOKABLE bool flashlightEnabled (const int camera);
     Q_INVOKABLE bool flashlightAvailable (const int camera);
     Q_INVOKABLE bool autoRegulateResolution (const int camera);

@@ -76,9 +76,6 @@ Item {
         autoRegulate = QCCTVStation.autoRegulateResolution (camNumber)
 
         fpsText.text = fps + " FPS"
-
-        image.source = ""
-        image.source = "image://qcctv/" + camNumber
     }
 
     //
@@ -110,13 +107,6 @@ Item {
     //
     Connections {
         target: QCCTVStation
-
-        onNewCameraImage: {
-            if (camera === camNumber && enabled) {
-                image.source = ""
-                image.source = "image://qcctv/" + camNumber
-            }
-        }
 
         onFpsChanged: {
             if (camera === camNumber && enabled)
@@ -174,12 +164,12 @@ Item {
     //
     // Camera image
     //
-    Image {
-        id: image
-        cache: false
-        asynchronous: true
+    CameraVideo {
+        cameraId: camNumber
         anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
+        enabled: cam.enabled
+        fillMode: fillButton.checked ? Image.PreserveAspectFit :
+                                       Image.PreserveAspectCrop
     }
 
     //
@@ -424,6 +414,22 @@ Item {
                 QCCTVStation.focusCamera (camNumber)
                 tooltip.text = qsTr ("Focusing Camera") + "..."
                 tooltip.visible = true
+            }
+        }
+
+        //
+        // Fill/fit button
+        //
+        Button {
+            id: fillButton
+            checkable: true
+            contentItem: Image {
+                fillMode: Image.Pad
+                sourceSize: cam.buttonSize
+                verticalAlignment: Image.AlignVCenter
+                horizontalAlignment: Image.AlignHCenter
+                source: fillButton.checked ? "qrc:/images/fit.svg" :
+                                             "qrc:/images/fill.svg"
             }
         }
 

@@ -46,12 +46,26 @@ Page {
     }
 
     //
+    // Allows the application to display a fullscreen camera from anywhere
+    //
+    function showCamera (camera) {
+        fullscreenCamera.showCamera (camera)
+    }
+
+    //
     // QCCTV signals/slots
     //
     Connections {
         target: QCCTVStation
         onGroupCountChanged: generateGrid()
         onCameraCountChanged: generateGrid()
+    }
+
+    //
+    // Set background item
+    //
+    background: Rectangle {
+        color: "#000"
     }
 
     //
@@ -63,24 +77,38 @@ Page {
 
         Behavior on opacity { NumberAnimation{} }
 
-        background: Rectangle {
-            color: "#000"
+        ColumnLayout {
+            spacing: 0
+            anchors.fill: parent
 
             GroupView {
                 id: groupView
-                anchors.fill: parent
+                Layout.fillWidth: true
+                Layout.fillHeight: true
             }
-        }
 
-        footer: TabBar {
-            opacity: 0.62
+            Rectangle {
+                height: 1
+                color: Material.accent
+                Layout.fillWidth: true
+                visible: tabBar.visible
+            }
 
-            Repeater {
-                id: tabs
-                delegate: TabButton {
-                    onClicked: groupView.group = index
-                    font.capitalization: Font.AllUppercase
-                    text: QCCTVStation.getGroupName (index)
+            TabBar {
+                id: tabBar
+                visible: opacity > 0
+                Layout.fillWidth: true
+                opacity: tabs.model > 1 ? 1 : 0
+
+                Behavior on opacity { NumberAnimation{} }
+
+                Repeater {
+                    id: tabs
+                    delegate: TabButton {
+                        onClicked: groupView.group = index
+                        font.capitalization: Font.AllUppercase
+                        text: QCCTVStation.getGroupName (index)
+                    }
                 }
             }
         }

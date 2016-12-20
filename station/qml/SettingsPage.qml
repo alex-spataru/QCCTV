@@ -273,8 +273,8 @@ Page {
 
         dim: true
         modal: true
-        contentWidth: column.width
-        contentHeight: column.height
+        contentWidth: column.width * 1.2
+        contentHeight: column.height * 1.2
 
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
@@ -285,6 +285,7 @@ Page {
         ColumnLayout {
             id: column
             spacing: app.spacing
+            anchors.centerIn: parent
 
             Image {
                 smooth: true
@@ -326,12 +327,6 @@ Page {
                     text: qsTr ("Report Bug")
                     onClicked: Qt.openUrlExternally ("https://github.com/alex-spataru/qcctv/issues")
                 }
-            }
-
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 260
             }
         }
     }

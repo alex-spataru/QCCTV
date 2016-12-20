@@ -109,7 +109,7 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
         dir.mkpath (".");
 
     /* Get image name (based on seconds & msecs) */
-    QString f_name = QString ("%1 sec %2 ms.%3")
+    QString f_name = QString ("%1_%2.%3")
                      .arg (current.toString ("ss"))
                      .arg (current.toString ("zzz"))
                      .arg (IMAGE_FORMAT);
@@ -167,7 +167,7 @@ void QCCTV_ImageSaver::createMinuteVideo (const QString& path)
 }
 
 /**
- * Joins all the one-minute videos into a one-hour video
+ * Joins all the one-minute videos from the given \a path into a one-hour video
  */
 void QCCTV_ImageSaver::createHourVideo (const QString& path)
 {

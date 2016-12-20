@@ -298,6 +298,19 @@ QString QCCTV_Station::statusString (const int camera)
 }
 
 /**
+ * Returns the IP address of the given \a camera
+ * \note If an invalid camera ID is given to this function,
+ *       then this function shall return an empty string
+ */
+QString QCCTV_Station::addressString (const int camera)
+{
+    if (getCamera (camera))
+        return getCamera (camera)->address().toString();
+
+    return "";
+}
+
+/**
  * Returns the flash light status of the given \a camera
  * \note If an invalid camera ID is given to this function,
  *       then this function shall return \c QCCTV_FLASHLIGHT_OFF
@@ -579,7 +592,7 @@ void QCCTV_Station::removeCamera (const int camera)
         m_cameras.removeAt (camera);
 
         /* Stop the thread */
-        m_threads.at (camera)->exit();
+        m_threads.at (camera)->deleteLater();
         m_threads.removeAt (camera);
 
         /* Change the ID of cameras following the removed camera */
@@ -606,8 +619,8 @@ void QCCTV_Station::removeCamera (const int camera)
 void QCCTV_Station::connectToCamera (const QHostAddress& ip)
 {
     if (!ip.isNull() && !cameraIPs().contains (ip)) {
-        QThread* thread = new QThread();
-        QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera();
+        QThread* thread = new QThread;
+        QCCTV_RemoteCamera* camera = new QCCTV_RemoteCamera;
 
         /* Register thread and camera pointers */
         m_threads.append (thread);
@@ -625,7 +638,7 @@ void QCCTV_Station::connectToCamera (const QHostAddress& ip)
                  camera,   SLOT (start()));
 
         /* Move remote camera to different thread */
-        thread->start();
+        thread->start (QThread::HighPriority);
         camera->moveToThread (thread);
 
         /* Connect equivalent signals between station and camera */

@@ -8,5 +8,7 @@
         <file>LiveFeed.qml</file>
         <file>SettingsPage.qml</file>
         <file>SearchPage.qml</file>
+        <file>CameraElement.qml</file>
+        <file>CameraVideo.qml</file>
     </qresource>
 </RCC>

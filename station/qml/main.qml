@@ -49,6 +49,14 @@ ApplicationWindow {
     property int spacing: 8
 
     //
+    // Allows the application to display a fullscreen camera from anywhere
+    //
+    function showCamera (camera) {
+        liveFeed.showCamera (camera)
+        swipeView.currentIndex = 0
+    }
+
+    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
@@ -106,14 +114,17 @@ ApplicationWindow {
         onCurrentIndexChanged: tabBar.currentIndex = currentIndex
 
         LiveFeed {
+            clip: true
             id: liveFeed
         }
 
         SearchPage {
+            clip: true
             id: search
         }
 
         SettingsPage {
+            clip: true
             id: settings
         }
     }

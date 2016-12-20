@@ -20,34 +20,25 @@
  * DEALINGS IN THE SOFTWARE
  */
 
-#include <QCCTV.h>
-#include <QPainter>
-#include <QCCTV_LocalCamera.h>
+import QtQuick 2.0
 
-#include "ImageProvider.h"
+Image {
+    property int cameraId: 0
 
-QCCTV_ImageProvider::QCCTV_ImageProvider (QCCTV_LocalCamera* parent) :
-    QQuickImageProvider (QQuickImageProvider::Image)
-{
-    m_localCamera = parent;
-    m_cameraError = QCCTV_CreateStatusImage (QSize (640, 480), "IMAGE ERROR");
+    Connections {
+        target: QCCTVStation
+        onNewCameraImage: {
+            if (camera === cameraId && enabled) {
+                source = ""
+                source = "image://qcctv/" + cameraId
+            }
+        }
+    }
+
+    cache: false
+    smooth: true
+    asynchronous: true
+    fillMode: Image.PreserveAspectCrop
+    source: "image://qcctv/" + cameraId
 }
 
-QImage QCCTV_ImageProvider::requestImage (const QString& id, QSize* size,
-                                          const QSize& requestedSize)
-{
-    Q_UNUSED (id);
-    QImage result;
-
-    if (m_localCamera)
-        result = m_localCamera->currentImage();
-
-    if (result.isNull())
-        result = m_cameraError;
-
-    if (requestedSize.isValid())
-        result = result.scaled (requestedSize);
-
-    *size = result.size();
-    return result;
-}
