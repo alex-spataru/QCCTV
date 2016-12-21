@@ -12,15 +12,16 @@ The QCCTV suite consists of two applications:
 
 - QCCTV Cameras broadcast a small UDP packet periodically to make themselves visible to any QCCTV Station in the same network.
 - Once the UDP packet is received, the QCCTV Station will attempt to establish a TCP connection with the camera
-- Once the TCP connection is established, the camera will send the following two packet types:
-	- Binary JSON data containing camera status and information (with UDP socket)
-	- Compressed camera frame (in JPEG format) and CRC32 checksum of the data (with TCP socket)
-- On the other hand, the QCCTV Station will send the following data over UDP:
+- Once the TCP connection is established, the camera will send these packets periodically:
+	- Binary JSON data containing camera status and information (with an UDP socket)
+	- Compressed camera frame (in JPEG format) and CRC32 checksum of the data (with a TCP socket)
+- On the other hand, the QCCTV Station will respond to camera packets with the following data:
 	- Current FPS and desired FPS
 	- Current resolution and desired resolution
 	- Current zoom and desired zoom
 	- Current flash light status and desired flashlight status
 	- Focus request byte (if applicable)
+	- Current and desired values are sent in order to avoid overwritting any configuration set locally by the camera; If the current (or "old") value in the packet does not correspond to the current value used by the camera, then the QCCTV Camera shall ignore the request
 - If allowed, the QCCTV Camera shall auto-regulate its resolution to improve communication speeds. This option can be configured remotely by the QCCTV Station or locally, by the camera itself
 
 ### Networking Code
