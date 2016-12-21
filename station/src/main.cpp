@@ -44,7 +44,6 @@ int main (int argc, char* argv[])
     QApplication::setOrganizationDomain (APP_WEBSITE);
 
     /* Set application attributes */
-    QApplication::setAttribute (Qt::AA_UseDesktopOpenGL);
     QApplication::setAttribute (Qt::AA_ShareOpenGLContexts);
     QApplication::setAttribute (Qt::AA_EnableHighDpiScaling);
 

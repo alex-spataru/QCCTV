@@ -108,6 +108,8 @@ ApplicationWindow {
 
         Controls {
             id: controls
+            onSettingsButtonClicked: settings.open()
+
             background: Image {
                 id: image
                 cache: false
@@ -119,5 +121,12 @@ ApplicationWindow {
         Stations {
             id: stations
         }
+    }
+
+    //
+    // Settings dialog
+    //
+    SettingsDialog {
+        id: settings
     }
 }

@@ -23,33 +23,11 @@
 import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
-import Qt.labs.settings 1.0
-
 import QtQuick.Controls.Material 2.0
 import QtQuick.Controls.Universal 2.0
 
 Page {
     id: controls
-
-    //
-    // Global variables
-    //
-    property int fps: 0
-    property string name: ""
-    property string group: ""
-    property int resolution: 0
-    property bool autoRegulate: true
-
-    //
-    // Settings
-    //
-    Settings {
-        property alias fps: controls.fps
-        property alias name: controls.name
-        property alias group: controls.group
-        property alias resolution: controls.resolution
-        property alias autoRegulate: controls.autoRegulate
-    }
 
     //
     // Instructs QCCTV to focus the camera and updates the UI
@@ -60,34 +38,17 @@ Page {
     }
 
     //
-    // Change QCCTV variables automatically
-    //
-    onFpsChanged: QCCTVCamera.fps = fps
-    onNameChanged: QCCTVCamera.name = name
-    onGroupChanged: QCCTVCamera.group = group
-    onResolutionChanged: QCCTVCamera.resolution = resolution
-    onAutoRegulateChanged: QCCTVCamera.autoRegulateResolution = autoRegulate
-
-    //
-    // Update variables automatically
-    //
-    Connections {
-        target: QCCTVCamera
-        onFpsChanged: controls.fps = QCCTVCamera.fps
-        onNameChanged: controls.name = QCCTVCamera.name
-        onGroupChanged: controls.group = QCCTVCamera.group
-        onResolutionChanged: controls.resolution = QCCTVCamera.resolution
-        onZoomLevelChanged: zoomSlider.value = QCCTVCamera.zoomLevel
-        onAutoRegulateResolutionChanged: controls.autoRegulate = QCCTVCamera.autoRegulateResolution
-    }
-
-    //
     // Zoom camera when user double taps the image
     //
     MouseArea {
         anchors.fill: parent
         onDoubleClicked: controls.focusCamera()
     }
+
+    //
+    // Emitted when the user clicks the settings button
+    //
+    signal settingsButtonClicked
 
     //
     // Camera information labels
@@ -159,133 +120,6 @@ Page {
     }
 
     //
-    // Settings dialog
-    //
-    Popup {
-        id: settings
-
-        modal: true
-        x: (app.width - width) / 2
-
-        Material.theme: Material.Light
-        Universal.theme: Universal.Dark
-
-        contentWidth: column.width
-        contentHeight: column.height
-
-        ColumnLayout {
-            id: column
-            spacing: app.spacing
-
-            //
-            // Camera name label
-            //
-            Label {
-                text: qsTr ("Camera Name") + ":"
-            }
-
-            //
-            // Camera name text input
-            //
-            TextField {
-                id: nameInput
-                text: QCCTVCamera.name
-                Layout.fillWidth: true
-                Layout.minimumWidth: 280
-                onTextChanged: {
-                    if (text.length > 0)
-                        QCCTVCamera.name = text
-                }
-            }
-
-            //
-            // Camera group label
-            //
-            Label {
-                text: qsTr ("Camera Group") + ":"
-            }
-
-            //
-            // Camera group text input
-            //
-            TextField {
-                id: groupInput
-                Layout.fillWidth: true
-                text: QCCTVCamera.group
-                Layout.minimumWidth: 280
-                onTextChanged: {
-                    if (text.length > 0)
-                        QCCTVCamera.group = text
-                }
-            }
-
-            //
-            // FPS label
-            //
-            Label {
-                text: qsTr ("Camera FPS") + ":"
-            }
-
-            //
-            // FPS spinbox
-            //
-            SpinBox {
-                id: fpsSpin
-                value: QCCTVCamera.fps
-                Layout.fillWidth: true
-                to: QCCTVCamera.maximumFps
-                from: QCCTVCamera.minimumFps
-                onValueChanged: QCCTVCamera.fps = value
-            }
-
-            //
-            // Resolution label
-            //
-            Label {
-                text: qsTr ("Target Resolution") + ":"
-            }
-
-            //
-            // Resolution selector
-            //
-            ComboBox {
-                id: resolutions
-                Layout.fillWidth: true
-                model: QCCTVCamera.resolutions
-                currentIndex: QCCTVCamera.resolution
-                onCurrentIndexChanged: QCCTVCamera.resolution = currentIndex
-            }
-
-            //
-            // Auto-regulate switch
-            //
-            Switch {
-                id: autoRegulateCheck
-                checked: QCCTVCamera.autoRegulateResolution
-                text: qsTr ("Auto-regulate video resolution")
-                onCheckedChanged: QCCTVCamera.autoRegulateResolution = checked
-            }
-
-            //
-            // Spacer
-            //
-            Item {
-                Layout.fillWidth: true
-                Layout.minimumWidth: app.spacing
-            }
-
-            //
-            // Close button
-            //
-            Button {
-                text: qsTr ("Close")
-                Layout.fillWidth: true
-                onClicked: settings.close()
-            }
-        }
-    }
-
-    //
     // Camera control buttons
     //
     ColumnLayout {
@@ -340,7 +174,7 @@ Page {
                     horizontalAlignment: Image.AlignHCenter
                 }
 
-                onClicked: settings.open()
+                onClicked: settingsButtonClicked()
             }
 
             //

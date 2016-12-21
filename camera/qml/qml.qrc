@@ -4,5 +4,6 @@
         <file>main_default.qml</file>
         <file>Controls.qml</file>
         <file>Stations.qml</file>
+        <file>SettingsDialog.qml</file>
     </qresource>
 </RCC>
