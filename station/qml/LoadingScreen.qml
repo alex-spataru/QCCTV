@@ -23,18 +23,19 @@
 import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
+import QtQuick.Controls.Material 2.0
 
 Item {
     id: screen
 
     Rectangle {
-        color: "#000"
         anchors.fill: parent
+        color: app.backgroundColor
     }
 
     Image {
         anchors.centerIn: parent
-        source: "qrc:/images/qcctv.png"
+        source: app.getIcon ("qcctv.png")
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
@@ -80,7 +81,7 @@ Item {
         }
 
         Label {
-            color: "#ccc"
+            color: app.disabledForegroundColor
             text: qsTr ("Try launching QCCTV Camera in some of your LAN devices")
         }
     }

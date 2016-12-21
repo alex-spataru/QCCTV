@@ -1,20 +1,33 @@
 <RCC>
     <qresource prefix="/images">
-        <file>back.svg</file>
-        <file>camera.svg</file>
-        <file>qcctv.png</file>
-        <file>settings.svg</file>
-        <file>flash-off.svg</file>
-        <file>flash-on.svg</file>
-        <file>focus.svg</file>
-        <file>download.svg</file>
-        <file>open.svg</file>
-        <file>gradient.svg</file>
-        <file>search.svg</file>
         <file>qcctv-station.png</file>
-        <file>zoom.svg</file>
-        <file>fullscreen.svg</file>
-        <file>fill.svg</file>
-        <file>fit.svg</file>
+        <file>dark/back.svg</file>
+        <file>dark/download.svg</file>
+        <file>dark/fill.svg</file>
+        <file>dark/fit.svg</file>
+        <file>dark/flash-off.svg</file>
+        <file>dark/flash-on.svg</file>
+        <file>dark/focus.svg</file>
+        <file>dark/fullscreen.svg</file>
+        <file>dark/gradient.svg</file>
+        <file>dark/open.svg</file>
+        <file>dark/qcctv.png</file>
+        <file>dark/search.svg</file>
+        <file>dark/settings.svg</file>
+        <file>dark/zoom.svg</file>
+        <file>light/back.svg</file>
+        <file>light/download.svg</file>
+        <file>light/fill.svg</file>
+        <file>light/fit.svg</file>
+        <file>light/flash-off.svg</file>
+        <file>light/flash-on.svg</file>
+        <file>light/focus.svg</file>
+        <file>light/fullscreen.svg</file>
+        <file>light/gradient.svg</file>
+        <file>light/open.svg</file>
+        <file>light/qcctv.png</file>
+        <file>light/search.svg</file>
+        <file>light/settings.svg</file>
+        <file>light/zoom.svg</file>
     </qresource>
 </RCC>

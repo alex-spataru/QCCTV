@@ -25,7 +25,6 @@ import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Controls.Material 2.0
-import QtQuick.Controls.Universal 2.0
 
 import "."
 
@@ -37,16 +36,32 @@ ApplicationWindow {
     //
     width: 840
     height: 520
-    color: "#000"
     visible: true
     x: isMobile ? 0 : 100
     y: isMobile ? 0 : 100
+    color: backgroundColor
     title: AppDspName + " " + AppVersion
 
     //
     // Global variables
     //
     property int spacing: 8
+
+    //
+    // Custom styling colors
+    //
+    property string backgroundColor: {
+        if (Material.theme === Material.Light)
+            return "#efefef"
+        else
+            return "#0c0c0c"
+    }
+    property string disabledForegroundColor: {
+        if (Material.theme === Material.Light)
+            return "#7c7c7c"
+        else
+            return "#cccccc"
+    }
 
     //
     // Allows the application to display a fullscreen camera from anywhere
@@ -57,16 +72,28 @@ ApplicationWindow {
     }
 
     //
+    // Returns the correct path for the given icon
+    //
+    function getIcon (name) {
+        if (Material.theme === Material.Light)
+            return "qrc:/images/light/" + name
+        else
+            return "qrc:/images/dark/" + name
+    }
+
+    //
     // Show window correctly on mobile devices
     //
     Component.onCompleted: {
         if (isMobile)
             showMaximized()
 
-        Material.accent = "#8fc859"
-        Universal.accent = "#8fc859"
         Material.theme = Material.Dark
-        Universal.theme = Universal.Dark
+
+        if (Material.theme === Material.Light)
+            Material.accent = "#12752d"
+        else
+            Material.accent = "#8fc859"
     }
 
     //
@@ -84,6 +111,13 @@ ApplicationWindow {
     //
     header: TabBar {
         id: tabBar
+
+        Component.onCompleted: {
+            if (Material.theme === Material.Light) {
+                Material.foreground = "#8c8c8c"
+                Material.background = "#dedede"
+            }
+        }
 
         TabButton {
             text: qsTr ("Live Feeds")

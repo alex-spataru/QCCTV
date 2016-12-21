@@ -80,15 +80,14 @@ Item {
 
             Label {
                 id: name
-                color: "#fff"
                 font.bold: true
                 font.pixelSize: 18
                 text: QCCTVStation.cameraName (camNumber)
             }
 
             Label {
-                color: "#ccc"
                 font.pixelSize: 14
+                color: app.disabledForegroundColor
                 text: QCCTVStation.addressString (camNumber)
             }
         }

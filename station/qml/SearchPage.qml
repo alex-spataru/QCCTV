@@ -23,6 +23,7 @@
 import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
+import QtQuick.Controls.Material 2.0
 
 Page {
     function focusSearchBox() {
@@ -35,7 +36,7 @@ Page {
     }
 
     background: Rectangle {
-        color: "#000"
+        color: app.backgroundColor
 
         ColumnLayout {
             spacing: app.spacing
@@ -53,7 +54,7 @@ Page {
                 Image {
                     fillMode: Image.Pad
                     sourceSize: Qt.size (48, 48)
-                    source: "qrc:/images/search.svg"
+                    source: app.getIcon ("search.svg")
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }

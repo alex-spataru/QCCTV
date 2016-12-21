@@ -24,9 +24,7 @@ import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
 import Qt.labs.settings 1.0
-
 import QtQuick.Controls.Material 2.0
-import QtQuick.Controls.Universal 2.0
 
 Popup {
     id: settings
@@ -55,7 +53,6 @@ Popup {
     // Styling options
     //
     Material.theme: Material.Light
-    Universal.theme: Universal.Dark
 
     //
     // Central widget

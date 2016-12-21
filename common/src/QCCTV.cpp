@@ -159,7 +159,7 @@ QByteArray QCCTV_EncodeImage (const QImage& image, const int res)
     /* Save image to byte array */
     QByteArray raw_bytes;
     QBuffer buffer (&raw_bytes);
-    final.save (&buffer, "jpg", 80);
+    final.save (&buffer, "jpg", 100);
     buffer.close();
 
     /* Return image bytes */

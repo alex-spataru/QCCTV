@@ -24,7 +24,6 @@ import QtQuick 2.0
 import QtQuick.Layouts 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Controls.Material 2.0
-import QtQuick.Controls.Universal 2.0
 
 Item {
     id: cam
@@ -40,7 +39,7 @@ Item {
     property string cameraStatus: ""
     property bool autoRegulate: true
     property bool zoomSupport: false
-    property size buttonSize: Qt.size (48, 48)
+    property size buttonSize: Qt.size (36, 36)
 
     //
     // Update FPS automatically
@@ -214,29 +213,28 @@ Item {
         }
 
         Label {
-            color: "#fff"
             text: cameraName
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
 
         Label {
-            color: "#ccc"
             text: cameraStatus
+            color: app.disabledForegroundColor
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
 
         Label {
             id: fpsText
-            color: "#ccc"
+            color: app.disabledForegroundColor
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
     }
@@ -348,7 +346,7 @@ Item {
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: cam.buttonSize
-                source: "qrc:/images/back.svg"
+                source: app.getIcon ("back.svg")
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
             }
@@ -363,7 +361,7 @@ Item {
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: cam.buttonSize
-                source: "qrc:/images/settings.svg"
+                source: app.getIcon ("settings.svg")
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
             }
@@ -380,8 +378,8 @@ Item {
                 sourceSize: cam.buttonSize
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
-                source: flashOn ? "qrc:/images/flash-on.svg" :
-                                  "qrc:/images/flash-off.svg"
+                source: flashOn ? app.getIcon ("flash-on.svg") :
+                                  app.getIcon ("flash-off.svg")
             }
 
             onClicked: {
@@ -405,7 +403,7 @@ Item {
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: cam.buttonSize
-                source: "qrc:/images/focus.svg"
+                source: app.getIcon ("focus.svg")
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
             }
@@ -428,8 +426,8 @@ Item {
                 sourceSize: cam.buttonSize
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
-                source: fillButton.checked ? "qrc:/images/fit.svg" :
-                                             "qrc:/images/fill.svg"
+                source: fillButton.checked ? app.getIcon ("fill.svg") :
+                                             app.getIcon ("fit.svg")
             }
         }
 
@@ -445,7 +443,7 @@ Item {
             contentItem: Image {
                 fillMode: Image.Pad
                 sourceSize: cam.buttonSize
-                source: "qrc:/images/zoom.svg"
+                source: app.getIcon ("zoom.svg")
                 verticalAlignment: Image.AlignVCenter
                 horizontalAlignment: Image.AlignHCenter
             }

@@ -323,10 +323,7 @@ void QCCTV_RemoteCamera::readInfoPacket (const QByteArray& data)
  */
 void QCCTV_RemoteCamera::setImageQuality (const int quality)
 {
-    if (quality == 0)
-        m_quality = -1;
-    else
-        m_quality = qMax (qMin (quality, 100), 0);
+    m_quality = qMax (qMin (quality, 100), 0);
 }
 
 /**

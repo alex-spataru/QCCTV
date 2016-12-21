@@ -65,7 +65,7 @@ Page {
     // Set background item
     //
     background: Rectangle {
-        color: "#000"
+        color: app.backgroundColor
     }
 
     //

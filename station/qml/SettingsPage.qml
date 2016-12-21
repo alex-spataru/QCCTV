@@ -25,9 +25,6 @@ import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Controls.Material 2.0
-import QtQuick.Controls.Universal 2.0
-
-import Qt.labs.settings 1.0
 
 Page {
     //
@@ -56,7 +53,7 @@ Page {
     // Background item
     //
     background: Rectangle {
-        color: "#000"
+        color: app.backgroundColor
 
         ColumnLayout {
             spacing: app.spacing
@@ -74,7 +71,7 @@ Page {
                 Image {
                     fillMode: Image.Pad
                     sourceSize: Qt.size (72, 72)
-                    source: "qrc:/images/download.svg"
+                    source: app.getIcon ("download.svg")
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }
@@ -112,7 +109,7 @@ Page {
                             contentItem: Image {
                                 fillMode: Image.Pad
                                 sourceSize: Qt.size (24, 24)
-                                source: "qrc:/images/open.svg"
+                                source: app.getIcon ("open.svg")
                                 verticalAlignment: Image.AlignVCenter
                                 horizontalAlignment: Image.AlignHCenter
                             }
@@ -133,7 +130,7 @@ Page {
                 Image {
                     fillMode: Image.Pad
                     sourceSize: Qt.size (72, 72)
-                    source: "qrc:/images/gradient.svg"
+                    source: app.getIcon ("gradient.svg")
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }
@@ -142,45 +139,26 @@ Page {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
 
-                    CheckBox {
-                        id: qltyCheckbox
-                        Layout.fillWidth: true
-                        checked: quality.value > 0
-                        text: qsTr ("Set image quality level to") + ":"
-
-                        onCheckStateChanged: {
-                            if (!checked)
-                                quality.value = 0
-                        }
-                    }
-
                     RowLayout {
                         spacing: app.spacing
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
 
                         Slider {
                             id: quality
 
                             to: 100
                             from: 0
-                            value: 0
+                            value: 80
                             stepSize: 1
                             Layout.fillWidth: true
-                            opacity: enabled ? 1 : 0.5
                             snapMode: Slider.SnapAlways
-                            enabled: qltyCheckbox.checked
                             onVisualPositionChanged: hints.updateText()
                             onValueChanged: QCCTVStation.setImageQuality (value)
                         }
 
                         Label {
-                            id: indicator
-                            text: {
-                                if (!qltyCheckbox.checked)
-                                    return qsTr ("Auto")
-                                else
-                                    Math.round (quality.visualPosition * 100) + " %"
-                            }
+                            text: Math.round (quality.visualPosition * 100) + " %"
                         }
                     }
 
@@ -188,15 +166,15 @@ Page {
                         id: hints
 
                         function updateText() {
-                            if (quality.visualPosition < 0.5)
+                            if (quality.visualPosition <= 0.5)
                                 text = qsTr ("Lower quality will result in smaller image size, " +
                                              "but will also introduce visible compression artifacts")
-                            else if (quality.visualPosition > 0.8)
+                            else if (quality.visualPosition >= 0.8)
                                 text = qsTr ("Higher quality will save more image details, " +
                                              "but will result in a higer image size")
                         }
 
-                        color: "#ccc"
+                        color: app.disabledForegroundColor
                         font.pixelSize: 10
                         wrapMode: Label.WordWrap
                     }
@@ -213,7 +191,7 @@ Page {
                 Image {
                     fillMode: Image.Pad
                     sourceSize: Qt.size (72, 72)
-                    source: "qrc:/images/fullscreen.svg"
+                    source: app.getIcon ("fullscreen.svg")
                     verticalAlignment: Image.AlignVCenter
                     horizontalAlignment: Image.AlignHCenter
                 }
@@ -280,7 +258,6 @@ Page {
         y: (parent.height - height) / 2
 
         Material.theme: Material.Light
-        Universal.theme: Universal.Light
 
         ColumnLayout {
             id: column

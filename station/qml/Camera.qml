@@ -74,29 +74,28 @@ Item {
         }
 
         Label {
-            color: "#fff"
             text: cameraName
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
 
         Label {
-            color: "#ccc"
             text: cameraStatus
+            color: app.disabledForegroundColor
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
 
         Label {
-            color: "#ccc"
             text: fps
+            color: app.disabledForegroundColor
             background: Rectangle {
-                color: "#000"
                 opacity: 0.65
+                color: app.backgroundColor
             }
         }
     }

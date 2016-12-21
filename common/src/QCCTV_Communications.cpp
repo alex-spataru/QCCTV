@@ -63,10 +63,10 @@ void QCCTV_InitInfo (QCCTV_InfoPacket* packet)
         packet->fps = 10;
         packet->zoom = 0;
         packet->cameraName = "";
-        packet->resolution = QCCTV_D1;
         packet->supportsZoom = false;
         packet->cameraGroup = "Default";
         packet->flashlightEnabled = false;
+        packet->resolution = QCCTV_Original;
         packet->autoRegulateResolution = true;
         packet->cameraStatus = QCCTV_CAMSTATUS_DEFAULT;
     }
