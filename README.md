@@ -10,27 +10,25 @@ The QCCTV suite consists of two applications:
 
 ### How QCCTV works
 
-- QCCTV Cameras broadcast data using UDP to make themselves visible to any QCCTV Station running on the LAN
-- When the QCCTV Station receives a broadcast datagram from a camera, it attempts to establish a TCP connection with the camera
-- If the connection is established, then the camera will send *stream* packets periodically, which contain the following data:
-    - CRC32 checksum
-    - Camera name
-	- Camera group
-	- Camera FPS value
-	- Camera status byte
-    - Flashlight status byte
-	- Auto-Resolution status byte
-    - Compressed JPEG image
-- On the other hand, the QCCTV station will send *command* packets when it receives (and interprets) a stream packet, these packets contain the following data:
-    - Desired camera FPS
-	- Desired image resolution
-	- A focus request (e.g. to force the camera to focus on an objective)
-    - Desired flashlight status (e.g. to remotely turn on or off the flashlight)
-	- Auto-regulated resolution status (e.g to force the camera to send high-quality images)
+- QCCTV Cameras broadcast a small UDP packet periodically to make themselves visible to any QCCTV Station in the same network.
+- Once the UDP packet is received, the QCCTV Station will attempt to establish a TCP connection with the camera
+- Once the TCP connection is established, the camera will send the following two packet types:
+	- Binary JSON data containing camera status and information (with UDP socket)
+	- Compressed camera frame (in JPEG format) and CRC32 checksum of the data (with TCP socket)
+- On the other hand, the QCCTV Station will send the following data over UDP:
+	- Current FPS and desired FPS
+	- Current resolution and desired resolution
+	- Current zoom and desired zoom
+	- Current flash light status and desired flashlight status
+	- Focus request byte (if applicable)
+- If allowed, the QCCTV Camera shall auto-regulate its resolution to improve communication speeds. This option can be configured remotely by the QCCTV Station or locally, by the camera itself
 
-If the QCCTV station does not receive a stream packet in more than 2-5 seconds, then it will asume that the camera is dead and will re-establish the connection with the camera as soon as it receives another broadcast datagram from the camera.
+### Networking Code
 
-On the other hand, the camera will auto-adjust its image quality if it does not receive command packets (or replies) from the station.
+- The ports used by QCCTV are set in [this header](https://github.com/alex-spataru/qcctv/blob/master/common/src/QCCTV.h#L33)
+- All the stream encoding/decoding code is found in:
+	- [QCCTV_Communications.h](https://github.com/alex-spataru/qcctv/blob/master/common/src/QCCTV_Communications.h)
+	- [QCCTV_Communications.cpp](https://github.com/alex-spataru/qcctv/blob/master/common/src/QCCTV_Communications.cpp)
 
 ### Icons 
 
