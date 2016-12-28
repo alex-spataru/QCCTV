@@ -480,6 +480,7 @@ void QCCTV_LocalCamera::update()
 
     /* Update camera info and send it */
     sendInfo();
+    sendImage();
     updateStatus();
 
     /* Call the update function again */
@@ -524,7 +525,6 @@ void QCCTV_LocalCamera::changeImage()
 
     /* Generate the socket data and send it */
     QFutureWatcher<void>* watcher = new QFutureWatcher<void> (this);
-    connect (watcher, SIGNAL (finished()), this,    SLOT (sendImage()));
     connect (watcher, SIGNAL (finished()), watcher, SLOT (deleteLater()));
     watcher->setFuture (QtConcurrent::run (QCCTV_WriteImagePacket,
                                            &m_data, imagePacket(),

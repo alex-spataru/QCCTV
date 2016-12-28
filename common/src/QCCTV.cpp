@@ -160,7 +160,7 @@ QByteArray QCCTV_EncodeImage (const QImage& image, const int res)
     /* Save image to byte array */
     QByteArray raw_bytes;
     QBuffer buffer (&raw_bytes);
-    final.save (&buffer, "jpg", 100);
+    final.save (&buffer, "jpg");
     buffer.close();
 
     /* Return image bytes */
@@ -189,7 +189,7 @@ QImage QCCTV_CreateStatusImage (const QSize& size, const QString& text)
     QPainter painter (&pixmap);
 
     /* Get font information */
-    QFont font ("Arial", size.height() / 18);
+    QFont font ("Arial", size.height() / 18, QFont::Bold);
     QFontMetrics metrics (font);
 
     /* Set painter font */

@@ -80,23 +80,28 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     /* Construct strings */
     QDateTime current = QDateTime::currentDateTime();
     QString fmt = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz");
-    QString str = name + "\n" + fmt;
+    QString str = name + "\t" + fmt;
 
     /* Get font */
     QFont font;
     font.setFamily (MONOSPACE_FONT);
     font.setPixelSize (qMax (copy.height() / 24, 9));
-    QFontMetrics fm (font);
+    QFontMetrics metrics (font);
 
-    /* Get text location */
-    QRect rect (fm.height() / 2, fm.height() / 2,
-                copy.width(), copy.height());
-
-    /* Paint text over image */
+    /* Set painter font */
     QPainter painter (&copy);
     painter.setFont (font);
-    painter.setPen (QPen (Qt::green));
-    painter.drawText (rect, Qt::AlignTop | Qt::AlignLeft, str);
+    painter.setPen (Qt::white);
+
+    /* Get text and background location */
+    int w = metrics.width (str);
+    int h = metrics.height();
+    int s = h * .1;
+
+    /* Paint text over image */
+    QBrush brush (QColor (0, 0, 0, 100));
+    painter.fillRect (QRect (0, 0, w + s, h + s), brush);
+    painter.drawText (QRect (s, s, w, h), Qt::AlignTop | Qt::AlignLeft, str);
 
     /* Get recordings directory */
     int hour = current.time().hour();

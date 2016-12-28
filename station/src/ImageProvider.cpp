@@ -50,6 +50,8 @@ QImage QCCTV_StationImage::requestImage (const QString& id, QSize* size,
     if (requestedSize.isValid())
         result = result.scaled (requestedSize);
 
-    *size = result.size();
+    if (size)
+        *size = result.size();
+
     return result;
 }
