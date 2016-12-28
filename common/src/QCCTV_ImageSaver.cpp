@@ -80,7 +80,6 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     /* Construct strings */
     QDateTime current = QDateTime::currentDateTime();
     QString fmt = current.toString ("dd/MMM/yyyy hh:mm:ss:zzz");
-    QString str = name + "\t" + fmt;
 
     /* Get font */
     QFont font;
@@ -94,20 +93,14 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     painter.setPen (Qt::white);
 
     /* Get text and background location */
-    int w = metrics.width (str);
+    int w = metrics.width (fmt);
     int h = metrics.height();
     int s = h * .1;
-
-    /* Width is larger than image, remove camera name from text */
-    if (w > copy.width()) {
-        str = fmt;
-        w = metrics.width (str);
-    }
 
     /* Paint text over image */
     QBrush brush (QColor (0, 0, 0, 100));
     painter.fillRect (QRect (0, 0, w + s, h + s), brush);
-    painter.drawText (QRect (s, s, w, h), Qt::AlignTop | Qt::AlignLeft, str);
+    painter.drawText (QRect (s, s, w, h), Qt::AlignTop | Qt::AlignLeft, fmt);
 
     /* Get recordings directory */
     int hour = current.time().hour();
