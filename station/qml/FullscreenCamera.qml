@@ -39,6 +39,7 @@ Item {
     property string cameraStatus: ""
     property bool autoRegulate: true
     property bool zoomSupport: false
+    property bool controlsEnabled: true
     property size buttonSize: Qt.size (36, 36)
 
     //
@@ -172,6 +173,14 @@ Item {
     }
 
     //
+    // Toggler mouse area
+    //
+    MouseArea {
+        anchors.fill: parent
+        onClicked: controlsEnabled = !controlsEnabled
+    }
+
+    //
     // Zoom control
     //
     Slider {
@@ -188,7 +197,7 @@ Item {
         orientation: Qt.Vertical
         height: app.height * 0.6
         opacity: enabled ? 1 : 0
-        enabled: zoomSupport && zoomButton.checked
+        enabled: zoomSupport && zoomButton.checked && controlsEnabled
 
         onVisualPositionChanged: {
             if (orientation === Qt.Vertical)
@@ -314,6 +323,9 @@ Item {
     //
     RowLayout {
         spacing: app.spacing
+        opacity: controlsEnabled ? 1 : 0
+
+        Behavior on opacity { NumberAnimation{} }
 
         anchors {
             left: parent.left

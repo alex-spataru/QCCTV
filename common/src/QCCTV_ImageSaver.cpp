@@ -98,6 +98,12 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
     int h = metrics.height();
     int s = h * .1;
 
+    /* Width is larger than image, remove camera name from text */
+    if (w > copy.width()) {
+        str = fmt;
+        w = metrics.width (str);
+    }
+
     /* Paint text over image */
     QBrush brush (QColor (0, 0, 0, 100));
     painter.fillRect (QRect (0, 0, w + s, h + s), brush);
