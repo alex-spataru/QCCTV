@@ -58,4 +58,7 @@ SOURCES += \
     $$PWD/src/QCCTV_Watchdog.cpp \
     $$PWD/src/QCCTV.cpp
 
+RESOURCES += \
+    $$PWD/res/res.qrc
+
 

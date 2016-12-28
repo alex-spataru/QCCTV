@@ -26,6 +26,7 @@
 #include <QObject>
 #include <QPixmap>
 #include <QPainter>
+#include <QFontMetrics>
 
 /**
  * If a is not empty, the function appends \a b to \a a and adds a separator.
@@ -182,14 +183,30 @@ QImage QCCTV_DecodeImage (const QByteArray& data)
  */
 QImage QCCTV_CreateStatusImage (const QSize& size, const QString& text)
 {
-    QPixmap pixmap = QPixmap (size);
-    pixmap.fill (QColor ("#000").rgb());
+    /* Get initial SMPTE image */
+    QPixmap pixmap (":/qcctv/smpte.jpg");
+    pixmap = pixmap.scaled (size);
     QPainter painter (&pixmap);
 
+    /* Get font information */
+    QFont font ("Arial", size.height() / 18);
+    QFontMetrics metrics (font);
+
+    /* Set painter font */
+    painter.setFont (font);
     painter.setPen (Qt::white);
-    painter.setFont (QFont ("Arial"));
+
+    /* Draw text background */
+    int h = metrics.height() * 1.2;
+    int w = metrics.width (text) * 1.2;
+    int x = (size.width() - w) / 2;
+    int y = (size.height() - h) / 2;
+    painter.fillRect (QRectF (x, y, w, h), Qt::black);
+
+    /* Draw the text */
     painter.drawText (QRectF (0, 0, size.width(), size.height()),
                       Qt::AlignCenter, text);
 
+    /* Convert the pixmap to an image */
     return pixmap.toImage();
 }
