@@ -25,6 +25,7 @@ import QtQuick.Layouts 1.0
 import Qt.labs.settings 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Controls.Material 2.0
+import QtQuick.Controls.Universal 2.0
 
 import "."
 
@@ -51,13 +52,15 @@ ApplicationWindow {
     // Custom styling colors
     //
     property string backgroundColor: {
-        if (Material.theme === Material.Light)
+        if (Material.theme === Material.Light ||
+            Universal.theme === Universal.Light)
             return "#efefef"
         else
             return "#0c0c0c"
     }
     property string disabledForegroundColor: {
-        if (Material.theme === Material.Light)
+        if (Material.theme === Material.Light ||
+            Universal.theme === Universal.Light)
             return "#7c7c7c"
         else
             return "#cccccc"
@@ -75,7 +78,8 @@ ApplicationWindow {
     // Returns the correct path for the given icon
     //
     function getIcon (name) {
-        if (Material.theme === Material.Light)
+        if (Material.theme === Material.Light ||
+            Universal.theme === Universal.Light)
             return "qrc:/images/light/" + name
         else
             return "qrc:/images/dark/" + name
@@ -89,11 +93,17 @@ ApplicationWindow {
             showMaximized()
 
         Material.theme = Material.Dark
+        Universal.theme = Universal.Dark
 
         if (Material.theme === Material.Light)
             Material.accent = "#12752d"
         else
             Material.accent = "#8fc859"
+
+        if (Universal.theme === Universal.Light)
+            Universal.accent = "#12752d"
+        else
+            Universal.accent = "#8fc859"
     }
 
     //
@@ -113,9 +123,12 @@ ApplicationWindow {
         id: tabBar
 
         Component.onCompleted: {
-            if (Material.theme === Material.Light) {
+            if (Material.theme === Material.Light ||
+                 Universal.theme === Universal.Light) {
                 Material.foreground = "#8c8c8c"
                 Material.background = "#dedede"
+                Universal.foreground = "#8c8c8c"
+                Universal.background = "#dedede"
             }
         }
 
