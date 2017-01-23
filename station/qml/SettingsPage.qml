@@ -149,7 +149,7 @@ Page {
 
                             to: 100
                             from: 0
-                            value: 80
+                            value: 100
                             stepSize: 1
                             Layout.fillWidth: true
                             snapMode: Slider.SnapAlways
