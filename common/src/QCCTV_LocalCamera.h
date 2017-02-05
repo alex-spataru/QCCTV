@@ -28,6 +28,8 @@
 #include <QTcpSocket>
 #include <QUdpSocket>
 
+#include <QCCTV.h>
+
 class QCamera;
 class QCCTV_Watchdog;
 class QCCTV_ImageCapture;

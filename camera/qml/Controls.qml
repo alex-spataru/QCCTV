@@ -37,11 +37,22 @@ Page {
     }
 
     //
-    // Zoom camera when user double taps the image
+    // Zoom camera with user gesture
     //
-    MouseArea {
+    PinchArea {
+        id: ar
+        property double oldZoom: 0
+
+        function zoomDelta (zoom, percent) {
+            return zoom + (Math.log (percent) / Math.log (2))
+        }
+
         anchors.fill: parent
-        onDoubleClicked: controls.focusCamera()
+        pinch.minimumScale: 0
+        pinch.maximumScale: 100
+        onPinchStarted: oldZoom = QCCTVCamera.zoomLevel
+        onPinchUpdated: QCCTVCamera.zoomLevel = zoomDelta (oldZoom, pinch.scale)
+        onPinchFinished: QCCTVCamera.zoomLevel = zoomDelta (oldZoom, pinch.scale)
     }
 
     //
@@ -87,35 +98,6 @@ Page {
                 opacity: 0.65
             }
         }
-    }
-
-    //
-    // Zoom control
-    //
-    Slider {
-        id: zoomSlider
-
-        anchors {
-            right: parent.right
-            margins: app.spacing
-            verticalCenter: parent.verticalCenter
-        }
-
-        to: 100
-        from: 0
-        orientation: Qt.Vertical
-        height: app.height * 0.6
-        opacity: enabled ? 1 : 0
-        enabled: zoomBt.enabled && zoomBt.checked
-
-        onVisualPositionChanged: {
-            if (orientation === Qt.Vertical)
-                QCCTVCamera.zoomLevel = (1 - visualPosition) * 100
-            else
-                QCCTVCamera.zoomLevel = visualPosition * 100
-        }
-
-        Behavior on opacity { NumberAnimation {} }
     }
 
     //
@@ -227,29 +209,9 @@ Page {
             }
 
             //
-            // Zoom Button
+            // Focus button
             //
             Button {
-                id: zoomBt
-                checkable: true
-                visible: enabled
-                enabled: QCCTVCamera.supportsZoom
-
-                contentItem: Image {
-                    fillMode: Image.Pad
-                    sourceSize: row.buttonSize
-                    source: "qrc:/images/zoom.svg"
-                    verticalAlignment: Image.AlignVCenter
-                    horizontalAlignment: Image.AlignHCenter
-                }
-            }
-
-            //
-            // Focus button (only visible when zoom button is not)
-            //
-            Button {
-                visible: enabled
-                enabled: !zoomBt.enabled
                 onClicked: controls.focusCamera()
 
                 contentItem: Image {

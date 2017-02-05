@@ -51,6 +51,15 @@
 #define QCCTV_MAX_WATCHDOG_TIME 3000
 
 /*
+ * Ugly OS fixes
+ */
+#if defined (Q_OS_LINUX) || defined (Q_OS_ANDROID)
+#define QCCTV_USE_QML_CAMERA
+#else
+#undef QCCTV_USE_QML_CAMERA
+#endif
+
+/*
  * Camera status flags
  */
 enum QCCTV_CameraStatus {
