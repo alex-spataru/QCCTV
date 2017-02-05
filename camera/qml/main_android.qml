@@ -23,6 +23,7 @@
 import QtQuick 2.0
 import QtMultimedia 5.2
 import QtQuick.Controls 2.0
+import Qt.labs.settings 1.0
 import QtQuick.Controls.Material 2.0
 
 import "."
@@ -32,16 +33,35 @@ ApplicationWindow {
     property int spacing: 8
 
     //
-    // Styling options
+    // Geometry options
     //
+    width: 720
+    height: 480
     color: "#000"
     visible: true
+    x: isMobile ? 0 : 100
+    y: isMobile ? 0 : 100
+    title: AppDspName + " " + AppVersion
+
+    //
+    // Settings
+    //
+    Settings {
+        property alias x: app.x
+        property alias y: app.y
+        property alias width: app.width
+        property alias height: app.height
+    }
 
     //
     // Show the window on launch
     //
     Component.onCompleted: {
-        showMaximized()
+        if (isMobile)
+            showMaximized()
+        else
+            showNormal()
+
         Material.accent = "#8fc859"
         Material.theme = Material.Dark
     }
@@ -74,6 +94,8 @@ ApplicationWindow {
 
         Controls {
             id: controls
+            onSettingsButtonClicked: settings.open()
+
             background: VideoOutput {
                 anchors.fill: parent
                 autoOrientation: true
@@ -88,5 +110,12 @@ ApplicationWindow {
         Stations {
             id: stations
         }
+    }
+
+    //
+    // Settings dialog
+    //
+    SettingsDialog {
+        id: settings
     }
 }

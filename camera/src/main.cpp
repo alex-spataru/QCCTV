@@ -75,7 +75,7 @@ int main (int argc, char* argv[])
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.rootContext()->setContextProperty ("QCCTVCamera", qcctvCamera);
 
-#ifdef Q_OS_ANDROID
+#if defined (Q_OS_LINUX) || defined (Q_OS_ANDROID)
     /* Load the QML interface */
     engine.load (QUrl (QStringLiteral ("qrc:/main_android.qml")));
 
