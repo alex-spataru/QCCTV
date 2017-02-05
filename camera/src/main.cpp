@@ -75,6 +75,10 @@ int main (int argc, char* argv[])
     engine.rootContext()->setContextProperty ("AppVersion", APP_VERSION);
     engine.rootContext()->setContextProperty ("QCCTVCamera", qcctvCamera);
 
+    /* Add QCCTV image provider */
+    QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
+    engine.addImageProvider ("qcctv", provider);
+
 #ifdef QCCTV_USE_QML_CAMERA
     /* Load the QML interface */
     engine.load (QUrl (QStringLiteral ("qrc:/main_android.qml")));
@@ -86,10 +90,6 @@ int main (int argc, char* argv[])
         qcctvCamera->setCamera (cam);
     }
 #else
-    /* Add QCCTV image provider */
-    QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
-    engine.addImageProvider ("qcctv", provider);
-
     /* Load QML interface */
     engine.load (QUrl (QStringLiteral ("qrc:/main_default.qml")));
 

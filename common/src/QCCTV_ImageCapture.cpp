@@ -224,6 +224,14 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
             m_image = image;
     }
 
+    /* Image format is not handled by Qt or QCCTV, generate grayscale image */
+    else {
+        m_image = QImage (clone.bits(),
+                          clone.width(),
+                          clone.height(),
+                          QImage::Format_Grayscale8);
+    }
+
     /* Unmap the frame data and process the obtained image */
     clone.unmap();
     return publishImage();

@@ -67,6 +67,18 @@ ApplicationWindow {
     }
 
     //
+    // Update the video output image automatically
+    //
+    Connections {
+        target: QCCTVCamera
+
+        onImageChanged: {
+            image.source = ""
+            image.source = "image://qcctv/"
+        }
+    }
+
+    //
     // Tab selector
     //
     header: TabBar {
@@ -96,14 +108,19 @@ ApplicationWindow {
             id: controls
             onSettingsButtonClicked: settings.open()
 
-            background: VideoOutput {
-                anchors.fill: parent
+            VideoOutput {
+                visible: false
                 autoOrientation: true
-                fillMode: VideoOutput.PreserveAspectCrop
-
                 source: Camera {
                     objectName: "camera"
                 }
+            }
+
+            background: Image {
+                id: image
+                cache: false
+                anchors.fill: parent
+                fillMode: Image.PreserveAspectCrop
             }
         }
 
