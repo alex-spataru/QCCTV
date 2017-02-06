@@ -62,13 +62,11 @@ QCCTV_ImageSaver::QCCTV_ImageSaver (QObject* parent) : QObject (parent)
  *        additional directory under the name folder to avoid saving
  *        conflicting streams from two or more cameras with the same name
  * \param image the image to save
- * \param quality the JPEG quality level to apply to the saved image [0-100]
  */
 void QCCTV_ImageSaver::saveImage (const QString& path,
                                   const QString& name,
                                   const QString& address,
-                                  const QImage& image,
-                                  const int quality)
+                                  const QImage& image)
 {
     /* Check if arguments are valid */
     if (path.isEmpty() || name.isEmpty() || address.isEmpty() || image.isNull())
@@ -119,7 +117,7 @@ void QCCTV_ImageSaver::saveImage (const QString& path,
                      .arg (IMAGE_FORMAT);
 
     /* Save image */
-    copy.save (dir.absoluteFilePath (f_name), IMAGE_FORMAT, quality);
+    copy.save (dir.absoluteFilePath (f_name), IMAGE_FORMAT, 100);
 
     /* If the minute was changed, generate video from all saved images */
     if (minute != m_minute) {

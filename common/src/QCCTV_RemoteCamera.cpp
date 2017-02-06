@@ -44,7 +44,6 @@ static const QString hostName()
 QCCTV_RemoteCamera::QCCTV_RemoteCamera (QObject* parent) : QObject (parent)
 {
     m_id = 0;
-    m_quality = -1;
     m_connected = false;
     m_saveIncomingMedia = false;
     m_saver = new QCCTV_ImageSaver (this);
@@ -181,16 +180,6 @@ int QCCTV_RemoteCamera::id() const
 }
 
 /**
- * Returns the quality level that is applied to saved images from the
- * camera stream. The quality range is from 0 to 100, or -1 if we should
- * let Qt decide by itself the image quality
- */
-int QCCTV_RemoteCamera::imageQuality() const
-{
-    return m_quality;
-}
-
-/**
  * Returns \c true if the station has an active connection
  * with a QCCTV camera
  */
@@ -316,14 +305,6 @@ void QCCTV_RemoteCamera::readInfoPacket (const QByteArray& data)
         updateFlashlightEnabled (packet.flashlightEnabled);
         acknowledgeReception();
     }
-}
-
-/**
- * Changes the image quality (from 0 to 100) used when saving incoming media
- */
-void QCCTV_RemoteCamera::setImageQuality (const int quality)
-{
-    m_quality = qMax (qMin (quality, 100), 0);
 }
 
 /**
@@ -616,8 +597,7 @@ void QCCTV_RemoteCamera::readImagePacket()
                                incomingMediaPath(),
                                name(),
                                address().toString(),
-                               image(),
-                               imageQuality());
+                               image());
         }
     }
 }

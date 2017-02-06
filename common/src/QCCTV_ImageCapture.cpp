@@ -196,6 +196,7 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
         m_image = QImage (clone.bits(),
                           clone.width(),
                           clone.height(),
+                          clone.bytesPerLine(),
                           format);
 
     /* This is an NV12/NV21 image (Qt does not support YUV images yet) */
@@ -225,10 +226,11 @@ bool QCCTV_ImageCapture::present (const QVideoFrame& frame)
     }
 
     /* Image format is not handled by Qt or QCCTV, generate grayscale image */
-    else {
+    else if (clone.bits()) {
         m_image = QImage (clone.bits(),
                           clone.width(),
                           clone.height(),
+                          clone.bytesPerLine(),
                           QImage::Format_Grayscale8);
     }
 

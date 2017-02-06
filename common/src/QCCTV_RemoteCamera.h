@@ -68,7 +68,6 @@ public:
     bool autoRegulateResolution();
 
     int id() const;
-    int imageQuality() const;
     bool isConnected() const;
     QHostAddress address() const;
     bool saveIncomingMedia() const;
@@ -82,7 +81,6 @@ public Q_SLOTS:
     void changeZoom (const int zoom);
     void setSaveIncomingMedia (const bool save);
     void readInfoPacket (const QByteArray& data);
-    void setImageQuality (const int imageQuality);
     void changeResolution (const int resolution);
     void setAddress (const QHostAddress& address);
     void changeAutoRegulate (const bool regulate);
@@ -115,7 +113,6 @@ private:
 
 private:
     int m_id;
-    int m_quality;
     bool m_connected;
     QByteArray m_data;
     QHostAddress m_address;

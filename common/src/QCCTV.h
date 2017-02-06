@@ -42,7 +42,7 @@
 #define QCCTV_MIN_FPS         5
 #define QCCTV_MAX_FPS         30
 #define QCCTV_MAX_BUFFER_SIZE 250 * 1024
-#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/QCCTV/"
+#define QCCTV_RECORDINGS_PATH QDir::homePath() + "/Documents/QCCTV/"
 
 /*
  * Watchdog timings

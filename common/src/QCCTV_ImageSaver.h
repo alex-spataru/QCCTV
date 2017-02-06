@@ -34,8 +34,7 @@ public Q_SLOTS:
     void saveImage (const QString& path,
                     const QString& name,
                     const QString& address,
-                    const QImage& image,
-                    const int quality);
+                    const QImage& image);
 
 private:
     void createHourVideo (const QString& path);

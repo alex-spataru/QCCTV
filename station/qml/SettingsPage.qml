@@ -31,7 +31,6 @@ Page {
     // Settings
     //
     Settings {
-        property alias quality: quality.value
         property alias fullscreen: fullscreen.checked
         property alias saveRecordings: saveIncomingMedia.checked
         property alias recordingsPath: textField.placeholderText
@@ -42,7 +41,6 @@ Page {
     //
     Connections {
         target: QCCTVStation
-        onImageQualityChanged: quality.value = QCCTVStation.imageQuality()
         onRecordingsPathChanged: {
             if (textField.placeholderText !== QCCTVStation.recordingsPath())
                 textField.placeholderText = QCCTVStation.recordingsPath()
@@ -116,67 +114,6 @@ Page {
 
                             onClicked: QCCTVStation.chooseRecordingsPath()
                         }
-                    }
-                }
-            }
-
-            //
-            // Image quality selector
-            //
-            RowLayout {
-                spacing: app.spacing * 2
-                Layout.fillWidth: true
-
-                Image {
-                    fillMode: Image.Pad
-                    sourceSize: Qt.size (72, 72)
-                    source: app.getIcon ("gradient.svg")
-                    verticalAlignment: Image.AlignVCenter
-                    horizontalAlignment: Image.AlignHCenter
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    RowLayout {
-                        spacing: app.spacing
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        Slider {
-                            id: quality
-
-                            to: 100
-                            from: 0
-                            value: 100
-                            stepSize: 1
-                            Layout.fillWidth: true
-                            snapMode: Slider.SnapAlways
-                            onVisualPositionChanged: hints.updateText()
-                            onValueChanged: QCCTVStation.setImageQuality (value)
-                        }
-
-                        Label {
-                            text: Math.round (quality.visualPosition * 100) + " %"
-                        }
-                    }
-
-                    Label {
-                        id: hints
-
-                        function updateText() {
-                            if (quality.visualPosition <= 0.5)
-                                text = qsTr ("Lower quality will result in smaller image size, " +
-                                             "but will also introduce visible compression artifacts")
-                            else if (quality.visualPosition >= 0.8)
-                                text = qsTr ("Higher quality will save more image details, " +
-                                             "but will result in a higer image size")
-                        }
-
-                        color: app.disabledForegroundColor
-                        font.pixelSize: 10
-                        wrapMode: Label.WordWrap
                     }
                 }
             }
