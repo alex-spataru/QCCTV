@@ -79,9 +79,9 @@ int main (int argc, char* argv[])
     QCCTV_ImageProvider* provider = new QCCTV_ImageProvider (qcctvCamera);
     engine.addImageProvider ("qcctv", provider);
 
-#ifdef QCCTV_USE_QML_CAMERA
-    /* Load the QML interface */
-    engine.load (QUrl (QStringLiteral ("qrc:/main_android.qml")));
+#ifdef QCCTV_USE_FALLBACK_INTERFACE
+    /* Load the fallback QML interface */
+    engine.load (QUrl (QStringLiteral ("qrc:/main_fallback.qml")));
 
     /* Get camera from QML interface and register it with QCCTV */
     if (!engine.rootObjects().isEmpty()) {

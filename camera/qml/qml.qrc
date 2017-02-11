@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>main_android.qml</file>
+        <file>main_fallback.qml</file>
         <file>main_default.qml</file>
         <file>Controls.qml</file>
         <file>Stations.qml</file>

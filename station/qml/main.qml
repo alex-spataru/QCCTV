@@ -86,7 +86,7 @@ ApplicationWindow {
     }
 
     //
-    // Show window correctly on mobile devices
+    // Show window and set application style on launch
     //
     Component.onCompleted: {
         if (isMobile)

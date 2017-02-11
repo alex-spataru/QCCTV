@@ -40,7 +40,6 @@ Page {
     // Zoom camera with user gesture
     //
     PinchArea {
-        id: ar
         property double oldZoom: 0
 
         function zoomDelta (zoom, percent) {

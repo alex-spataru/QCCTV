@@ -54,9 +54,11 @@
  * Ugly OS fixes
  */
 #if defined (Q_OS_LINUX) || defined (Q_OS_ANDROID)
-    #define QCCTV_USE_QML_CAMERA
+    #define QCCTV_USE_FALLBACK_INTERFACE
 #else
-    #undef QCCTV_USE_QML_CAMERA
+    #ifdef QCCTV_USE_FALLBACK_INTERFACE
+        #undef QCCTV_USE_FALLBACK_INTERFACE
+    #endif
 #endif
 
 /*

@@ -119,7 +119,7 @@ void QCCTV_ImageCapture::setSource (QCamera* source)
     m_camera = source;
     m_info = QCameraInfo (*source);
 
-#ifdef QCCTV_USE_QML_CAMERA
+#ifdef QCCTV_USE_FALLBACK_INTERFACE
     if (m_probe)
         delete m_probe;
 

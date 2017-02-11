@@ -54,6 +54,12 @@ ApplicationWindow {
     }
 
     //
+    // Application style
+    //
+    Material.accent: "#8fc859"
+    Material.theme: Material.Dark
+
+    //
     // Show the window on launch
     //
     Component.onCompleted: {
@@ -61,9 +67,6 @@ ApplicationWindow {
             showMaximized()
         else
             showNormal()
-
-        Material.accent = "#8fc859"
-        Material.theme = Material.Dark
     }
 
     //
